@@ -106,7 +106,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ContinueOnGap = false;
 
 				// regime tracker
-				Lag           = 3;
+				Lag           = 1;   // canonical (2026-09-24): matches the live chart; Lag>=2 = finalised/non-repaint view
 				ShadeOpacity  = 22;
 				ShowShading   = true;
 				ShowMajors    = true;

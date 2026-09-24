@@ -1,0 +1,25 @@
+NT-vs-Python regime diff  —  C:/Users/Admin/Documents/regime_tracker_ES.csv
+bars compared: 10467   session-mode: eth   lag: 1
+MyWedge params: lookback=12 sym=4 ol=1 ctsb_ignore=True ib_ignore=True sb_ibs=66.0
+
+REGIME AGREEMENT: 10358/10467 = 98.96%
+  core (excl. last 1 tail bars): 10357/10466 = 98.96%
+  tail-zone mismatches (truncation edge, informational): 0
+
+EVENTS  NT=1652  PY=1622  agree=1603  NT-only=49  PY-only=19
+  NT-only events: b890:BOS/down, b1267:BOS/up, b1614:BOS/down, b1940:BOS/down, b1941:BOS/down, b1941:ChoCh/up, b1970:BOS/up, b1972:ChoCh/down, b2205:BOS/down, b2327:BOS/up, b2335:ChoCh/down, b2339:BOS/up, b3019:BOS/down, b3038:ChoCh/up, b3039:BOS/up, b3043:BOS/up, b3299:BOS/up, b3378:BOS/down, b3379:ChoCh/up, b3380:BOS/down
+  PY-only events: b2340:BOS/up, b3043:ChoCh/up, b3044:BOS/up, b3381:ChoCh/up, b4552:BOS/down, b4802:BOS/down, b5291:BOS/down, b5292:BOS/down, b5295:ChoCh/up, b7370:BOS/down, b7374:BOS/down, b7376:ChoCh/up, b7382:BOS/down, b7645:ChoCh/up, b7646:BOS/up, b8574:BOS/down, b9771:BOS/up, b9796:BOS/up, b10058:BOS/down
+
+first 12 regime divergences (bar | time | NT | PY | tail?):
+  1972 | 2026-08-28 11:35:02 | NT=Range  PY=Bull   
+  1973 | 2026-08-28 11:35:48 | NT=Range  PY=Bull   
+  1974 | 2026-08-28 11:36:48 | NT=Range  PY=Bull   
+  1975 | 2026-08-28 11:37:29 | NT=Range  PY=Bull   
+  2205 | 2026-08-31 05:08:03 | NT=Bear   PY=Range  
+  2206 | 2026-08-31 05:26:40 | NT=Bear   PY=Range  
+  2207 | 2026-08-31 05:56:47 | NT=Bear   PY=Range  
+  2208 | 2026-08-31 06:15:57 | NT=Bear   PY=Range  
+  2209 | 2026-08-31 06:35:42 | NT=Bear   PY=Range  
+  2335 | 2026-08-31 09:49:51 | NT=Range  PY=Bull   
+  2336 | 2026-08-31 09:51:07 | NT=Range  PY=Bull   
+  2337 | 2026-08-31 09:52:53 | NT=Range  PY=Bull   

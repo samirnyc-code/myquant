@@ -91,6 +91,14 @@ class MyWedgeResult:
         self.mc_bear = [math.nan] * n
         self.swing_low = [math.nan] * n
         self.swing_high = [math.nan] * n
+        # Lag-aware snapshots: swing_low_asof[j] is the value of swing_low[j] as
+        # it stood immediately after bar (j+lag) finished processing -- i.e. the
+        # exact value the NT8 indicator reads via SwingLow[Lag] when it processes
+        # bar j at CurrentBar=j+lag. With lag>=2 every retro-reset (max depth 2)
+        # has fired, so these equal the finalised arrays; with lag<2 they can
+        # still carry a pivot a later bar removes (the repaint window).
+        self.swing_low_asof = [math.nan] * n
+        self.swing_high_asof = [math.nan] * n
         self.wedge_bl = [math.nan] * n
         self.wedge_br = [math.nan] * n
         self.wedge_bl_sb = [math.nan] * n
@@ -109,7 +117,7 @@ def compute_mywedge(
     lookback=12, show_w2l=False, wedge_symmetry=4, ol_sensitivity=1,
     ctsb_ignore=True, ib_ignore=True, show_wedge_sb=True,
     signal_bar_ibs=66.0, continue_mc=False, continue_on_gap=False,
-    warmup_floor=4,
+    warmup_floor=4, lag=3,
 ):
     """Ports MyWedge.cs's OnBarUpdate. Defaults here match MyWedge.cs's own
     State.SetDefaults (NOT the stale copies in WedgeScalper.cs's SetDefaults --
@@ -647,6 +655,20 @@ def compute_mywedge(
                 res.wedge_bl_sb[i] = L(0) - 2 * tick_size
             if (wv(res.wedge_br, 1) or wv(res.wedge_br, 2)) and ibs0 <= (100 - signal_bar_ibs) and res.ib[i] and max(H(2), H(3)) < H(1):
                 res.wedge_br_sb[i] = H(0) + 2 * tick_size
+
+        # ---- Lag snapshot: freeze bar (i-lag)'s swing flags now that `lag` more
+        #      bars have closed (exactly what NT8 reads as SwingLow[Lag]) ----
+        j = i - lag
+        if j >= 0:
+            res.swing_low_asof[j] = res.swing_low[j]
+            res.swing_high_asof[j] = res.swing_high[j]
+
+    # Trailing `lag` bars never reached their (j+lag) snapshot point -- they have
+    # no future context here (NT8 truncates them from the export). Best-effort:
+    # use the finalised value; the diff tool excuses these as the tail zone.
+    for j in range(max(0, n - lag), n):
+        res.swing_low_asof[j] = res.swing_low[j]
+        res.swing_high_asof[j] = res.swing_high[j]
 
     return res
 

@@ -1,0 +1,13 @@
+overlap bars 0..10266  (10267 compared)
+first OHLC divergence at bar 2144
+
+regime mismatches on IDENTICAL OHLC (=> engine/config diff): 4
+    bar   2149 | A=Bear   B=Range  | A_time 2026-08-28 15:06:34
+    bar   2152 | A=Bear   B=Range  | A_time 2026-08-28 15:26:28
+    bar   2153 | A=Bear   B=Range  | A_time 2026-08-28 15:36:41
+    bar  10053 | A=Bear   B=Range  | A_time 2026-09-23 09:19:47
+
+regime mismatches where OHLC ALSO differs (=> tick data):    87
+    range bars 2150..10210
+
+VERDICT: engine/config STILL differs — see the identical-OHLC flips above.

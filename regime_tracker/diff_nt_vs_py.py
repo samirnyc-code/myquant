@@ -14,14 +14,25 @@ bar drift.
         [--lag 3] [--out DIR]
 
 Defaults mirror the RegimeTracker.cs SetDefaults (LookBack 12, WedgeSymmetry 4,
-OLSensitivity 1, CTSB_Ignore/IB_Ignore on, SignalBarIBS 66, Lag 3). Set these to
+OLSensitivity 1, CTSB_Ignore/IB_Ignore on, SignalBarIBS 66). Set these to
 whatever the indicator was actually configured with, or the pivots will diverge.
 
-NOTE on the tail: the indicator finalises a bar's regime `Lag` bars after it
-closes, so the last `Lag` BAR rows are absent from the CSV. The Python engine is
-run on the bars present; the final ~`Lag` compared bars can carry a small
-truncation edge effect (a pivot that a now-missing future bar would have reset).
-Those are flagged, not counted as logic failures.
+LAG (canonical = 1). The indicator commits a bar's regime `Lag` bars after it
+closes, acting on the pivots as they stand THEN -- `compute_mywedge(lag=...)`
+snapshots exactly that (`swing_*_asof`). At lag>=2 every MyWedge retro-reset
+(max depth 2) has already fired, so the snapshot equals the finalised array (the
+old lag-3 / non-repainting view). At lag=1 the state machine can still act on a
+pivot a later bar removes -- the live chart's behaviour. Pass --lag to match the
+indicator's Lag setting; 1 reproduces the current chart exactly (100% both
+exports 2026-09-24).
+
+SESSION MODE must match the file's timezone: a CT-time export uses --session eth
+(ETH opens 17:00 CT); a Berlin-time export uses --session date (ETH open falls at
+Berlin midnight). Wrong pairing mis-segments sessions and injects phantom diffs.
+
+NOTE on the tail: the last `Lag` BAR rows have no future context here, so their
+snapshot falls back to the finalised value; the diff flags them as the tail zone
+rather than counting them as logic failures.
 """
 import argparse
 import csv
@@ -80,7 +91,7 @@ def main():
     ap.add_argument("--no-ib-ignore", action="store_true")
     ap.add_argument("--signal-bar-ibs", type=float, default=66.0)
     ap.add_argument("--tick-size", type=float, default=0.25)
-    ap.add_argument("--lag", type=int, default=3)
+    ap.add_argument("--lag", type=int, default=1)
     ap.add_argument("--show", type=int, default=30, help="max divergences to print")
     ap.add_argument("--out", default=os.path.dirname(os.path.abspath(__file__)))
     a = ap.parse_args()
@@ -101,9 +112,11 @@ def main():
         wedge_symmetry=a.wedge_symmetry, ol_sensitivity=a.ol_sensitivity,
         ctsb_ignore=not a.no_ctsb_ignore, ib_ignore=not a.no_ib_ignore,
         show_wedge_sb=True, signal_bar_ibs=a.signal_bar_ibs,
-        continue_mc=False, continue_on_gap=False,
+        continue_mc=False, continue_on_gap=False, lag=a.lag,
     )
-    r = compute_regime(w.swing_low, w.swing_high, L, H, bar_dir=w.bar_dir)
+    # Feed the state machine the pivot flags as of `lag` bars later -- the exact
+    # value NT8 acts on (SwingLow[Lag]). At lag>=2 these equal w.swing_low.
+    r = compute_regime(w.swing_low_asof, w.swing_high_asof, L, H, bar_dir=w.bar_dir)
     py_regime = r.regime
 
     # --- per-bar regime diff ---
