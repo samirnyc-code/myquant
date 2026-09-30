@@ -36,7 +36,8 @@ nt8/
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `ClaudeTracker.cs` | Trade lifecycle tracker — logs every fill/stop/target event | ✅ current |
+| `ClaudeTracker.cs` | Trade lifecycle tracker — logs every fill/stop/target event | ✅ current — re-synced from Custom folder 2026-10-01, had drifted from what's actually deployed |
+| `ClaudeTrackerV2.cs` | ClaudeTracker + per-trade subfolder output (`EnsureTradeFolder`) — this is the version actually producing real output on disk. Feeds the Trade Playbook journal via `scripts/journal_uploader.py` (separate repo). Was UNCOMMITTED until 2026-10-01 (found only in the NT8 Custom folder) — no account/Sim-vs-Live tagging yet, see trade-playbook's `docs/journal-plan.md`. | ✅ current |
 | `TradeLifecycle.cs` | Trade lifecycle utilities | ✅ current |
 | `MCStrategyDashboardV3.cs` | MC strategy dashboard | ✅ current |
 | `WedgeScalper.cs` | MyWedge signal-bar scalper (stop entry 1t beyond SB, +4t scalp, runner BE→trail). Superseded by V2. | ✅ current |

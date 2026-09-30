@@ -20,7 +20,7 @@ using NinjaTrader.NinjaScript.Strategies;
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class ClaudeTracker : Strategy
+    public class ClaudeTrackerV2 : Strategy
     {
         #region Nested classes
 
@@ -52,13 +52,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             public double ActualStop;
             public double TargetAtEvent;
             public int SessionBar;
-			public int SessionBar1M;
-			public DateTime SessionStartTime;
-			public DateTime SessionEndTime;
-			public string EntryTemplate;
-			public string SessionTemplate;
-public string ChartTimeframe;
-
             // SessionLastBar removed — static value, no analytical value per event
             public int BarsSinceTradeStart;
             public int BarsSincePrevEvent;
@@ -69,7 +62,6 @@ public string ChartTimeframe;
         private class TradeSummaryRow
         {
             public string TradeID;
-			
             public string InstrumentName;
             public DateTime StartTime;
             public DateTime EndTime;
@@ -117,8 +109,6 @@ public string ChartTimeframe;
             public int EntryQty;
             public DateTime EntryTime;
             public int EntrySessionBar;
-			public string SessionTemplate;
-public string ChartTimeframe;
 
             public string StopEvent;        // ENTRY | INITIAL_STOP | ACTUAL_STOP_1 ...
             public double StopPrice;        // 0 = blank (ENTRY row)
@@ -174,13 +164,9 @@ public string ChartTimeframe;
             public string Direction;
             public string EntryType;        // ATM_<name> | Market | Limit
             public string EntryOrderName;   // raw order name from NT for ATM template extraction
-            public string EntryTemplate;
-			public string SessionTemplate;
-public string ChartTimeframe;
-			public DateTime StartTime;
+            public DateTime StartTime;
             public DateTime LastEventTime;
             public int StartSessionBar;
-			public int StartSessionBar1M;
             public int CurrentQty;
             public int MaxPositionQty;
             public int TotalEntryQty;
@@ -271,7 +257,6 @@ public string ChartTimeframe;
                 Name                   = "ClaudeTracker";
                 Calculate              = Calculate.OnEachTick;
                 IsOverlay              = true;
-				
                 InitialStopLockSeconds = 5;
                 ScreenshotDelayMs      = 100;
                 DebugMode              = true;
@@ -280,22 +265,22 @@ public string ChartTimeframe;
             }
             else if (State == State.Configure)
             {
-				AddDataSeries(BarsPeriodType.Minute, 1);   // ✅ MUST BE HERE
-                outputRoot = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                    "NinjaTrader 8", "ClaudeTracker");
-                if (!Directory.Exists(outputRoot))
-                    Directory.CreateDirectory(outputRoot);
+                string instrumentFolder = Instrument.FullName.Contains("MES") ? "MES" : "ES";
+outputRoot = Path.Combine(@"G:\My Drive\!NT Tracker Export", instrumentFolder);
+if (!Directory.Exists(outputRoot))
+    Directory.CreateDirectory(outputRoot);
             }
             else if (State == State.DataLoaded)
-            {
-                sessionIterator = new SessionIterator(Bars);
-                if (Account != null)
-                {
-                    Account.OrderUpdate     += OnAccountOrderUpdate;
-                    Account.ExecutionUpdate += OnAccountExecutionUpdate;
-                }
-            }
+{
+    sessionIterator      = new SessionIterator(Bars);
+    dailyTradeCounter    = CountTodaysTrades();
+    if (Account != null)
+    {
+        Account.OrderUpdate     += OnAccountOrderUpdate;
+        Account.ExecutionUpdate += OnAccountExecutionUpdate;
+    }
+    DebugPrint("Loaded. Resuming from trade #" + dailyTradeCounter.ToString(INV));
+}
             else if (State == State.Terminated)
             {
                 if (Account != null)
@@ -385,55 +370,39 @@ public string ChartTimeframe;
         }
 
         private void BeginNewTrade(Execution ex, Order o, int signedQty, string customFillId = null)
-{
-    dailyTradeCounter++;
-    string instrumentName = SanitizeFilePart(Instrument.FullName);
-    string tradeId        = instrumentName
-                          + "_" + ex.Time.ToString("yyyyMMdd", INV)
-                          + "_" + ex.Time.ToString("HHmmss", INV)
-                          + "_" + (signedQty > 0 ? "LONG" : "SHORT")
-                          + "_T" + dailyTradeCounter.ToString(INV);
+        {
+            dailyTradeCounter++;
+            string instrumentName = SanitizeFilePart(Instrument.FullName);
+            string tradeId        = instrumentName
+                                  + "_" + ex.Time.ToString("yyyyMMdd", INV)
+                                  + "_" + ex.Time.ToString("HHmmss", INV)
+                                  + "_" + (signedQty > 0 ? "LONG" : "SHORT")
+                                  + "_T" + dailyTradeCounter.ToString(INV);
 
-int sessionBar, sessionLastBar;
-	sessionIterator.GetNextSession(ex.Time, false);
-DateTime sessionStart = sessionIterator.ActualSessionBegin;
-DateTime sessionEnd   = sessionIterator.ActualSessionEnd;
-GetBarInfo(ex.Time, out sessionBar, out sessionLastBar);
+            int sessionBar, sessionLastBar;
+            GetBarInfo(ex.Time, out sessionBar, out sessionLastBar);
 
-int sessionBar1M, sessionLastBar1M;
-GetBarInfo1M(ex.Time, out sessionBar1M, out sessionLastBar1M);
+            string entryType = ClassifyEntryType(o);
 
-    string entryType = ClassifyEntryType(o);
-string entryTemplate = o != null ? SanitizeLabel(o.Name ?? string.Empty) : string.Empty;
-	string sessionTemplate = Bars != null && Bars.TradingHours != null
-    ? Bars.TradingHours.Name
-    : "UNKNOWN";
-
-string chartTimeframe = GetChartTimeframe();
-
-    activeTrade = new ActiveTrade
-    {
-        TradeID               = tradeId,
-        InstrumentName        = Instrument.FullName,
-        Direction             = signedQty > 0 ? "LONG" : "SHORT",
-        EntryType             = entryType,
-        EntryOrderName        = o.Name ?? string.Empty,
-			EntryTemplate  = entryTemplate,
-			SessionTemplate = sessionTemplate,
-ChartTimeframe  = chartTimeframe,
-        StartTime             = ex.Time,
-        LastEventTime         = ex.Time,
-        StartSessionBar       = sessionBar,
-        StartSessionBar1M     = sessionBar1M, // Add this line
-        LastEventSessionBar   = sessionBar,
-        CurrentQty            = signedQty,
-        MaxPositionQty        = Math.Abs(signedQty),
-        TotalEntryQty         = Math.Abs(signedQty),
-        FirstEntryPrice       = ex.Price,
-        WeightedAvgEntryPrice = ex.Price,
-        EntryPriceSum         = ex.Price * Math.Abs(signedQty),
-        TradeFolder           = EnsureTradeFolder(tradeId, ex.Time)
-    };
+            activeTrade = new ActiveTrade
+            {
+                TradeID               = tradeId,
+                InstrumentName        = Instrument.FullName,
+                Direction             = signedQty > 0 ? "LONG" : "SHORT",
+                EntryType             = entryType,
+                EntryOrderName        = o.Name ?? string.Empty,
+                StartTime             = ex.Time,
+                LastEventTime         = ex.Time,
+                StartSessionBar       = sessionBar,
+                LastEventSessionBar   = sessionBar,
+                CurrentQty            = signedQty,
+                MaxPositionQty        = Math.Abs(signedQty),
+                TotalEntryQty         = Math.Abs(signedQty),
+                FirstEntryPrice       = ex.Price,
+                WeightedAvgEntryPrice = ex.Price,
+                EntryPriceSum         = ex.Price * Math.Abs(signedQty),
+                TradeFolder           = EnsureTradeFolder(tradeId, ex.Time)
+            };
 
             activeTrade.EventRows.Add(new TradeEventRow
             {
@@ -453,14 +422,7 @@ ChartTimeframe  = chartTimeframe,
                 FillPrice           = ex.Price,
                 AvgEntryBefore      = 0,
                 AvgEntryAfter       = activeTrade.WeightedAvgEntryPrice,
-				SessionStartTime = sessionStart,
-				SessionEndTime   = sessionEnd,
-                SessionBar          = sessionBar,
-SessionBar1M        = sessionBar1M,
-EntryTemplate       = entryTemplate,
-SessionTemplate     = sessionTemplate,
-ChartTimeframe      = chartTimeframe
-					
+                SessionBar          = sessionBar
             });
 
             activeStudy = new SessionStudy
@@ -511,12 +473,46 @@ ChartTimeframe      = chartTimeframe
             else if (eventType == "ADD_ON")   activeTrade.AddOnCount++;
 
             if (isLateInitialFill && activeStudy != null)
-            {
-                activeStudy.EntryQty = activeTrade.TotalEntryQty + addQty;
-                foreach (EntryStudyRow r in activeStudy.StopRows) r.EntryQty = activeStudy.EntryQty;
-                WriteEntryStudy(activeStudy);
-                DebugPrint("ENTRY_ADD — EntryQty updated to " + activeStudy.EntryQty.ToString(INV));
-            }
+{
+    activeStudy.EntryQty = activeTrade.TotalEntryQty + addQty;
+    foreach (EntryStudyRow r in activeStudy.StopRows) r.EntryQty = activeStudy.EntryQty;
+    WriteEntryStudy(activeStudy);
+    DebugPrint("ENTRY_ADD — EntryQty updated to " + activeStudy.EntryQty.ToString(INV));
+}
+else if (eventType == "SCALE_IN" && activeStudy != null)
+{
+    // Blended entry after this scale-in
+    double newBlendedEntry = (activeTrade.EntryPriceSum + price * addQty)
+                             / (activeTrade.TotalEntryQty + addQty);
+    int scaleInSessionBar, scaleInSessionLastBar;
+    GetBarInfo(ex.Time, out scaleInSessionBar, out scaleInSessionLastBar);
+
+    // Add a SCALE_IN entry row — RiskPoints relative to blended entry at this moment
+    // Stop rows written AFTER this will use the updated activeStudy.EntryPrice (blended)
+    activeStudy.StopRows.Add(new EntryStudyRow
+    {
+        TradeID         = activeStudy.TradeID,
+        InstrumentName  = Instrument.FullName,
+        Direction       = activeStudy.Direction,
+        EntryPrice      = newBlendedEntry,
+        EntryQty        = activeTrade.TotalEntryQty + addQty,
+        EntryTime       = ex.Time,
+        EntrySessionBar = scaleInSessionBar,
+        StopEvent       = "SCALE_IN",
+        StopEventIndex  = activeStudy.StopRows.Count,
+        StopPrice       = 0,
+        StopSessionBar  = -1,
+        RiskPoints      = 0
+    });
+
+    // Update activeStudy so all subsequent stop rows use blended entry
+    activeStudy.EntryPrice  = newBlendedEntry;
+    activeStudy.EntryQty    = activeTrade.TotalEntryQty + addQty;
+
+    WriteEntryStudy(activeStudy);
+    DebugPrint("SCALE_IN row added to EntryStudy: blendedEntry=" + F2(newBlendedEntry)
+        + " qty=" + activeStudy.EntryQty.ToString(INV));
+}
 
             activeTrade.EntryPriceSum        += price * addQty;
             activeTrade.TotalEntryQty        += addQty;
@@ -525,15 +521,8 @@ ChartTimeframe      = chartTimeframe
             activeTrade.WeightedAvgEntryPrice = activeTrade.TotalEntryQty > 0
                 ? activeTrade.EntryPriceSum / activeTrade.TotalEntryQty : 0;
 
-          sessionIterator.GetNextSession(ex.Time, false);
-DateTime sessionStart = sessionIterator.ActualSessionBegin;
-DateTime sessionEnd   = sessionIterator.ActualSessionEnd;
-
-int sessionBar, sessionLastBar;
-GetBarInfo(ex.Time, out sessionBar, out sessionLastBar);
-
-int sessionBar1M, sessionLastBar1M;
-GetBarInfo1M(ex.Time, out sessionBar1M, out sessionLastBar1M);
+            int sessionBar, sessionLastBar;
+            GetBarInfo(ex.Time, out sessionBar, out sessionLastBar);
             int prevSessionBar = activeTrade.LastEventSessionBar;
             DateTime prevTime  = activeTrade.LastEventTime;
 
@@ -564,13 +553,7 @@ GetBarInfo1M(ex.Time, out sessionBar1M, out sessionLastBar1M);
                 CurrentStop            = activeTrade.CurrentStop,
                 ActualStop             = activeTrade.CurrentStop,
                 TargetAtEvent          = activeTrade.CurrentTarget,
-               SessionBar             = sessionBar,
-SessionBar1M           = sessionBar1M,
-SessionStartTime       = sessionStart,
-SessionEndTime         = sessionEnd,
-EntryTemplate          = activeTrade.EntryTemplate,
-SessionTemplate        = activeTrade.SessionTemplate,
-ChartTimeframe         = activeTrade.ChartTimeframe,
+                SessionBar             = sessionBar,
                 BarsSinceTradeStart    = sessionBar >= 0 && activeTrade.StartSessionBar >= 0 ? sessionBar - activeTrade.StartSessionBar : -1,
                 BarsSincePrevEvent     = sessionBar >= 0 && prevSessionBar >= 0 ? sessionBar - prevSessionBar : -1,
                 MinsSinceTradeStart    = (ex.Time - activeTrade.StartTime).TotalMinutes,
@@ -606,15 +589,8 @@ ChartTimeframe         = activeTrade.ChartTimeframe,
             activeTrade.LastExitLabel     = exitLabel;
             activeTrade.LastExitOrderName = o.Name ?? string.Empty;
 
-       sessionIterator.GetNextSession(ex.Time, false);
-DateTime sessionStart = sessionIterator.ActualSessionBegin;
-DateTime sessionEnd   = sessionIterator.ActualSessionEnd;
-
-int sessionBar, sessionLastBar;
-GetBarInfo(ex.Time, out sessionBar, out sessionLastBar);
-
-int sessionBar1M, sessionLastBar1M;
-GetBarInfo1M(ex.Time, out sessionBar1M, out sessionLastBar1M);
+            int sessionBar, sessionLastBar;
+            GetBarInfo(ex.Time, out sessionBar, out sessionLastBar);
             int prevSessionBar = activeTrade.LastEventSessionBar;
             DateTime prevTime  = activeTrade.LastEventTime;
 
@@ -651,12 +627,6 @@ GetBarInfo1M(ex.Time, out sessionBar1M, out sessionLastBar1M);
                 ActualStop             = activeTrade.CurrentStop,
                 TargetAtEvent          = activeTrade.CurrentTarget,
                 SessionBar             = sessionBar,
-SessionBar1M           = sessionBar1M,
-SessionStartTime       = sessionStart,
-SessionEndTime         = sessionEnd,
-EntryTemplate          = activeTrade.EntryTemplate,
-SessionTemplate        = activeTrade.SessionTemplate,
-ChartTimeframe         = activeTrade.ChartTimeframe,
                 BarsSinceTradeStart    = sessionBar >= 0 && activeTrade.StartSessionBar >= 0 ? sessionBar - activeTrade.StartSessionBar : -1,
                 BarsSincePrevEvent     = sessionBar >= 0 && prevSessionBar >= 0 ? sessionBar - prevSessionBar : -1,
                 MinsSinceTradeStart    = (ex.Time - activeTrade.StartTime).TotalMinutes,
@@ -734,12 +704,18 @@ ChartTimeframe         = activeTrade.ChartTimeframe,
         private string ClassifyEntryType(Order o)
         {
             if (o == null) return "Market";
-            string name = (o.Name ?? string.Empty).Trim();
+           string name = (o.Name ?? string.Empty).Trim().ToUpperInvariant();
 
             // ATM orders typically have a name set to the template name
             // Market orders placed manually via Chart Trader have empty or generic names
-            if (o.OrderType == OrderType.Market && string.IsNullOrEmpty(name))
-                return "Market";
+          if (name.StartsWith("LONGPB33") || name.StartsWith("SHORTPB33")) return "PB33";
+if (name.StartsWith("LONGPB50") || name.StartsWith("SHORTPB50")) return "PB50";
+if (name.StartsWith("LONGPB66") || name.StartsWith("SHORTPB66")) return "PB66";
+if (name.StartsWith("LONGBBSA") || name.StartsWith("SHORTBBSA")) return "BBSA";
+if (name.StartsWith("LONGBO")   || name.StartsWith("SHORTBO"))   return "BO";
+
+if (o.OrderType == OrderType.Market && string.IsNullOrEmpty(name))
+    return "Market";
 
             if (o.OrderType == OrderType.Limit)
                 return "Limit";
@@ -764,8 +740,15 @@ ChartTimeframe         = activeTrade.ChartTimeframe,
             if (o == null || trade == null) return "Market";
             string name = (o.Name ?? string.Empty).Trim().ToUpperInvariant();
 
-            // Target orders: "Target1", "Target2", "Target3" etc → T1, T2, T3
-            if (name.StartsWith("TARGET"))
+            // MCScaleInStrategy signal names
+if (name.StartsWith("LONGPB33") || name.StartsWith("SHORTPB33")) return "PB33";
+if (name.StartsWith("LONGPB50") || name.StartsWith("SHORTPB50")) return "PB50";
+if (name.StartsWith("LONGPB66") || name.StartsWith("SHORTPB66")) return "PB66";
+if (name.StartsWith("LONGBBSA") || name.StartsWith("SHORTBBSA")) return "BBSA";
+if (name.StartsWith("LONGBO")   || name.StartsWith("SHORTBO"))   return "BO";
+
+// Target orders: "Target1", "Target2", "Target3" etc → T1, T2, T3
+if (name.StartsWith("TARGET"))
             {
                 string num = name.Replace("TARGET", "").Trim();
                 return "T" + num;
@@ -953,76 +936,46 @@ ChartTimeframe         = activeTrade.ChartTimeframe,
 
         #region Screenshot
 
-private void RequestScreenshot(string label, DateTime time, string tradeId, DateTime tradeTime)
-{
-    if (ChartControl == null)
-        return;
-
-    try
-    {
-        string fileName  = TradeFileStem(tradeId, tradeTime) + "_" + label + ".png";
-        string tradeDir  = EnsureTradeFolder(tradeId, tradeTime);
-        string masterDir = EnsureMasterScreenshotsFolder(tradeTime);
-        string tradePath = Path.Combine(tradeDir,  fileName);
-        string masterPath= Path.Combine(masterDir, fileName);
-
-        ChartControl.Dispatcher.InvokeAsync(async () =>
+        private void RequestScreenshot(string label, DateTime time, string tradeId, DateTime tradeTime)
         {
+            if (ChartControl == null) return;
             try
             {
-                await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
+                string fileName  = TradeFileStem(tradeId, tradeTime) + "_" + label + ".png";
+                string tradeDir  = EnsureTradeFolder(tradeId, tradeTime);
+                string masterDir = EnsureMasterScreenshotsFolder(tradeTime);
+                string tradePath = Path.Combine(tradeDir,  fileName);
+                string masterPath= Path.Combine(masterDir, fileName);
 
-                var window = System.Windows.Window.GetWindow(ChartControl);
-
-                if (window == null)
+                ChartControl.Dispatcher.InvokeAsync(async () =>
                 {
-                    Print("[ClaudeTracker] Screenshot failed: no window");
-                    return;
-                }
+                    try
+                    {
+                        await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
+                        NinjaTrader.Gui.Chart.Chart chartWindow =
+                            System.Windows.Window.GetWindow(ChartControl) as NinjaTrader.Gui.Chart.Chart;
+                        if (chartWindow == null) { Print("[ClaudeTracker] Screenshot: no chart window"); return; }
 
-                var chartWindow = window as NinjaTrader.Gui.Chart.Chart;
+                        RenderTargetBitmap sc = chartWindow.GetScreenshot(ShareScreenshotType.Chart);
+                        if (sc == null) { Print("[ClaudeTracker] Screenshot: null capture"); return; }
 
-                if (chartWindow == null)
-                {
-                    Print("[ClaudeTracker] Screenshot skipped: not a Chart window");
-                    return;
-                }
+                        PngBitmapEncoder e1 = new PngBitmapEncoder();
+                        e1.Frames.Add(BitmapFrame.Create(sc));
+                        using (Stream s = File.Create(tradePath)) e1.Save(s);
 
-                RenderTargetBitmap sc = chartWindow.GetScreenshot(ShareScreenshotType.Chart);
+                        PngBitmapEncoder e2 = new PngBitmapEncoder();
+                        e2.Frames.Add(BitmapFrame.Create(sc));
+                        using (Stream s = File.Create(masterPath)) e2.Save(s);
 
-                if (sc == null)
-                {
-                    Print("[ClaudeTracker] Screenshot failed: null image");
-                    return;
-                }
-
-                // Save to trade folder
-                PngBitmapEncoder e1 = new PngBitmapEncoder();
-                e1.Frames.Add(BitmapFrame.Create(sc));
-                using (Stream s = File.Create(tradePath))
-                    e1.Save(s);
-
-                // Save to master folder
-                PngBitmapEncoder e2 = new PngBitmapEncoder();
-                e2.Frames.Add(BitmapFrame.Create(sc));
-                using (Stream s = File.Create(masterPath))
-                    e2.Save(s);
-
-                DebugPrint("Screenshot saved: " + fileName);
+                        DebugPrint("Screenshot saved: " + fileName);
+                    }
+                    catch (Exception ex) { Print("[ClaudeTracker] Screenshot failed: " + ex.Message); }
+                });
             }
-            catch (Exception ex)
-            {
-                Print("[ClaudeTracker] Screenshot failed: " + ex.Message);
-            }
-        });
-    }
-    catch (Exception ex)
-    {
-        Print("[ClaudeTracker] Screenshot request failed: " + ex.Message);
-    }
-}
+            catch (Exception ex) { Print("[ClaudeTracker] Screenshot request failed: " + ex.Message); }
+        }
 
-#endregion
+        #endregion
 
         #region Folder helpers
 
@@ -1037,18 +990,17 @@ private void RequestScreenshot(string label, DateTime time, string tradeId, Date
         //                                      03-26_Thu_T1_LONG_0935_EntryStudy.csv
         //                                      03-26_Thu_T1_LONG_0935_ENTRY.png
 
-        private string MonthRoot(DateTime time)
-        {
-            string instrumentName = SanitizeFilePart(Instrument.FullName);
-            return Path.Combine(outputRoot, instrumentName, time.ToString("yyyy-MM", INV));
-        }
+      private string MonthRoot(DateTime time)
+{
+    return Path.Combine(outputRoot, time.ToString("yyyy-MM-dd", INV));
+}
 
         private string MastersFolder(DateTime time)
-        {
-            string path = Path.Combine(MonthRoot(time), "Masters");
-            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
-            return path;
-        }
+{
+    string path = MonthRoot(time);
+    if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+    return path;
+}
 
         private string EnsureMasterScreenshotsFolder(DateTime time)
         {
@@ -1057,14 +1009,13 @@ private void RequestScreenshot(string label, DateTime time, string tradeId, Date
             return path;
         }
 
-        private string EnsureTradeFolder(string tradeId, DateTime time)
-        {
-            string dayFolder = time.ToString("MM-dd", INV);
-            string stem      = TradeFileStem(tradeId, time);
-            string path      = Path.Combine(MonthRoot(time), dayFolder, stem);
-            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
-            return path;
-        }
+       private string EnsureTradeFolder(string tradeId, DateTime time)
+{
+    string stem = TradeFileStem(tradeId, time);
+    string path = Path.Combine(MonthRoot(time), stem);
+    if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+    return path;
+}
 
         #endregion
 
@@ -1137,7 +1088,7 @@ private void RequestScreenshot(string label, DateTime time, string tradeId, Date
 
         private string EntryStudyRowCsv(EntryStudyRow r)
         {
-            bool isEntry = r.StopEvent == "ENTRY";
+            bool isEntry = r.StopEvent == "ENTRY" || r.StopEvent == "SCALE_IN";
             return string.Join(",",
                 Csv(r.TradeID), Csv(r.InstrumentName), Csv(r.Direction),
                 Csv(F2(r.EntryPrice)), Csv(r.EntryQty.ToString(INV)),
@@ -1187,10 +1138,10 @@ private void RequestScreenshot(string label, DateTime time, string tradeId, Date
                 {
                     if (!exists || !append)
                         sw.WriteLine("TradeID,EventID,FillID,Time,EventType,Direction,OrderName,Oco,OrderId," +
-    "ExecQty,PositionBefore,PositionAfter,FillPrice,AvgEntryBefore,AvgEntryAfter," +
-    "LegPnLCurrency,CumRealizedPnLCurrency,ATMStop,FirstProtectiveStop,InitialStop," +
-    "FirstActualStop,CurrentStop,ActualStop,TargetAtEvent,SessionStartTime,SessionEndTime,SessionBar,SessionBar1M,EntryTemplate,SessionTemplate,ChartTimeframe," +
-    "BarsSinceTradeStart,BarsSincePrevEvent,MinsSinceTradeStart,MinsSincePrevEvent");
+                            "ExecQty,PositionBefore,PositionAfter,FillPrice,AvgEntryBefore,AvgEntryAfter," +
+                            "LegPnLCurrency,CumRealizedPnLCurrency,ATMStop,FirstProtectiveStop,InitialStop," +
+                            "FirstActualStop,CurrentStop,ActualStop,TargetAtEvent,SessionBar," +
+                            "BarsSinceTradeStart,BarsSincePrevEvent,MinsSinceTradeStart,MinsSincePrevEvent");
 
                     foreach (TradeEventRow r in rows.OrderBy(x => x.Sequence))
                         sw.WriteLine(string.Join(",",
@@ -1203,14 +1154,7 @@ private void RequestScreenshot(string label, DateTime time, string tradeId, Date
                             Csv(F2(r.LegPnLCurrency)), Csv(F2(r.CumRealizedPnLCurrency)),
                             Csv(F2(r.ATMStop)), Csv(F2(r.FirstProtectiveStop)), Csv(F2(r.InitialStop)),
                             Csv(F2(r.FirstActualStop)), Csv(F2(r.CurrentStop)), Csv(F2(r.ActualStop)),
-                            Csv(F2(r.TargetAtEvent)),
-Csv(r.SessionStartTime.ToString("yyyy-MM-dd HH:mm:ss", INV)),
-Csv(r.SessionEndTime.ToString("yyyy-MM-dd HH:mm:ss", INV)),
-Csv(r.SessionBar.ToString(INV)),
-Csv(r.SessionBar1M.ToString(INV)),
-Csv(r.EntryTemplate),
-Csv(r.SessionTemplate),
-Csv(r.ChartTimeframe),
+                            Csv(F2(r.TargetAtEvent)), Csv(r.SessionBar.ToString(INV)),
                             Csv(r.BarsSinceTradeStart.ToString(INV)),
                             Csv(r.BarsSincePrevEvent.ToString(INV)),
                             Csv(F2(r.MinsSinceTradeStart)), Csv(F2(r.MinsSincePrevEvent))));
@@ -1263,213 +1207,142 @@ Csv(r.ChartTimeframe),
 
         #endregion
 
-#region Helpers
-		private string GetChartTimeframe()
+        #region Helpers
+		
+		private int CountTodaysTrades()
 {
     try
     {
-        var bp = BarsPeriod;
+        string today      = DateTime.Now.ToString("yyyy-MM", INV);
+        string instrument = SanitizeFilePart(Instrument.FullName);
+        string masterPath = Path.Combine(outputRoot, instrument, today, "Masters", "Events_MASTER.csv");
 
-        if (bp == null)
-            return "UNKNOWN";
+        if (!File.Exists(masterPath)) return 0;
 
-        switch (bp.BarsPeriodType)
+        string todayDate = DateTime.Now.ToString("yyyy-MM-dd", INV);
+        int maxT = 0;
+
+        foreach (string line in File.ReadAllLines(masterPath))
         {
-            case BarsPeriodType.Minute:
-                return bp.Value.ToString(INV) + "m";
-
-            case BarsPeriodType.Second:
-                return bp.Value.ToString(INV) + "s";
-
-            case BarsPeriodType.Tick:
-                return bp.Value.ToString(INV) + "t";
-
-            case BarsPeriodType.Day:
-                return "1D";
-
-            default:
-                return bp.BarsPeriodType.ToString() + "_" + bp.Value.ToString(INV);
+            // TradeID format: ES_06-26_20260415_093000_LONG_T3
+            // Look for lines containing today's date and extract T number
+            if (!line.Contains(todayDate)) continue;
+            int tIdx = line.LastIndexOf("_T", StringComparison.Ordinal);
+            if (tIdx < 0) continue;
+            // Extract number after _T up to next quote or comma
+            int start = tIdx + 2;
+            int end   = start;
+            while (end < line.Length && char.IsDigit(line[end])) end++;
+            if (end > start)
+            {
+                int n;
+                if (int.TryParse(line.Substring(start, end - start), out n))
+                    if (n > maxT) maxT = n;
+            }
         }
+        return maxT;
     }
-    catch
-    {
-        return "UNKNOWN";
-    }
+    catch { return 0; }
 }
 
-private void GetBarInfo(DateTime time, out int sessionBar, out int sessionLastBar)
-{
-    sessionBar = -1;
-    sessionLastBar = -1;
+        private void GetBarInfo(DateTime time, out int sessionBar, out int sessionLastBar)
+        {
+            sessionBar = -1; sessionLastBar = -1;
+            if (sessionIterator == null) return;
+            sessionIterator.GetNextSession(time, false);
+            DateTime sessionStart = sessionIterator.ActualSessionBegin;
+            DateTime sessionEnd   = sessionIterator.ActualSessionEnd;
+            double barMinutes     = BarsPeriod.Value;
+            double minsFromStart  = (time - sessionStart).TotalMinutes;
+            double sessionMins    = (sessionEnd - sessionStart).TotalMinutes;
+            if (minsFromStart >= 0 && barMinutes > 0) sessionBar     = (int)(minsFromStart / barMinutes) + 1;
+            if (sessionMins   >  0 && barMinutes > 0) sessionLastBar = (int)(sessionMins   / barMinutes);
+        }
 
-    if (sessionIterator == null)
-        return;
+        private bool IsDuplicateExecution(Execution ex, Order o)
+        {
+            string key = string.Join("|", ex.ExecutionId ?? string.Empty, o.Id.ToString(INV),
+                ex.Time.ToString("O", INV), ex.Quantity.ToString(INV), ex.Price.ToString("F8", INV));
+            if (processedExecutions.Contains(key)) return true;
+            processedExecutions.Add(key);
+            return false;
+        }
 
-    sessionIterator.GetNextSession(time, false);
+        private int GetSignedQty(OrderAction action, int qty)
+        {
+            switch (action)
+            {
+                case OrderAction.Buy:
+                case OrderAction.BuyToCover: return qty;
+                case OrderAction.Sell:
+                case OrderAction.SellShort:  return -qty;
+                default:                     return 0;
+            }
+        }
 
-    DateTime sessionStart = sessionIterator.ActualSessionBegin;
-    DateTime sessionEnd   = sessionIterator.ActualSessionEnd;
+        private bool IsStopOrder(Order o)
+        { return o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit; }
 
-    // ✅ Use primary chart timeframe ONLY
-    double barMinutes = BarsArray[0].BarsPeriod.Value;
+        private bool IsTargetOrder(Order o)
+        { return o.OrderType == OrderType.Limit || o.OrderType == OrderType.MIT; }
 
-    double minsFromStart = (time - sessionStart).TotalMinutes;
-    double sessionMins   = (sessionEnd - sessionStart).TotalMinutes;
+        private double GetTargetPrice(Order o)
+        { return o != null && o.LimitPrice > 0 ? o.LimitPrice : 0; }
 
-    if (minsFromStart >= 0 && barMinutes > 0)
-        sessionBar = (int)Math.Floor(minsFromStart / barMinutes) + 1;
+        private string ClassifyAddType(string direction, double avgBefore, double price)
+        {
+            if (direction == "LONG") return price < avgBefore ? "SCALE_IN" : "ADD_ON";
+            return price > avgBefore ? "SCALE_IN" : "ADD_ON";
+        }
 
-    if (sessionMins > 0 && barMinutes > 0)
-        sessionLastBar = (int)Math.Floor(sessionMins / barMinutes);
-}
-private void GetBarInfo1M(DateTime time, out int sessionBar, out int sessionLastBar)
-{
-    sessionBar = -1;
-    sessionLastBar = -1;
+        private string NextEventID(ActiveTrade trade)
+        { trade.EventCounter++; return trade.TradeID + "_E" + trade.EventCounter.ToString(INV); }
 
-    if (sessionIterator == null)
-        return;
+        private double GetRiskPoints(string direction, double entryPrice, double stopPrice)
+        {
+            if (stopPrice <= 0) return 0;
+            if (direction == "LONG") return Math.Max(0, entryPrice - stopPrice);
+            return Math.Max(0, stopPrice - entryPrice);
+        }
 
-    sessionIterator.GetNextSession(time, false);
+        private string SafeFillId(string executionId)
+        { return string.IsNullOrEmpty(executionId) ? string.Empty : executionId; }
 
-    DateTime sessionStart = sessionIterator.ActualSessionBegin;
-    DateTime sessionEnd   = sessionIterator.ActualSessionEnd;
+        private string TradeFileStem(string tradeId, DateTime time)
+        {
+            // Format: 03-26_Thu_T1_LONG_0935
+            string direction = tradeId.Contains("_LONG_") ? "LONG" : "SHORT";
+            string tNum      = string.Empty;
+            int tIdx         = tradeId.LastIndexOf("_T", StringComparison.Ordinal);
+            if (tIdx >= 0) tNum = tradeId.Substring(tIdx + 1);
+            return time.ToString("MM-dd", INV) + "_"
+                 + time.ToString("ddd", CultureInfo.InvariantCulture) + "_"
+                 + tNum + "_" + direction + "_"
+                 + time.ToString("HHmm", INV);
+        }
 
-    double minsFromStart = (time - sessionStart).TotalMinutes;
-    double sessionMins   = (sessionEnd - sessionStart).TotalMinutes;
+        private string SanitizeFilePart(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return "NA";
+            foreach (char c in Path.GetInvalidFileNameChars()) value = value.Replace(c, '_');
+            return value.Replace(" ", "_");
+        }
 
-    // 1-minute bars = pure minute math
-    if (minsFromStart >= 0)
-        sessionBar = (int)Math.Floor(minsFromStart) + 1;
+        private string F2(double value) { return value.ToString("F2", INV); }
 
-    if (sessionMins > 0)
-        sessionLastBar = (int)Math.Floor(sessionMins);
-}
+        private string Csv(string s)
+        {
+            if (s == null) s = string.Empty;
+            return "\"" + s.Replace("\"", "\"\"") + "\"";
+        }
 
-private bool IsDuplicateExecution(Execution ex, Order o)
-{
-    string key = string.Join("|",
-        ex.ExecutionId ?? string.Empty,
-        o.Id.ToString(INV),
-        ex.Time.ToString("O", INV),
-        ex.Quantity.ToString(INV),
-        ex.Price.ToString("F8", INV));
+        private void DebugPrint(string message)
+        {
+            if (DebugMode)
+                Print("[ClaudeTracker] " + DateTime.Now.ToString("HH:mm:ss.fff", INV) + " " + message);
+        }
 
-    if (processedExecutions.Contains(key))
-        return true;
-
-    processedExecutions.Add(key);
-    return false;
-}
-
-private int GetSignedQty(OrderAction action, int qty)
-{
-    switch (action)
-    {
-        case OrderAction.Buy:
-        case OrderAction.BuyToCover:
-            return qty;
-
-        case OrderAction.Sell:
-        case OrderAction.SellShort:
-            return -qty;
-
-        default:
-            return 0;
-    }
-}
-
-private bool IsStopOrder(Order o)
-{
-    return o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit;
-}
-
-private bool IsTargetOrder(Order o)
-{
-    return o.OrderType == OrderType.Limit || o.OrderType == OrderType.MIT;
-}
-
-private double GetTargetPrice(Order o)
-{
-    return o != null && o.LimitPrice > 0 ? o.LimitPrice : 0;
-}
-
-private string ClassifyAddType(string direction, double avgBefore, double price)
-{
-    if (direction == "LONG")
-        return price < avgBefore ? "SCALE_IN" : "ADD_ON";
-
-    return price > avgBefore ? "SCALE_IN" : "ADD_ON";
-}
-
-private string NextEventID(ActiveTrade trade)
-{
-    trade.EventCounter++;
-    return trade.TradeID + "_E" + trade.EventCounter.ToString(INV);
-}
-
-private double GetRiskPoints(string direction, double entryPrice, double stopPrice)
-{
-    if (stopPrice <= 0)
-        return 0;
-
-    if (direction == "LONG")
-        return Math.Max(0, entryPrice - stopPrice);
-
-    return Math.Max(0, stopPrice - entryPrice);
-}
-
-private string SafeFillId(string executionId)
-{
-    return string.IsNullOrEmpty(executionId) ? string.Empty : executionId;
-}
-
-private string TradeFileStem(string tradeId, DateTime time)
-{
-    string direction = tradeId.Contains("_LONG_") ? "LONG" : "SHORT";
-
-    string tNum = string.Empty;
-    int tIdx = tradeId.LastIndexOf("_T", StringComparison.Ordinal);
-    if (tIdx >= 0)
-        tNum = tradeId.Substring(tIdx + 1);
-
-    return time.ToString("MM-dd", INV) + "_"
-         + time.ToString("ddd", CultureInfo.InvariantCulture) + "_"
-         + tNum + "_" + direction + "_"
-         + time.ToString("HHmm", INV);
-}
-
-private string SanitizeFilePart(string value)
-{
-    if (string.IsNullOrEmpty(value))
-        return "NA";
-
-    foreach (char c in Path.GetInvalidFileNameChars())
-        value = value.Replace(c, '_');
-
-    return value.Replace(" ", "_");
-}
-
-private string F2(double value)
-{
-    return value.ToString("F2", INV);
-}
-
-private string Csv(string s)
-{
-    if (s == null)
-        s = string.Empty;
-
-    return "\"" + s.Replace("\"", "\"\"") + "\"";
-}
-
-private void DebugPrint(string message)
-{
-    if (DebugMode)
-        Print("[ClaudeTracker] " + DateTime.Now.ToString("HH:mm:ss.fff", INV) + " " + message);
-}
-
-#endregion
+        #endregion
     }
 
     internal static class ApproxExtensions
