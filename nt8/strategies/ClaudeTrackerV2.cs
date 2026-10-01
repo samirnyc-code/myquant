@@ -468,7 +468,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             WriteEntryStudy(activeStudy);
             DebugPrint("ENTRY written for " + tradeId + " [" + entryType + "] at " + F2(ex.Price));
-            RequestScreenshot("ENTRY", ex.Time, tradeId, ex.Time, ex.Price);
+            RequestScreenshot("ENTRY", ex.Time, tradeId, ex.Time);
         }
 
         private void HandleAddExecution(Execution ex, Order o, int signedQty, int positionBefore, int positionAfter)
@@ -581,7 +581,7 @@ else if (eventType == "SCALE_IN" && activeStudy != null)
             activeTrade.LastEventTime       = ex.Time;
 
             if (eventType == "SCALE_IN" || eventType == "ADD_ON" || eventType == "ENTRY_ADD")
-                RequestScreenshot(eventType, ex.Time, activeTrade.TradeID, activeTrade.StartTime, price);
+                RequestScreenshot(eventType, ex.Time, activeTrade.TradeID, activeTrade.StartTime);
         }
 
         private void HandleExitExecution(Execution ex, Order o, int closeQty, int positionBefore, int positionAfter,
@@ -657,7 +657,7 @@ else if (eventType == "SCALE_IN" && activeStudy != null)
 
             if (eventType == "SCALE_OUT" || eventType == "REVERSAL_EXIT")
                 RequestScreenshot(exitLabel + "_" + activeTrade.TotalExitQty.ToString(INV),
-                    ex.Time, activeTrade.TradeID, activeTrade.StartTime, fillPrice);
+                    ex.Time, activeTrade.TradeID, activeTrade.StartTime);
 
             if (positionAfter == 0)
                 CloseTrade(ex.Time, sessionBar);
@@ -710,7 +710,7 @@ else if (eventType == "SCALE_IN" && activeStudy != null)
             DebugPrint("Trade closed: " + activeTrade.TradeID
                 + " [" + summary.ExitMechanism + "/" + summary.ExitLabel + "]"
                 + " PnL=" + F2(activeTrade.RealizedPnLCurrency));
-            RequestScreenshot("EXIT", endTime, activeTrade.TradeID, activeTrade.StartTime, activeTrade.WeightedAvgExitPrice);
+            RequestScreenshot("EXIT", endTime, activeTrade.TradeID, activeTrade.StartTime);
 
             activeTrade = null;
             activeStudy = null;
@@ -919,7 +919,7 @@ if (name.StartsWith("TARGET"))
 
             activeStudy.LastStopWrittenTime = stopTime;
             WriteEntryStudy(activeStudy);
-            RequestScreenshot(stopEvent, stopTime, activeStudy.TradeID, activeStudy.EntryTime, stopPrice);
+            RequestScreenshot(stopEvent, stopTime, activeStudy.TradeID, activeStudy.EntryTime);
 
             DebugPrint(stopEvent + " appended: stop=" + F2(stopPrice) + " risk=" + F2(riskPoints) + " pts");
         }
@@ -955,7 +955,7 @@ if (name.StartsWith("TARGET"))
 
         #region Screenshot
 
-        private void RequestScreenshot(string label, DateTime time, string tradeId, DateTime tradeTime, double price = 0)
+        private void RequestScreenshot(string label, DateTime time, string tradeId, DateTime tradeTime)
         {
             if (ChartControl == null) return;
             try
@@ -970,16 +970,6 @@ if (name.StartsWith("TARGET"))
                 {
                     try
                     {
-                        // Our own marker — NT8 removes an order's chart line the instant it's
-                        // filled/cancelled, so a screenshot taken after that (any delay) shows
-                        // no stop/target line at all. Drawing our own dot+label at the exact
-                        // event price fixes this regardless of ATM/order-line timing.
-                        if (price > 0)
-                        {
-                            string tag = "CT_" + SanitizeLabel(tradeId) + "_" + SanitizeLabel(label);
-                            Draw.Dot(this, tag, false, 0, price, Brushes.Yellow);
-                            Draw.Text(this, tag + "_TXT", label + " " + F2(price), 0, price, Brushes.Yellow);
-                        }
                         await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
                         NinjaTrader.Gui.Chart.Chart chartWindow =
                             System.Windows.Window.GetWindow(ChartControl) as NinjaTrader.Gui.Chart.Chart;
