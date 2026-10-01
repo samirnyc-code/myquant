@@ -1,0 +1,12 @@
+[500/4145] 2e=482 choch=1290 (32s)
+[1000/4145] 2e=958 choch=2576 (66s)
+[1500/4145] 2e=1596 choch=4010 (100s)
+[2000/4145] 2e=2127 choch=5330 (135s)
+[2500/4145] 2e=2907 choch=6904 (169s)
+[3000/4145] 2e=3759 choch=8722 (202s)
+[3500/4145] 2e=4689 choch=10620 (235s)
+[4000/4145] 2e=5622 choch=12458 (268s)
+
+DONE 277s
+  2E trades:    5,903 -> C:\Users\Admin\myquant\data\regime\tracker_2e_20260924.csv
+  ChoCh trades: 12,994 -> C:\Users\Admin\myquant\data\regime\tracker_choch_20260924.csv
