@@ -1,6 +1,132 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-09-24 (machine-time W. Europe) — **Lag reconcile CLOSED: Lag = 1 is canonical.** The S123 export-diff was the Lag setting. Python engine now models Lag (was implicitly Lag≥2); NT8 default set to Lag 1 + deployed. A 2nd-PC S83 / phase-machine detail archive is at the very bottom of this file.
+**Last Updated:** 2026-10-01 (machine-time W. Europe) — **S125: Trade Playbook + Trade Journal web app built end-to-end (new repo `trade-playbook`), ClaudeTrackerV2 wired into it, then caused + fixed a severe NT8 performance incident same session. PENDING: user F5 on ClaudeTrackerV2 (drawing-code revert).** Prior Lag-reconcile work (S124) is unaffected and still canonical — see that block below.
+
+---
+
+## S125-trade-journal (2026-10-01) — Trade Playbook + Journal web app (new repo), NT8 integration, performance incident + fix
+
+**READ THIS FIRST if touching the playbook/journal app or `nt8/strategies/ClaudeTrackerV2.cs`.**
+Machine clock = Berlin (W. Europe); desk runs America/Chicago — never state a converted CT time as fact.
+
+### What exists now
+A hosted multi-trader web app, **separate repo** `samirnyc-code/trade-playbook` (private),
+Desktop\trade-playbook locally, deployed on Vercel: **https://trade-playbook-ten.vercel.app**
+(Next.js 16 + Prisma + Neon Postgres + screenshots-as-DB-blobs; env vars `DATABASE_URL`,
+`DIRECT_URL`, `AUTH_SECRET`, `INGEST_SECRET` already set on Vercel). Two views:
+
+- **`/` — Master Playbook + My Plan.** Shared library of ES/NQ setups (identity, thesis,
+  entry criteria, confluence incl. a shared S/R Library, risk/sizing, screenshots, drag-to-
+  reorder sections/fields per trader). Holiday/quad-witching calendar + desk rules + a
+  no-trade-day banner. Samir + Thomas both log in (name+password, same pattern as
+  `healthtracker`).
+- **`/journal` — ingested NT8 trades.** Per-trade: Summary stats, **Per-leg breakdown**
+  (each exit fill individually — price/points/$/R/MAE-MFE-to-that-exit, NOT a blended
+  average), Fills timeline, Stop/target move timeline, zoomable screenshot lightbox
+  (scroll-zoom/drag-pan), a Requirements checklist seeded from the linked Setup
+  (preconditions/confluence/disqualifiers), and a Compliance panel showing which
+  requirements get skipped most often. Mine/Both-traders filter (`Trade.ownerName`). A
+  live "Last import" health indicator (green/amber/red) is the only visibility into whether
+  the background uploader is still alive.
+
+### The NT8 → journal pipeline
+- **Capture:** `nt8/strategies/ClaudeTrackerV2.cs` (THIS repo) — account-level observer,
+  already validated/long-running, records every stop/target move + fill + screenshot per
+  trade. **Export Root Folder is now a user-editable strategy parameter** (was hardcoded) —
+  currently `G:\My Drive\!NT Tracker Export\<ES|MES>\...`.
+- **Bridge:** `scripts/journal_uploader.py` (in the trade-playbook repo, NOT this one) reads
+  those CSV/PNG files and POSTs to `/api/ingest/trade` + `/api/ingest/image`. **Config-file
+  driven** (`scripts/uploader_config.json`, gitignored — holds the secret; template is
+  `uploader_config.example.json`) so the exact same script/launcher/scheduled-task works
+  unmodified on Thomas's PC too — only that one file differs per person. CLI flags still
+  override config if given. `--since YYYY-MM-DD` is the backfill cutoff (set to 2026-10-01;
+  there are ~39 real April historical trades sitting in the Drive export that were
+  deliberately never ingested — ask before changing that).
+- **Launch:** Desktop\\"Start Trade Journal Uploader.bat" (manual) or
+  `scripts/register_autostart.ps1` (hidden Windows Scheduled Task, auto-restarts on crash) —
+  **written but NOT yet registered on this machine**, needs user go-ahead to actually run
+  `Register-ScheduledTask`.
+- **Thomas's onboarding:** `docs/thomas-setup.md` (in trade-playbook repo) — NOT yet
+  executed by Thomas. He needs his own `ClaudeTrackerV2.cs` compiled + attached, his own
+  `uploader_config.json` (trader="Thomas", his own account/root), same shared `INGEST_SECRET`.
+
+### Two real bugs found + fixed this session (both root-caused with direct evidence, not guessed)
+1. **Timezone bug in the uploader**: `_dt()` was labeling NT8's naive CSV timestamps as UTC
+   when they're actually Central time — proven empirically (an ENTRY fill's CSV timestamp vs.
+   its screenshot's real file-write time differed by a clean, to-the-second 5-hour CDT
+   offset). Fixed via `zoneinfo` (DST-aware), overridable with `--nt8-timezone` if this
+   machine's NT8 session timezone is ever not Central. This also broke screenshot-to-
+   timeline linking (fixed differently per type: stop/target rows match by **exact label**,
+   since the CSV row and PNG filename use the literal same string in ClaudeTracker's own
+   code; fills self-calibrate a per-trade clock offset from the one unambiguous pair —
+   OPEN execution ↔ ENTRY screenshot — then match the rest by adjusted proximity).
+2. **Commission bug**: net P&L subtracted a flat per-trade round-trip cost regardless of
+   contract count. Fixed to scale by `exitQty` (a 2-lot trade now correctly pays 2x).
+
+### ⚠️ Performance incident this session — ClaudeTrackerV2 drawing code, REVERTED
+Added `Draw.Dot`/`Draw.Text` calls in `RequestScreenshot()` (to burn the exact price onto
+every ENTRY/stop-move/EXIT screenshot, since NT8 removes an order's own chart line the
+instant it fills/cancels). This accumulated ~80 never-cleared chart objects across one
+session's 5 trades (one had 10 stop moves) and caused **severe NT8-wide lag** — ATM taking
+seconds to appear, dragging a stop becoming heavy. Diagnosed by elimination: removing the
+strategy entirely did NOT fix it (ruled out synchronous Drive-path file I/O as the cause);
+`right-click chart → Remove Drawing Objects` DID fix it instantly — confirming the
+accumulated draw objects were the actual cause, not disk I/O, not RAM (RAM was a red herring
+investigated in parallel — real finding: Chrome was 5.79GB/41 procs, VSCode 3.37GB/19 procs,
+NT8 itself only 0.9GB, so RAM pressure was real but NOT from NT8/IB Gateway/the daemon stack
+as first suspected).
+- **Fully reverted**: `RequestScreenshot()` signature and all 5 call sites back to their
+  pre-session state (no `price` param, no `Draw.*` calls). Compile-checked clean, deployed
+  to the Custom folder. **PENDING: user F5 (when flat).**
+- **Net effect**: screenshots no longer have a burned-in price marker (the original "can't
+  see where we exited" complaint this was meant to solve is back). Do **not** re-attempt this
+  without a real plan for object cleanup (e.g. remove old tags before drawing new ones, or
+  drop the idea in favor of checking whether NT8 has a native persistent-fill-marker setting
+  — this was raised but never actually checked).
+- Also found while diagnosing: `ClaudeTrackerV2`'s `Name` property was still `"ClaudeTracker"`
+  (copy-paste leftover) — NT8 showed only one entry in Add-Strategy because two scripts
+  shared a display name. Fixed, confirmed distinct entries now show.
+
+### Other fixes/additions in `nt8/strategies/ClaudeTrackerV2.cs` this session (all compiled, deployed, all except the drawing-revert are still live pending the same F5)
+- `MAEPointsAtEvent`/`MFEPointsAtEvent` added to `TradeEventRow` + Events.csv — cumulative
+  MAE/MFE snapshotted at every event, enabling true per-leg MAE/MFE in the journal (todays
+  3 trades predate this column; only trades tracked after the next F5 will have it).
+- `ExportRootFolder` made a `[NinjaScriptProperty]` (was hardcoded `G:\My Drive\...`).
+
+### Repo-drift finding (fixed, worth remembering)
+`nt8/strategies/ClaudeTrackerV2.cs` existed ONLY on the NT8 machine, never committed —
+same lost-file risk as ZerolagExporter/AlwaysIn/QSSignalOverlay. Recovered + committed, along
+with re-syncing `ClaudeTracker.cs` (the repo copy had drifted from the deployed one: flat
+date-folders vs. the deployed version's real per-trade-subfolder layout). **If you ever edit
+either file in the repo, diff against the live Custom-folder copy first — they can silently
+diverge.**
+
+### Also found/fixed, unrelated to NT8
+- `BreakoutBoysDashboardV1.cs` identified (user asked directly) as the actual custom
+  on-chart button panel used for manual entries (SEL/SES/Cancel/Flat/master toggles) — NOT
+  an NT8 ATM; it submits through an ATM template (currently "2C") for stop/target mgmt only.
+  Now documented in `nt8/README.md`'s registry (was missing).
+- 3 stray `journal_uploader.py` processes left running from this session's own testing
+  (one real `--watch` with stale args, two stuck in an accidental infinite loop) — killed.
+- Committed ~170 files of routine daemon/data churn + a parallel chat's uncommitted work
+  (`scripts/regime2e_tracker_setups.py` + `scripts/regime2e_tracker_metrics.py` — a 2E ×
+  regime-tracker study, validation target PF 1.39/+$82.7k/~630tr for 2021+) that were sitting
+  uncommitted in the working tree — see commits `fdc9baf6`, `1bbb7183`.
+
+### OPEN / next
+- **PENDING: user F5** on `ClaudeTrackerV2` (flat first) — picks up the drawing-code revert
+  + the Name fix + MAE/MFE columns + configurable export folder, all in one recompile.
+- **PENDING: user decision** — register the autostart Scheduled Task
+  (`scripts/register_autostart.ps1`, trade-playbook repo) on this machine? Not yet run.
+- **PENDING: Thomas** — hasn't onboarded yet (`docs/thomas-setup.md` in trade-playbook).
+- **PENDING: user** — review the 39 un-ingested April historical trades in the Drive export
+  (`G:\My Drive\!NT Tracker Export\`) — currently deliberately excluded by `--since`; decide
+  whether to ever import them.
+- Not pursued: whether NT8 has a native "show persistent fill markers" setting that could
+  solve the original screenshot problem without any custom Draw code. Worth 5 minutes before
+  anyone re-attempts the chart-marker idea.
+- Trade-playbook repo is **private**, separate from this repo — Thomas needs direct file
+  handoff (not git access) per `docs/thomas-setup.md`.
 
 ---
 
@@ -232,6 +358,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 14 | Playbook-only backtest (trade what the gexlog playbook says) | ✅ DONE (S116-gexlog) | `gexlog_playbook_parse.py` (327/327 scenarios) + `gexlog_playbook_bt.py` (TD 1-min, 106d Apr–Sep): touch −$43.0k / hold15 +$5.5k / cross15 +$0.4k — sign flips on the trigger reading; no robust edge; rows in backtest_full/playbook_bt_rows.csv |
 | 17 | Trade plan w/ Thomas (setup inventory → regime/risk → trade log/journal) | 🛑 PAUSED (S118 9/15, USER CALLED STOP — lost confidence in the analysis) | `docs/living/trade_plan/`: `setup_inventory.md` (v1–v2 + evidence ranking, all sources) · `apex_account_analysis.md` · `apex_rulebook.md`. Deep-dived REGIME-2E: edge REAL but lumpy (top-10=55% of net), short-side-heavy, regime-favorable; PF~1.5–1.8. Built + deployed NT8 `Regime2ESetups.cs` (indicator) + `Regime2EStrategy.cs` (OnePerDay/gates/visuals; signal-parity 96.8%/regime 100% vs python) — PENDING user F5 + Sim101 forward test. Apex study: site scraped via Playwright (`scripts/apex_fetch_pages.py`; Cloudflare 403s WebFetch). **⚠ Analysis iterated messily across many turns — user halted, deemed it unreliable.** VERIFIED rules in `apex_rulebook.md` (verbatim+sources): legacy FULL DD = INTRADAY trailing (eval+funded, NOT EOD); needs MES fractional sizing (10 MES=1ES blows; ≤8 MES survives); **2 PA rules (30% MAE, 5:1 RR) NEVER modeled ⇒ ALL funded sims PROVISIONAL/likely-worse; eval sims valid**. Standing take: hold-to-EOD book wants a STATIC-DD firm (TPT), not Apex trailing. NEXT (only if resumed): model 30% MAE+5:1 in ONE clean funded sim; resolve §H open Qs w/ Apex FIRST |
 | 18 | **Wyckoff 2.0 discretionary toolset + full-tape recording DB** | 🟢 ACTIVE (S121-wyckoff-tools 9/16, leglab) — **CONTINUE HERE** | **DB LIVE**: L1 tape+BBO recorder `L1TapeRecorderAddOn.cs` running on **ES 12-26** (ES-only per user; ~90% quote, self-healing) + nightly rollover + watchdog tasks + `check_l1_tape` tile. Footprint pipeline RETIRED (L1 reconstructs it). **Stage-1 tools built** (VP engine+NT8 drawer PENDING F5, Weis wave, VWAP-readable). **`wyckoff_marker.py` = the interactive HTML Wyckoff marker** (click-box+snap, auto events from box, box-free bull/bear/transition trend engine, multi-day, S/R+21EMA, flex-renko). Renko+wicks+**Sierra flex_renko**; NT8 `FlexRenkoBarsType.cs` deployed — **RESOLVED (S122): it's in Data Series → Type, NOT the Chart-Style dropdown; not a compile error (type + strings byte-verified in the DLL)**. **FINDING: 9/15 low = SPRING of overnight low.** NEXT: Stage-2 (TR-Box + retro event engine) + Stage-3 (OF trigger panel); VWAP host-exporter; marker threshold calibration (user marks AR/springs); optional ChoCH volume/spread confirm. **READ S121-wyckoff-tools BLOCK.** |
+| 20 | **Trade Playbook + Journal (separate repo `trade-playbook`)** | 🟡 PENDING USER (S125 2026-10-01) | Live at https://trade-playbook-ten.vercel.app. NT8 pipeline built (ClaudeTrackerV2 → journal_uploader.py → cloud). **PENDING: F5 ClaudeTrackerV2** (performance-incident drawing-code revert + Name fix + MAE/MFE columns + configurable export path, all in one recompile — see S125 block). PENDING: register autostart task (written, not run); Thomas onboarding (`docs/thomas-setup.md`, not yet done); decide on the 39 un-ingested April historical trades. |
 | 19 | **Regime tracker — BOS/ChoCh regime classifier (5m ES)** | 🟢 LAG RECONCILE DONE (S124 2026-09-24) — PENDING USER F5 | **Lag=1 is canonical** (user decision). S123 export-diff was the Lag setting (Documents=Lag3 vs Desktop=Lag1), NOT a build/tick engine difference. Python now models Lag (`mywedge.compute_mywedge(lag=)` + `swing_*_asof`); **Python(lag=1)↔both NT exports = 100%** (Documents `--session eth`, Desktop `--session date`). NT8 `RegimeTracker.cs` default Lag 3→1, compiled + **deployed — PENDING USER F5** (when flat). Invariant: lag2==lag3==finalised (non-repaint). Repaint effect: 476/500 trend segments identical, 1.04% bar diffs, ~4 short direction-flip windows. **PARKED (user will revisit): Lag 1 vs Lag 2** (chart-match+repaint vs settled/non-repaint). See S124 block. Earlier (S123): outside-bar rule ported (`Swings()`/`Extends()`). **Outside-bar rule (9/22-23):** mywedge marks an outside bar as BOTH a swing high and low; if it extended the structure at both ends both swings stand, else it collapses to the extreme it LEFT ON (`bar_dir`). Validated on 4 hand-marked charts at once — 02-13 **Bull b9**, 12-26 **one Bear b21-53**, 05-19 **Bear b16**, 05-21 **unchanged Bull b28**; other 8 sessions byte-identical. Three rejected variants recorded in the regime-tracker block — do NOT retry (the third, a general minor-pivot filter, broke 14/14 sessions). **Minor pivots beyond outside bars: CLOSED 9/23, user said leave as is** — zero-length in-bar trends (05-06 b5 etc.) are an accepted artifact. **PARKED:** 02-13 late ChoCh ~b76 (outside-bar intrabar order) — tracker is deliberately **bar-only, do NOT resolve with ticks**. Page generators now in `regime_tracker/pages/` (near-duplicates; consolidate before the next batch). Safety tag `pre-nt8-merge-20260923`; stale worktree `C:\Users\Thomas-Code\wt-nt8` can be removed. |
 
 ---
