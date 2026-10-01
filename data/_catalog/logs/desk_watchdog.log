@@ -4291,3 +4291,6 @@
 2026-10-01 12:03:05 all green
 2026-10-01 12:04:30 ACTION marks: marks.csv 309s — restarting via 'MyQuant Marks Watch'
 2026-10-01 12:04:43 marks: marks.csv 323s — in cooldown (14s), waiting
+2026-10-01 12:07:03 all green (daemon)
+2026-10-01 12:08:04 sim_daemon: process gone — task 'MyQuant Sim Daemon' Disabled; intentionally off, not restarting
+2026-10-01 12:08:05 all green
