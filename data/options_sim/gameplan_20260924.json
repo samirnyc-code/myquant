@@ -1,0 +1,767 @@
+{
+  "date": "20260924",
+  "generated_at": "2026-09-24 07:05:05 CT",
+  "spot_preopen": 7705.3,
+  "spot_source": "15:19 tape",
+  "vix": 14.869999885559082,
+  "vix_source": "2026-09-21",
+  "em_halfwidth": 79.0,
+  "em_source": "gexlog brief",
+  "em_low": 7627.0,
+  "em_high": 7785.0,
+  "regime": "n/a (premium-only, unconditional)",
+  "gexlog": {
+    "signal_bucket": "CAUTION",
+    "signal": "Caution",
+    "day_type": "HIVOL",
+    "forecast_type": "HIGH VOLATILITY",
+    "regime": "NEGATIVE",
+    "net_gex": -2619761479.0,
+    "gex_flip": null,
+    "putWall": 7620.0,
+    "callWall": 7720.0,
+    "expectedMove": 79.0,
+    "emLower": 7627.0,
+    "emUpper": 7785.0,
+    "current": 7706.03,
+    "risk_level": "Elevated",
+    "confidence": 70,
+    "flip_proximity": null,
+    "borderline_regime": false,
+    "streak_label": "Day 1 Negative Gamma",
+    "catalysts_today": [
+      {
+        "time": "04:10",
+        "title": "Fed Williams Speech",
+        "impact": "medium",
+        "category": "fed"
+      },
+      {
+        "time": "08:00",
+        "title": "Fed Barkin Speech",
+        "impact": "medium",
+        "category": "fed"
+      },
+      {
+        "time": "08:30",
+        "title": "Jobless Claims 4-Week Average (Sep/19)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Initial Jobless Claims (Sep/19)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Continuing Jobless Claims (Sep/12)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:30",
+        "title": "Current Account (Q2)",
+        "impact": "medium",
+        "category": "economic"
+      },
+      {
+        "time": "08:50",
+        "title": "Fed Hammack Speech",
+        "impact": "medium",
+        "category": "fed"
+      },
+      {
+        "time": "10:00",
+        "title": "New Home Sales (Aug)",
+        "impact": "high",
+        "category": "economic"
+      }
+    ],
+    "high_impact_today": 1,
+    "playbook_wait": true,
+    "playbook": {
+      "primary": {
+        "scenario": "Call Wall Breakout",
+        "trigger": "Holding > 7720 (Call Wall) post-10:00 ET New Home Sales",
+        "bias": "WAIT for New Home Sales (10:00 ET) before entry. If ES sustains above 7720 after the catalyst, negative gamma amplifies the move higher toward R1 at 7747.02 and R2 at 7788.0. Use a bull call debit spread targeting the 7747\u20137788 zone; defined risk limits exposure to post-event volatility."
+      },
+      "alternative": {
+        "scenario": "Support Breakdown Expansion",
+        "trigger": "Break < 7679.97 (S1) post-10:00 ET New Home Sales",
+        "bias": "WAIT for New Home Sales (10:00 ET) before entry. A confirmed break below S1 at 7679.97 in negative gamma opens a dealer-amplified flush toward S2 at 7653.9 and the Put Wall at 7620.0. Use a bear put debit spread targeting the 7653\u20137620 zone; avoid undefined-risk structures given elevated intraday am"
+      },
+      "neutral": {
+        "scenario": "Rangebound Chop",
+        "trigger": "Contained between 7620 (Put Wall) and 7720 (Call Wall)",
+        "bias": "WAIT for New Home Sales (10:00 ET) to confirm no directional resolution. If ES oscillates between 7620 and 7720 without conviction, deploy an iron condor with short strikes inside the Put Wall / Call Wall range, collecting premium in a regime where the walls act as gravitational anchors despite nega"
+      }
+    },
+    "pivots": {
+      "r2": 7788.0,
+      "r1": 7747.02,
+      "s1": 7679.97,
+      "s2": 7653.9
+    },
+    "gap_pct": 0.19,
+    "gap_note": "+0.19% (fade)",
+    "calendar_note": "4/5 HIGH",
+    "stale_risk": false,
+    "es_premarket": 7721.0,
+    "rsi_14": 49.9,
+    "corr_putWall": 7620.0,
+    "corr_callWall": 7720.0,
+    "gamma_regime": "NEG",
+    "event_day": true,
+    "event_titles": [
+      "Jobless Claims 4-Week Average (Sep/19)",
+      "Initial Jobless Claims (Sep/19)",
+      "Continuing Jobless Claims (Sep/12)"
+    ],
+    "in_range_flip": null,
+    "sector_dispersion": 1.66,
+    "generated_at": "2026-09-24 06:20 AM ET",
+    "source": "report.php",
+    "error": null
+  },
+  "event_gate": {
+    "event_day": true,
+    "gamma": "NEG",
+    "verdict": "STAND_ASIDE",
+    "advisory": true,
+    "note": "NEG-gamma event day (Jobless Claims 4-Week Average (Sep/19), Initial Jobless Claims (Sep/19), Continuing Jobless Claims (Sep/12)) \u2014 archive EM-held only 65% (worst cell; breaks are TREND-strong). Real-money posture: size down / widen wings / go directional. Paper still trades all for the record."
+  },
+  "levels": {},
+  "warnings": [],
+  "execution": {
+    "mode": "auto",
+    "size": 1,
+    "concurrency_cap": null,
+    "min_grade": "F",
+    "min_credit_abs": 0.1,
+    "exits": {
+      "level_accept_mins": 10,
+      "regime_invalidation": true,
+      "time_stop": "14:45"
+    },
+    "policy": "PREMIUM-SELLING ONLY, unconditional (data collection). Four 0DTE verticals fired at the open off the VIX EM band; iron condor = bps+bcs, iron fly = atm bps+bcs (summed in analysis). No MenthorQ, no regime gate. Exits: short-strike acceptance or 14:45 time-stop."
+  },
+  "scenarios": [],
+  "triggers": [
+    {
+      "id": "eodic_p",
+      "setup": "eodic_p",
+      "stream": "eod",
+      "path": "\u2014",
+      "name": "[EOD] Bull Put @ 7625",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "08:30"
+      },
+      "window": [
+        "08:30",
+        "09:30"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "P",
+        "short": 7625,
+        "long": 7600,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "EOD condor put \u2014 prior-close EM low (gexlog brief)",
+      "group": "[EOD] Iron Condor",
+      "center": "eod",
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260924_083049",
+      "gexlog_signal": "CAUTION",
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "08:30:19.395",
+      "entry_valid": true,
+      "entry_note": "ok",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 1.65,
+        "grade": "B",
+        "at": "08:30:49"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7600.0,
+          "expiry": "20260924",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7625.0,
+          "expiry": "20260924",
+          "qty": 1
+        }
+      ],
+      "exited": false
+    },
+    {
+      "id": "eodic_c",
+      "setup": "eodic_c",
+      "stream": "eod",
+      "path": "\u2014",
+      "name": "[EOD] Bear Call @ 7785",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "08:30"
+      },
+      "window": [
+        "08:30",
+        "09:30"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "C",
+        "short": 7785,
+        "long": 7810,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "EOD condor call \u2014 prior-close EM high (gexlog brief)",
+      "group": "[EOD] Iron Condor",
+      "center": "eod",
+      "status": "stood_down_thin_credit",
+      "fired": true,
+      "trade_id": null,
+      "gexlog_signal": "CAUTION",
+      "gexlog_day_type": "HIVOL",
+      "skip_reason": "credit 0.05 < playbook minimum 0.10 \u2014 would risk $2,495 to make $5",
+      "est_net": 0.05
+    },
+    {
+      "id": "eodfly_p",
+      "setup": "eodfly_p",
+      "stream": "eod",
+      "path": "\u2014",
+      "name": "[EOD] Bull Put @ 7705 (ATM)",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "08:30"
+      },
+      "window": [
+        "08:30",
+        "09:30"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "P",
+        "short": 7705,
+        "long": 7680,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "EOD fly put \u2014 ATM = prior close",
+      "group": "[EOD] Iron Fly",
+      "center": "eod",
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260924_083133",
+      "gexlog_signal": "CAUTION",
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "08:31:02.753",
+      "entry_valid": true,
+      "entry_note": "ok",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 18.3,
+        "grade": "B",
+        "at": "08:31:33"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7680.0,
+          "expiry": "20260924",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7705.0,
+          "expiry": "20260924",
+          "qty": 1
+        }
+      ],
+      "exited": true,
+      "beyond_since": "2026-09-24T08:32:30.568944-05:00",
+      "exit": {
+        "cost": 17.2,
+        "at": "08:42:45",
+        "why": "level ACCEPTED: spot 7677 held below the 7705 short strike for 10min (>10) \u2014 the wall we sold did not hold"
+      }
+    },
+    {
+      "id": "eodfly_c",
+      "setup": "eodfly_c",
+      "stream": "eod",
+      "path": "\u2014",
+      "name": "[EOD] Bear Call @ 7705 (ATM)",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "08:30"
+      },
+      "window": [
+        "08:30",
+        "09:30"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "C",
+        "short": 7705,
+        "long": 7730,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "EOD fly call \u2014 ATM = prior close",
+      "group": "[EOD] Iron Fly",
+      "center": "eod",
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260924_083230",
+      "gexlog_signal": "CAUTION",
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "08:31:40.201",
+      "entry_valid": true,
+      "entry_note": "ok",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 2.25,
+        "grade": "B",
+        "at": "08:32:30"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "C",
+          "strike": 7730.0,
+          "expiry": "20260924",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "C",
+          "strike": 7705.0,
+          "expiry": "20260924",
+          "qty": 1
+        }
+      ],
+      "exited": true,
+      "beyond_since": "2026-09-24T11:47:04.530959-05:00",
+      "exit": {
+        "cost": 12.4,
+        "at": "11:58:05",
+        "why": "level ACCEPTED: spot 7716 held above the 7705 short strike for 10min (>10) \u2014 the wall we sold did not hold"
+      }
+    },
+    {
+      "id": "openic_p",
+      "setup": "openic_p",
+      "stream": "open",
+      "path": "\u2014",
+      "name": "[Open] Bull Put @ open-79",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "09:05"
+      },
+      "window": [
+        "09:05",
+        "10:00"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "P",
+        "offset": -79.0,
+        "width": 25,
+        "short": 7610,
+        "long": 7585
+      },
+      "projected_grade": "C",
+      "grade_basis": "Open condor put \u2014 79pt below the open [WAIT day: entry 09:05 CT post-event per brief]",
+      "group": "[Open] Iron Condor",
+      "center": "open",
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260924_090522",
+      "gexlog_signal": "CAUTION",
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "09:05:07.835",
+      "entry_valid": true,
+      "entry_note": "ok",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 0.15,
+        "grade": "D",
+        "at": "09:05:22"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7585.0,
+          "expiry": "20260924",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7610.0,
+          "expiry": "20260924",
+          "qty": 1
+        }
+      ],
+      "exited": false
+    },
+    {
+      "id": "openic_c",
+      "setup": "openic_c",
+      "stream": "open",
+      "path": "\u2014",
+      "name": "[Open] Bear Call @ open+79",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "09:05"
+      },
+      "window": [
+        "09:05",
+        "10:00"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "C",
+        "offset": 79.0,
+        "width": 25,
+        "short": 7770,
+        "long": 7795
+      },
+      "projected_grade": "C",
+      "grade_basis": "Open condor call \u2014 79pt above the open [WAIT day: entry 09:05 CT post-event per brief]",
+      "group": "[Open] Iron Condor",
+      "center": "open",
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260924_090543",
+      "gexlog_signal": "CAUTION",
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "09:05:29.330",
+      "entry_valid": true,
+      "entry_note": "ok",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 0.1,
+        "grade": "D",
+        "at": "09:05:43"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "C",
+          "strike": 7795.0,
+          "expiry": "20260924",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "C",
+          "strike": 7770.0,
+          "expiry": "20260924",
+          "qty": 1
+        }
+      ],
+      "exited": false
+    },
+    {
+      "id": "openfly_p",
+      "setup": "openfly_p",
+      "stream": "open",
+      "path": "\u2014",
+      "name": "[Open] Bull Put @ ATM(open)",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "09:05"
+      },
+      "window": [
+        "09:05",
+        "10:00"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "P",
+        "offset": 0,
+        "width": 25,
+        "short": 7690,
+        "long": 7665
+      },
+      "projected_grade": "C",
+      "grade_basis": "Open fly put \u2014 ATM = open [WAIT day: entry 09:05 CT post-event per brief]",
+      "group": "[Open] Iron Fly",
+      "center": "open",
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260924_090606",
+      "gexlog_signal": "CAUTION",
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "09:05:51.131",
+      "entry_valid": true,
+      "entry_note": "ok",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 7.8,
+        "grade": "C",
+        "at": "09:06:06"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7665.0,
+          "expiry": "20260924",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7690.0,
+          "expiry": "20260924",
+          "qty": 1
+        }
+      ],
+      "exited": true,
+      "beyond_since": "2026-09-24T09:30:10.898332-05:00",
+      "exit": {
+        "cost": 8.2,
+        "at": "09:40:42",
+        "why": "level ACCEPTED: spot 7689 held below the 7690 short strike for 10min (>10) \u2014 the wall we sold did not hold"
+      }
+    },
+    {
+      "id": "openfly_c",
+      "setup": "openfly_c",
+      "stream": "open",
+      "path": "\u2014",
+      "name": "[Open] Bear Call @ ATM(open)",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "09:05"
+      },
+      "window": [
+        "09:05",
+        "10:00"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "C",
+        "offset": 0,
+        "width": 25,
+        "short": 7690,
+        "long": 7715
+      },
+      "projected_grade": "C",
+      "grade_basis": "Open fly call \u2014 ATM = open [WAIT day: entry 09:05 CT post-event per brief]",
+      "group": "[Open] Iron Fly",
+      "center": "open",
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260924_090628",
+      "gexlog_signal": "CAUTION",
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "09:06:13.183",
+      "entry_valid": true,
+      "entry_note": "ok",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 8.6,
+        "grade": "C",
+        "at": "09:06:28"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "C",
+          "strike": 7715.0,
+          "expiry": "20260924",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "C",
+          "strike": 7690.0,
+          "expiry": "20260924",
+          "qty": 1
+        }
+      ],
+      "exited": true,
+      "beyond_since": "2026-09-24T11:16:48.175505-05:00",
+      "exit": {
+        "cost": 10.2,
+        "at": "11:27:03",
+        "why": "level ACCEPTED: spot 7696 held above the 7690 short strike for 10min (>10) \u2014 the wall we sold did not hold"
+      }
+    },
+    {
+      "id": "gx_bps",
+      "setup": "gx_bps",
+      "stream": "gexlog",
+      "path": "\u2014",
+      "name": "[GexLog] Bull Put @ putWall 7620",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "09:05"
+      },
+      "window": [
+        "09:05",
+        "10:00"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "P",
+        "short": 7620,
+        "long": 7595,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "gexlog suggested: short put at its Put Wall [WAIT day: entry 09:05 CT post-event per brief]",
+      "group": "[GexLog] Iron Condor",
+      "center": "gexlog",
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260924_090649",
+      "gexlog_signal": "CAUTION",
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "09:06:34.871",
+      "entry_valid": true,
+      "entry_note": "ok",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 0.3,
+        "grade": "D",
+        "at": "09:06:49"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "P",
+          "strike": 7595.0,
+          "expiry": "20260924",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "P",
+          "strike": 7620.0,
+          "expiry": "20260924",
+          "qty": 1
+        }
+      ],
+      "exited": false
+    },
+    {
+      "id": "gx_bcs",
+      "setup": "gx_bcs",
+      "stream": "gexlog",
+      "path": "\u2014",
+      "name": "[GexLog] Bear Call @ callWall 7720",
+      "arm": {
+        "regime": "any"
+      },
+      "fire": {
+        "type": "time_at",
+        "not_before": "09:05"
+      },
+      "window": [
+        "09:05",
+        "10:00"
+      ],
+      "structure": {
+        "kind": "vertical",
+        "right": "C",
+        "short": 7720,
+        "long": 7745,
+        "width": 25
+      },
+      "projected_grade": "C",
+      "grade_basis": "gexlog suggested: short call at its Call Wall [WAIT day: entry 09:05 CT post-event per brief]",
+      "group": "[GexLog] Iron Condor",
+      "center": "gexlog",
+      "status": "fired",
+      "fired": true,
+      "trade_id": "auto_20260924_090709",
+      "gexlog_signal": "CAUTION",
+      "gexlog_day_type": "HIVOL",
+      "submit_at": "09:06:55.653",
+      "entry_valid": true,
+      "entry_note": "ok",
+      "entry_regime": "unknown",
+      "fill": {
+        "net": 1.85,
+        "grade": "B",
+        "at": "09:07:09"
+      },
+      "filled_legs": [
+        {
+          "side": "buy",
+          "right": "C",
+          "strike": 7745.0,
+          "expiry": "20260924",
+          "qty": 1
+        },
+        {
+          "side": "sell",
+          "right": "C",
+          "strike": 7720.0,
+          "expiry": "20260924",
+          "qty": 1
+        }
+      ],
+      "exited": false
+    }
+  ],
+  "open_spot": 7670.9,
+  "open_spot_at": "08:30:13 CT",
+  "gexlog_evening": {
+    "generated_at": "2026-09-24 07:45 PM ET",
+    "session_type": "RANGE BOUND",
+    "forecast_accurate": false,
+    "expected_move_hit": true,
+    "spx_change": -0.03,
+    "vix_change": 3.23
+  }
+}

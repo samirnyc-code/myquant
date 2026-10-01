@@ -32,3 +32,15 @@ run_at_ct: target 08:29 CT | now 14:48 CT | delta +380min | berlin-chicago 7h | 
 run_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_trigger_daemon.py --until 15:00
 run_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_trigger_daemon.py --until 15:00
 run_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_trigger_daemon.py --until 15:00
+run_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_trigger_daemon.py --until 15:00
+run_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_trigger_daemon.py --until 15:00
+run_at_ct: target 08:29 CT | now 09:11 CT | delta +42min | berlin-chicago 7h | SKIP (other trigger owns this slot)
+run_at_ct: target 08:29 CT | now 09:21 CT | delta +52min | berlin-chicago 7h | SKIP (other trigger owns this slot)
+run_at_ct: target 08:29 CT | now 09:31 CT | delta +62min | berlin-chicago 7h | SKIP (other trigger owns this slot)
+run_at_ct: target 08:29 CT | now 09:41 CT | delta +73min | berlin-chicago 7h | SKIP (other trigger owns this slot)
+run_at_ct: target 08:29 CT | now 09:51 CT | delta +83min | berlin-chicago 7h | SKIP (other trigger owns this slot)
+run_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_trigger_daemon.py --until 15:00
+run_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_trigger_daemon.py --until 15:00
+run_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_trigger_daemon.py --until 15:00
+^Crun_at_ct: target 08:29 CT | now 08:29 CT | delta +0min | berlin-chicago 7h | RUN: C:\Users\Admin\myquant\.venv\Scripts\python.exe -u C:\Users\Admin\myquant\scripts\options_trigger_daemon.py --until 15:00
+^C

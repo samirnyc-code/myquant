@@ -32,3 +32,9 @@ date,n,trough,trough_ct,crossed_warn,warn_ct,warn_fill,crossed_stop,stop_ct,stop
 2026-09-18,10,5,09:32,False,,,False,,,992,n/a (never triggered),2138,,14.8,15:11:21
 2026-09-22,7,-358,15:39,False,,,False,,,225,n/a (never triggered),662,,14.2,15:11:24
 2026-09-23,8,-1260,13:03,False,,,False,,,670,n/a (never triggered),1930,,15.3,15:11:24
+2026-09-24,9,-1445,12:42,False,,,False,,,-535,n/a (never triggered),2710,,15.5,15:11:23
+2026-09-25,6,-738,10:15,False,,,False,,,-265,n/a (never triggered),862,,14.8,15:11:24
+2026-09-28,8,-1060,12:28,False,,,False,,,495,n/a (never triggered),1772,,16.2,15:11:25
+2026-09-29,10,-80,09:32,False,,,False,,,568,n/a (never triggered),648,,16.1,15:11:29
+2026-09-30,9,-285,10:54,False,,,False,,,482,n/a (never triggered),802,,16.4,15:11:26
+2026-10-01,10,-1635,10:02,False,,,False,,,-540,,1738,,16.8,12:05:18
