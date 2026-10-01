@@ -254,7 +254,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Name                   = "ClaudeTracker";
+                Name                   = "ClaudeTrackerV2";
                 Calculate              = Calculate.OnEachTick;
                 IsOverlay              = true;
                 InitialStopLockSeconds = 5;
