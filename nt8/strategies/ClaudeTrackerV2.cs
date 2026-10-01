@@ -51,6 +51,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             public double CurrentStop;
             public double ActualStop;
             public double TargetAtEvent;
+            // Cumulative MAE/MFE (from entry to THIS event's instant) — lets the
+            // journal show per-leg excursion, not just a trade-level final total.
+            public double MAEPointsAtEvent;
+            public double MFEPointsAtEvent;
             public int SessionBar;
             // SessionLastBar removed — static value, no analytical value per event
             public int BarsSinceTradeStart;
@@ -246,6 +250,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Display(Name = "Debug Mode", Order = 3, GroupName = "Parameters")]
         public bool DebugMode { get; set; }
 
+        [NinjaScriptProperty]
+        [Display(Name = "Export Root Folder", Order = 4, GroupName = "Parameters",
+            Description = "Base folder for CSV/screenshot export. An ES or MES subfolder is created under it automatically.")]
+        public string ExportRootFolder { get; set; }
+
         #endregion
 
         #region State
@@ -260,15 +269,19 @@ namespace NinjaTrader.NinjaScript.Strategies
                 InitialStopLockSeconds = 5;
                 ScreenshotDelayMs      = 100;
                 DebugMode              = true;
+                ExportRootFolder       = @"G:\My Drive\!NT Tracker Export";
                 RealtimeErrorHandling  = RealtimeErrorHandling.IgnoreAllErrors;
                 StartBehavior          = StartBehavior.AdoptAccountPosition;
             }
             else if (State == State.Configure)
             {
                 string instrumentFolder = Instrument.FullName.Contains("MES") ? "MES" : "ES";
-outputRoot = Path.Combine(@"G:\My Drive\!NT Tracker Export", instrumentFolder);
-if (!Directory.Exists(outputRoot))
-    Directory.CreateDirectory(outputRoot);
+                string root = string.IsNullOrWhiteSpace(ExportRootFolder)
+                    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "NinjaTrader 8", "ClaudeTracker")
+                    : ExportRootFolder;
+                outputRoot = Path.Combine(root, instrumentFolder);
+                if (!Directory.Exists(outputRoot))
+                    Directory.CreateDirectory(outputRoot);
             }
             else if (State == State.DataLoaded)
 {
@@ -422,6 +435,8 @@ if (!Directory.Exists(outputRoot))
                 FillPrice           = ex.Price,
                 AvgEntryBefore      = 0,
                 AvgEntryAfter       = activeTrade.WeightedAvgEntryPrice,
+                MAEPointsAtEvent    = 0,
+                MFEPointsAtEvent    = 0,
                 SessionBar          = sessionBar
             });
 
@@ -453,7 +468,7 @@ if (!Directory.Exists(outputRoot))
 
             WriteEntryStudy(activeStudy);
             DebugPrint("ENTRY written for " + tradeId + " [" + entryType + "] at " + F2(ex.Price));
-            RequestScreenshot("ENTRY", ex.Time, tradeId, ex.Time);
+            RequestScreenshot("ENTRY", ex.Time, tradeId, ex.Time, ex.Price);
         }
 
         private void HandleAddExecution(Execution ex, Order o, int signedQty, int positionBefore, int positionAfter)
@@ -553,6 +568,8 @@ else if (eventType == "SCALE_IN" && activeStudy != null)
                 CurrentStop            = activeTrade.CurrentStop,
                 ActualStop             = activeTrade.CurrentStop,
                 TargetAtEvent          = activeTrade.CurrentTarget,
+                MAEPointsAtEvent       = activeTrade.TradeMAEPoints,
+                MFEPointsAtEvent       = activeTrade.TradeMFEPoints,
                 SessionBar             = sessionBar,
                 BarsSinceTradeStart    = sessionBar >= 0 && activeTrade.StartSessionBar >= 0 ? sessionBar - activeTrade.StartSessionBar : -1,
                 BarsSincePrevEvent     = sessionBar >= 0 && prevSessionBar >= 0 ? sessionBar - prevSessionBar : -1,
@@ -564,7 +581,7 @@ else if (eventType == "SCALE_IN" && activeStudy != null)
             activeTrade.LastEventTime       = ex.Time;
 
             if (eventType == "SCALE_IN" || eventType == "ADD_ON" || eventType == "ENTRY_ADD")
-                RequestScreenshot(eventType, ex.Time, activeTrade.TradeID, activeTrade.StartTime);
+                RequestScreenshot(eventType, ex.Time, activeTrade.TradeID, activeTrade.StartTime, price);
         }
 
         private void HandleExitExecution(Execution ex, Order o, int closeQty, int positionBefore, int positionAfter,
@@ -626,6 +643,8 @@ else if (eventType == "SCALE_IN" && activeStudy != null)
                 CurrentStop            = activeTrade.CurrentStop,
                 ActualStop             = activeTrade.CurrentStop,
                 TargetAtEvent          = activeTrade.CurrentTarget,
+                MAEPointsAtEvent       = activeTrade.TradeMAEPoints,
+                MFEPointsAtEvent       = activeTrade.TradeMFEPoints,
                 SessionBar             = sessionBar,
                 BarsSinceTradeStart    = sessionBar >= 0 && activeTrade.StartSessionBar >= 0 ? sessionBar - activeTrade.StartSessionBar : -1,
                 BarsSincePrevEvent     = sessionBar >= 0 && prevSessionBar >= 0 ? sessionBar - prevSessionBar : -1,
@@ -638,7 +657,7 @@ else if (eventType == "SCALE_IN" && activeStudy != null)
 
             if (eventType == "SCALE_OUT" || eventType == "REVERSAL_EXIT")
                 RequestScreenshot(exitLabel + "_" + activeTrade.TotalExitQty.ToString(INV),
-                    ex.Time, activeTrade.TradeID, activeTrade.StartTime);
+                    ex.Time, activeTrade.TradeID, activeTrade.StartTime, fillPrice);
 
             if (positionAfter == 0)
                 CloseTrade(ex.Time, sessionBar);
@@ -691,7 +710,7 @@ else if (eventType == "SCALE_IN" && activeStudy != null)
             DebugPrint("Trade closed: " + activeTrade.TradeID
                 + " [" + summary.ExitMechanism + "/" + summary.ExitLabel + "]"
                 + " PnL=" + F2(activeTrade.RealizedPnLCurrency));
-            RequestScreenshot("EXIT", endTime, activeTrade.TradeID, activeTrade.StartTime);
+            RequestScreenshot("EXIT", endTime, activeTrade.TradeID, activeTrade.StartTime, activeTrade.WeightedAvgExitPrice);
 
             activeTrade = null;
             activeStudy = null;
@@ -900,7 +919,7 @@ if (name.StartsWith("TARGET"))
 
             activeStudy.LastStopWrittenTime = stopTime;
             WriteEntryStudy(activeStudy);
-            RequestScreenshot(stopEvent, stopTime, activeStudy.TradeID, activeStudy.EntryTime);
+            RequestScreenshot(stopEvent, stopTime, activeStudy.TradeID, activeStudy.EntryTime, stopPrice);
 
             DebugPrint(stopEvent + " appended: stop=" + F2(stopPrice) + " risk=" + F2(riskPoints) + " pts");
         }
@@ -936,7 +955,7 @@ if (name.StartsWith("TARGET"))
 
         #region Screenshot
 
-        private void RequestScreenshot(string label, DateTime time, string tradeId, DateTime tradeTime)
+        private void RequestScreenshot(string label, DateTime time, string tradeId, DateTime tradeTime, double price = 0)
         {
             if (ChartControl == null) return;
             try
@@ -951,6 +970,16 @@ if (name.StartsWith("TARGET"))
                 {
                     try
                     {
+                        // Our own marker — NT8 removes an order's chart line the instant it's
+                        // filled/cancelled, so a screenshot taken after that (any delay) shows
+                        // no stop/target line at all. Drawing our own dot+label at the exact
+                        // event price fixes this regardless of ATM/order-line timing.
+                        if (price > 0)
+                        {
+                            string tag = "CT_" + SanitizeLabel(tradeId) + "_" + SanitizeLabel(label);
+                            Draw.Dot(this, tag, false, 0, price, Brushes.Yellow);
+                            Draw.Text(this, tag + "_TXT", label + " " + F2(price), 0, price, Brushes.Yellow);
+                        }
                         await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
                         NinjaTrader.Gui.Chart.Chart chartWindow =
                             System.Windows.Window.GetWindow(ChartControl) as NinjaTrader.Gui.Chart.Chart;
@@ -1140,7 +1169,7 @@ if (name.StartsWith("TARGET"))
                         sw.WriteLine("TradeID,EventID,FillID,Time,EventType,Direction,OrderName,Oco,OrderId," +
                             "ExecQty,PositionBefore,PositionAfter,FillPrice,AvgEntryBefore,AvgEntryAfter," +
                             "LegPnLCurrency,CumRealizedPnLCurrency,ATMStop,FirstProtectiveStop,InitialStop," +
-                            "FirstActualStop,CurrentStop,ActualStop,TargetAtEvent,SessionBar," +
+                            "FirstActualStop,CurrentStop,ActualStop,TargetAtEvent,MAEPointsAtEvent,MFEPointsAtEvent,SessionBar," +
                             "BarsSinceTradeStart,BarsSincePrevEvent,MinsSinceTradeStart,MinsSincePrevEvent");
 
                     foreach (TradeEventRow r in rows.OrderBy(x => x.Sequence))
@@ -1154,7 +1183,8 @@ if (name.StartsWith("TARGET"))
                             Csv(F2(r.LegPnLCurrency)), Csv(F2(r.CumRealizedPnLCurrency)),
                             Csv(F2(r.ATMStop)), Csv(F2(r.FirstProtectiveStop)), Csv(F2(r.InitialStop)),
                             Csv(F2(r.FirstActualStop)), Csv(F2(r.CurrentStop)), Csv(F2(r.ActualStop)),
-                            Csv(F2(r.TargetAtEvent)), Csv(r.SessionBar.ToString(INV)),
+                            Csv(F2(r.TargetAtEvent)), Csv(F2(r.MAEPointsAtEvent)), Csv(F2(r.MFEPointsAtEvent)),
+                            Csv(r.SessionBar.ToString(INV)),
                             Csv(r.BarsSinceTradeStart.ToString(INV)),
                             Csv(r.BarsSincePrevEvent.ToString(INV)),
                             Csv(F2(r.MinsSinceTradeStart)), Csv(F2(r.MinsSincePrevEvent))));
