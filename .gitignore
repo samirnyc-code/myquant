@@ -119,3 +119,8 @@ reports/regime2e/*.pkl
 
 # raw L1 tape recordings — regenerable, too large for git (keep _analysis outputs)
 data/l1_tape/*_l1_*.csv
+
+# Brooks study tool — large local-only data/exports (never git; GitHub rejects >100MB)
+brooks_study_library.zip
+data/brooks_charts/
+site/
