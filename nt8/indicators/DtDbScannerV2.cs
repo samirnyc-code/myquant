@@ -88,6 +88,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 MinScoreToAlert   = 50;  // suppress forming-alerts below this quality score
                 RearmSeconds      = 30;  // alert re-arm window
                 ShowDrawings      = true;
+                ShowDebugPrints   = false; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
             }
             else if (State == State.Configure)
             {
@@ -186,6 +187,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 {
                     highs.Add(new Pivot(candHigh, absBar));
                     TrimPivots(highs);
+                    if (ShowDebugPrints) Print(Time[0] + "  pivot HIGH confirmed  bar " + absBar + "  price " + candHigh);
                     CheckDoubleTop();
                 }
             }
@@ -195,6 +197,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 {
                     lows.Add(new Pivot(candLow, absBar));
                     TrimPivots(lows);
+                    if (ShowDebugPrints) Print(Time[0] + "  pivot LOW confirmed  bar " + absBar + "  price " + candLow);
                     CheckDoubleBottom();
                 }
             }
@@ -217,16 +220,25 @@ namespace NinjaTrader.NinjaScript.Indicators
             Pivot p1 = highs[highs.Count - 2];
 
             Pivot valley = LowestLowBetween(p1.Bar, p2.Bar);
-            if (valley == null) return;
+            if (valley == null)
+            {
+                if (ShowDebugPrints) Print(Time[0] + "  DT-reject p1@" + p1.Bar + " p2@" + p2.Bar + "  reason=NO_VALLEY (no confirmed low between the two highs)");
+                return;
+            }
 
             double tol   = PeakToleranceTicks * TickSize;
             double peakDiff = Math.Abs(p1.Price - p2.Price);
-            if (peakDiff > tol) return;
-
             double valleyDepth = Math.Min(p1.Price, p2.Price) - valley.Price;
-            if (valleyDepth < MinValleyDepthTicks * TickSize) return;
-
             int barsBetween = p2.Bar - p1.Bar;
+
+            if (ShowDebugPrints)
+                Print(Time[0] + "  DT-check p1@" + p1.Bar + "=" + p1.Price + " p2@" + p2.Bar + "=" + p2.Price
+                    + "  peakDiff=" + Math.Round(peakDiff / TickSize) + "t(tol<=" + PeakToleranceTicks + "t " + (peakDiff <= tol ? "OK" : "FAIL") + ")"
+                    + "  valleyDepth=" + Math.Round(valleyDepth / TickSize) + "t(min>=" + MinValleyDepthTicks + "t " + (valleyDepth >= MinValleyDepthTicks * TickSize ? "OK" : "FAIL") + ")"
+                    + "  barsBetween=" + barsBetween + "(" + MinBarsBetween + "-" + MaxBarsBetween + " " + (barsBetween >= MinBarsBetween && barsBetween <= MaxBarsBetween ? "OK" : "FAIL") + ")");
+
+            if (peakDiff > tol) return;
+            if (valleyDepth < MinValleyDepthTicks * TickSize) return;
             if (barsBetween < MinBarsBetween || barsBetween > MaxBarsBetween) return;
 
             double score = ScoreStructure(p1, valley, p2, peakDiff, tol, valleyDepth, barsBetween, isTop: true);
@@ -260,16 +272,25 @@ namespace NinjaTrader.NinjaScript.Indicators
             Pivot t1 = lows[lows.Count - 2];
 
             Pivot peak = HighestHighBetween(t1.Bar, t2.Bar);
-            if (peak == null) return;
+            if (peak == null)
+            {
+                if (ShowDebugPrints) Print(Time[0] + "  DB-reject t1@" + t1.Bar + " t2@" + t2.Bar + "  reason=NO_PEAK (no confirmed high between the two lows)");
+                return;
+            }
 
             double tol = PeakToleranceTicks * TickSize;
             double troughDiff = Math.Abs(t1.Price - t2.Price);
-            if (troughDiff > tol) return;
-
             double peakHeight = peak.Price - Math.Max(t1.Price, t2.Price);
-            if (peakHeight < MinValleyDepthTicks * TickSize) return;
-
             int barsBetween = t2.Bar - t1.Bar;
+
+            if (ShowDebugPrints)
+                Print(Time[0] + "  DB-check t1@" + t1.Bar + "=" + t1.Price + " t2@" + t2.Bar + "=" + t2.Price
+                    + "  troughDiff=" + Math.Round(troughDiff / TickSize) + "t(tol<=" + PeakToleranceTicks + "t " + (troughDiff <= tol ? "OK" : "FAIL") + ")"
+                    + "  peakHeight=" + Math.Round(peakHeight / TickSize) + "t(min>=" + MinValleyDepthTicks + "t " + (peakHeight >= MinValleyDepthTicks * TickSize ? "OK" : "FAIL") + ")"
+                    + "  barsBetween=" + barsBetween + "(" + MinBarsBetween + "-" + MaxBarsBetween + " " + (barsBetween >= MinBarsBetween && barsBetween <= MaxBarsBetween ? "OK" : "FAIL") + ")");
+
+            if (troughDiff > tol) return;
+            if (peakHeight < MinValleyDepthTicks * TickSize) return;
             if (barsBetween < MinBarsBetween || barsBetween > MaxBarsBetween) return;
 
             double score = ScoreStructure(t1, peak, t2, troughDiff, tol, peakHeight, barsBetween, isTop: false);
@@ -502,6 +523,10 @@ namespace NinjaTrader.NinjaScript.Indicators
         [NinjaScriptProperty]
         [Display(Name = "Show drawings", Description = "Draw the structure, neckline, score and confirm arrows.", Order = 10, GroupName = "3. Alerts")]
         public bool ShowDrawings { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Show debug prints", Description = "Print every confirmed pivot and every DT/DB gate pass/fail (peak tolerance, valley depth, spacing) to the NinjaScript Output tab.", Order = 11, GroupName = "4. Debug")]
+        public bool ShowDebugPrints { get; set; }
         #endregion
     }
 }
