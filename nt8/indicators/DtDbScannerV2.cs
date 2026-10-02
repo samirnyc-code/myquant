@@ -181,22 +181,22 @@ namespace NinjaTrader.NinjaScript.Indicators
                 if (isHigh && High[offset + k] >= candHigh)
                 {
                     isHigh = false;
-                    highBlockedBy = "later bar " + (absBar + k) + " (+" + k + ") high=" + High[offset + k];
+                    highBlockedBy = "earlier bar " + (absBar - k) + " (-" + k + ") high=" + High[offset + k];
                 }
                 if (isHigh && High[offset - k] >= candHigh)
                 {
                     isHigh = false;
-                    highBlockedBy = "earlier bar " + (absBar - k) + " (-" + k + ") high=" + High[offset - k];
+                    highBlockedBy = "later bar " + (absBar + k) + " (+" + k + ") high=" + High[offset - k];
                 }
                 if (isLow && Low[offset + k] <= candLow)
                 {
                     isLow = false;
-                    lowBlockedBy = "later bar " + (absBar + k) + " (+" + k + ") low=" + Low[offset + k];
+                    lowBlockedBy = "earlier bar " + (absBar - k) + " (-" + k + ") low=" + Low[offset + k];
                 }
                 if (isLow && Low[offset - k] <= candLow)
                 {
                     isLow = false;
-                    lowBlockedBy = "earlier bar " + (absBar - k) + " (-" + k + ") low=" + Low[offset - k];
+                    lowBlockedBy = "later bar " + (absBar + k) + " (+" + k + ") low=" + Low[offset - k];
                 }
             }
 
