@@ -86,7 +86,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 MinScoreToAlert   = 50;  // suppress forming-alerts below this quality score
                 RearmSeconds      = 30;  // alert re-arm window
                 ShowDrawings      = true;
-                ShowDebugPrints   = false; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
+                ShowDebugPrints   = true; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
             }
             else if (State == State.Configure)
             {
