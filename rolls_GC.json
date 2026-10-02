@@ -146,5 +146,37 @@
   "GCZ8": {
     "roll_date": "2028-08-25",
     "offset": null
+  },
+  "GCV1": {
+    "roll_date": "2021-08-23",
+    "offset": null
+  },
+  "GCV2": {
+    "roll_date": "2022-08-25",
+    "offset": null
+  },
+  "GCV3": {
+    "roll_date": "2023-08-25",
+    "offset": null
+  },
+  "GCV4": {
+    "roll_date": "2024-08-24",
+    "offset": null
+  },
+  "GCV5": {
+    "roll_date": "2025-08-23",
+    "offset": null
+  },
+  "GCV6": {
+    "roll_date": "2026-08-23",
+    "offset": null
+  },
+  "GCV7": {
+    "roll_date": "2027-08-23",
+    "offset": null
+  },
+  "GCV8": {
+    "roll_date": "2028-08-25",
+    "offset": null
   }
 }
