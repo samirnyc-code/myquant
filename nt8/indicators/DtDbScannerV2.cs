@@ -172,14 +172,42 @@ namespace NinjaTrader.NinjaScript.Indicators
             double candHigh = High[offset];
             double candLow  = Low[offset];
             bool isHigh = true, isLow = true;
+            string highBlockedBy = null, lowBlockedBy = null; // first bar that disqualified the candidate (debug only)
+
+            int absBar = CurrentBar - offset;
 
             for (int k = 1; k <= SwingStrength; k++)
             {
-                if (High[offset + k] >= candHigh || High[offset - k] >= candHigh) isHigh = false;
-                if (Low[offset + k]  <= candLow  || Low[offset - k]  <= candLow)  isLow  = false;
+                if (isHigh && High[offset + k] >= candHigh)
+                {
+                    isHigh = false;
+                    highBlockedBy = "later bar " + (absBar + k) + " (+" + k + ") high=" + High[offset + k];
+                }
+                if (isHigh && High[offset - k] >= candHigh)
+                {
+                    isHigh = false;
+                    highBlockedBy = "earlier bar " + (absBar - k) + " (-" + k + ") high=" + High[offset - k];
+                }
+                if (isLow && Low[offset + k] <= candLow)
+                {
+                    isLow = false;
+                    lowBlockedBy = "later bar " + (absBar + k) + " (+" + k + ") low=" + Low[offset + k];
+                }
+                if (isLow && Low[offset - k] <= candLow)
+                {
+                    isLow = false;
+                    lowBlockedBy = "earlier bar " + (absBar - k) + " (-" + k + ") low=" + Low[offset - k];
+                }
             }
 
-            int absBar = CurrentBar - offset;
+            // Per-bar candidate test — the only way to see WHY a bar never became a
+            // pivot at all (e.g. a nearby bar within SwingStrength disqualified it),
+            // which the DT/DB gate prints below can never show since they only run
+            // on pivots that already confirmed.
+            if (ShowDebugPrints)
+                Print(Time[0] + "  pivot-test bar " + absBar
+                    + "  HIGH=" + candHigh + " " + (isHigh ? "-> PIVOT" : "blocked by " + highBlockedBy)
+                    + "   LOW=" + candLow + " " + (isLow ? "-> PIVOT" : "blocked by " + lowBlockedBy));
 
             if (isHigh)
             {
@@ -187,7 +215,6 @@ namespace NinjaTrader.NinjaScript.Indicators
                 {
                     highs.Add(new Pivot(candHigh, absBar));
                     TrimPivots(highs);
-                    if (ShowDebugPrints) Print(Time[0] + "  pivot HIGH confirmed  bar " + absBar + "  price " + candHigh);
                     CheckDoubleTop();
                 }
             }
@@ -197,7 +224,6 @@ namespace NinjaTrader.NinjaScript.Indicators
                 {
                     lows.Add(new Pivot(candLow, absBar));
                     TrimPivots(lows);
-                    if (ShowDebugPrints) Print(Time[0] + "  pivot LOW confirmed  bar " + absBar + "  price " + candLow);
                     CheckDoubleBottom();
                 }
             }
@@ -525,7 +551,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         public bool ShowDrawings { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Show debug prints", Description = "Print every confirmed pivot and every DT/DB gate pass/fail (peak tolerance, valley depth, spacing) to the NinjaScript Output tab.", Order = 11, GroupName = "4. Debug")]
+        [Display(Name = "Show debug prints", Description = "Verbose: prints a pivot-test line every bar (pivot or, if blocked, which bar blocked it) plus every DT/DB gate pass/fail, to the NinjaScript Output tab.", Order = 11, GroupName = "4. Debug")]
         public bool ShowDebugPrints { get; set; }
         #endregion
     }
