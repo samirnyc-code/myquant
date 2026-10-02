@@ -1,6 +1,59 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-01 (machine-time W. Europe) — **S125: Trade Playbook + Trade Journal web app built end-to-end (new repo `trade-playbook`), ClaudeTrackerV2 wired into it, then caused + fixed a severe NT8 performance incident same session. PENDING: user F5 on ClaudeTrackerV2 (drawing-code revert).** Prior Lag-reconcile work (S124) is unaffected and still canonical — see that block below.
+**Last Updated:** 2026-10-02 (machine-time W. Europe) — **S126: DtDbScanner (DT/DB tick-chart scanner) pulled in from an external repo, exhaustively backtested + walk-forward optimized — CLOSED, no mechanical edge, user reverting to discretionary use. See S126 block.** Prior S125 (Trade Playbook F5 pending) and S124 (RegimeTracker Lag F5 pending) are unaffected and still open — see those blocks below.
+
+---
+
+## S126-dtdb-scanner (2026-10-02) — DtDbScanner indicator add + backtest/walk-forward — CLOSED, no edge
+
+**New indicator:** cloned `samirnyc-code/nt8-dtdb-scanner`, added `nt8/indicators/DtDbScanner.cs`
+(Double Top/Double Bottom swing-pivot scanner, alerts on structure-form + neckline-confirm,
+execution manual by design). Fixed two expression-bodied methods (`=>`) NT8's compiler
+rejected (not a C# version NT8 supports); compile-checked clean; deployed to the Custom
+folder. Committed `dda5e47d`.
+
+**Backtest arc (user asked "what if we traded every neckline break", then rejected each
+answer and asked for more rigor — three escalating scripts, all committed):**
+1. `scripts/dtdb_backtest.py` — default params, 1500/2000/2500/5000t, 90 days, technical
+   stop (InvalidateBeyond) + measured-move target. User: "weak, do better."
+2. `scripts/dtdb_optimize.py` — exhaustive 6,480-combo structure/confirm grid (SwingStrength
+   PeakTolerance/MinValleyDepth/MinBarsBetween/MaxBarsBetween/NecklineBuffer/ConfirmWithinBars)
+   x 10 bar types (1500-10000t + 3/5/10/15min), 90-day IS/OOS split, ES+MES $. User: "why MES
+   — ES only. 90d is laughable, use real windows. What about a stop/target sweep? I want a
+   handful of trades/day, not swing strength where I wait a week."
+3. `scripts/dtdb_walkforward.py` — the answer to all four: full RTH trove (2021-06-18 ->
+   2026-10-01, 1331d), expanding calendar-year walk-forward folds (train all prior years,
+   test next full year), a stop=multiple-of-structure-risk x target=R-multiple sweep (15
+   combos) layered on the same 6,480-combo grid, a hard **>=3 trades/day gate on the train
+   side** (configs that don't clear it are ineligible regardless of P&L), ES $ only. A fast
+   vectorized engine (pivot detection + per-episode confirm resolution, no per-bar Python
+   loop) made the ~389,000-combo-equivalent search tractable; self-checked exact-match
+   against script #1's committed trade counts before every run.
+
+**Result: no bar type survives.** Across the full grid, **only 1500t and 2000t ever clear
+the 3-trades/day gate** (and only on 3 of 5 folds each) — 2500t, 5000t, 7500t, 10000t, 3min,
+5min, 10min, 15min NEVER clear it on any training window, however loose the parameters.
+Combined out-of-sample across all qualifying folds: **1500t 3,448 trades, PF 0.92, -$96,850,
+-9,202t maxDD; 2000t 2,263 trades, PF 0.93, -$45,100, -5,314t maxDD.** Optimal `SwingStrength`
+was 3 (the floor of the tested range) in every single qualifying fold for both — the
+frequency gate always pushes selection to the loosest detection setting available, and it's
+still a net loser. Full grid/fold/trade CSVs in `data/dtdb_backtest/` (not catalog-tracked,
+just committed outputs): `grid_*`, `optimized_*`, `wf_folds_*`, `wf_trades_*`.
+
+**User's call: closed.** "All useless, no problem, the setups are discretionary and I will
+take it from here." No further mechanical optimization planned on this indicator — leave the
+`.cs` as a manual/discretionary tool, do not resume this thread unasked.
+
+**Process note:** background runs were launched with buffered stdout (`python script.py >
+file`, no `-u`) which hid ~19 min of genuine progress behind an empty log while the process
+was actually at ~98% CPU — user (reasonably) suspected a hang. Always launch long Python
+background jobs with `python -u` (or `PYTHONUNBUFFERED=1`) so progress is visible in
+real time; do not rely on periodic `print()` alone when output is redirected to a file.
+
+**Parallel-session note:** `git log` on this machine shows `4adc1260` (RegimeTrackerV2 +
+DtDbScannerV2, IsVisible-toggle fix) and a merge commit `c4eb9ade` landing in the middle of
+this session's commits — another chat's work in the same shared working directory, not
+authored by this session. No conflict, already on origin.
 
 ---
 
@@ -370,6 +423,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 17 | Trade plan w/ Thomas (setup inventory → regime/risk → trade log/journal) | 🛑 PAUSED (S118 9/15, USER CALLED STOP — lost confidence in the analysis) | `docs/living/trade_plan/`: `setup_inventory.md` (v1–v2 + evidence ranking, all sources) · `apex_account_analysis.md` · `apex_rulebook.md`. Deep-dived REGIME-2E: edge REAL but lumpy (top-10=55% of net), short-side-heavy, regime-favorable; PF~1.5–1.8. Built + deployed NT8 `Regime2ESetups.cs` (indicator) + `Regime2EStrategy.cs` (OnePerDay/gates/visuals; signal-parity 96.8%/regime 100% vs python) — PENDING user F5 + Sim101 forward test. Apex study: site scraped via Playwright (`scripts/apex_fetch_pages.py`; Cloudflare 403s WebFetch). **⚠ Analysis iterated messily across many turns — user halted, deemed it unreliable.** VERIFIED rules in `apex_rulebook.md` (verbatim+sources): legacy FULL DD = INTRADAY trailing (eval+funded, NOT EOD); needs MES fractional sizing (10 MES=1ES blows; ≤8 MES survives); **2 PA rules (30% MAE, 5:1 RR) NEVER modeled ⇒ ALL funded sims PROVISIONAL/likely-worse; eval sims valid**. Standing take: hold-to-EOD book wants a STATIC-DD firm (TPT), not Apex trailing. NEXT (only if resumed): model 30% MAE+5:1 in ONE clean funded sim; resolve §H open Qs w/ Apex FIRST |
 | 18 | **Wyckoff 2.0 discretionary toolset + full-tape recording DB** | 🟢 ACTIVE (S121-wyckoff-tools 9/16, leglab) — **CONTINUE HERE** | **DB LIVE**: L1 tape+BBO recorder `L1TapeRecorderAddOn.cs` running on **ES 12-26** (ES-only per user; ~90% quote, self-healing) + nightly rollover + watchdog tasks + `check_l1_tape` tile. Footprint pipeline RETIRED (L1 reconstructs it). **Stage-1 tools built** (VP engine+NT8 drawer PENDING F5, Weis wave, VWAP-readable). **`wyckoff_marker.py` = the interactive HTML Wyckoff marker** (click-box+snap, auto events from box, box-free bull/bear/transition trend engine, multi-day, S/R+21EMA, flex-renko). Renko+wicks+**Sierra flex_renko**; NT8 `FlexRenkoBarsType.cs` deployed — **RESOLVED (S122): it's in Data Series → Type, NOT the Chart-Style dropdown; not a compile error (type + strings byte-verified in the DLL)**. **FINDING: 9/15 low = SPRING of overnight low.** NEXT: Stage-2 (TR-Box + retro event engine) + Stage-3 (OF trigger panel); VWAP host-exporter; marker threshold calibration (user marks AR/springs); optional ChoCH volume/spread confirm. **READ S121-wyckoff-tools BLOCK.** |
 | 20 | **Trade Playbook + Journal (separate repo `trade-playbook`)** | 🟡 PENDING F5 (S125 2026-10-01) | Live at https://trade-playbook-ten.vercel.app. Autostart uploader task **registered + verified running** on this machine (`TradePlaybookUploader`). Thomas onboarding **approved, GO** — web app auto-updates for him, only local files are snapshots. April historical trades: **decided, never importing them.** **ONLY remaining item: F5 ClaudeTrackerV2** (performance-incident drawing-code revert + Name fix + MAE/MFE columns + configurable export path, all in one recompile — see S125 block). |
+| 21 | DtDbScanner (DT/DB tick-chart scanner) — add + backtest/walk-forward | ⛔ CLOSED (S126 2026-10-02) — NO mechanical edge | Indicator added (`nt8/indicators/DtDbScanner.cs`), full-history walk-forward + stop/target sweep + freq gate: only 1500t/2000t ever trade >=3/day, both net losers OOS (1500t PF 0.92 -$96.9k; 2000t PF 0.93 -$45.1k). User closed it — discretionary use only, do not resume unasked. See S126 block |
 | 19 | **Regime tracker — BOS/ChoCh regime classifier (5m ES)** | 🟢 LAG RECONCILE DONE (S124 2026-09-24) — PENDING USER F5 | **Lag=1 is canonical** (user decision). S123 export-diff was the Lag setting (Documents=Lag3 vs Desktop=Lag1), NOT a build/tick engine difference. Python now models Lag (`mywedge.compute_mywedge(lag=)` + `swing_*_asof`); **Python(lag=1)↔both NT exports = 100%** (Documents `--session eth`, Desktop `--session date`). NT8 `RegimeTracker.cs` default Lag 3→1, compiled + **deployed — PENDING USER F5** (when flat). Invariant: lag2==lag3==finalised (non-repaint). Repaint effect: 476/500 trend segments identical, 1.04% bar diffs, ~4 short direction-flip windows. **PARKED (user will revisit): Lag 1 vs Lag 2** (chart-match+repaint vs settled/non-repaint). See S124 block. Earlier (S123): outside-bar rule ported (`Swings()`/`Extends()`). **Outside-bar rule (9/22-23):** mywedge marks an outside bar as BOTH a swing high and low; if it extended the structure at both ends both swings stand, else it collapses to the extreme it LEFT ON (`bar_dir`). Validated on 4 hand-marked charts at once — 02-13 **Bull b9**, 12-26 **one Bear b21-53**, 05-19 **Bear b16**, 05-21 **unchanged Bull b28**; other 8 sessions byte-identical. Three rejected variants recorded in the regime-tracker block — do NOT retry (the third, a general minor-pivot filter, broke 14/14 sessions). **Minor pivots beyond outside bars: CLOSED 9/23, user said leave as is** — zero-length in-bar trends (05-06 b5 etc.) are an accepted artifact. **PARKED:** 02-13 late ChoCh ~b76 (outside-bar intrabar order) — tracker is deliberately **bar-only, do NOT resolve with ticks**. Page generators now in `regime_tracker/pages/` (near-duplicates; consolidate before the next batch). Safety tag `pre-nt8-merge-20260923`; stale worktree `C:\Users\Thomas-Code\wt-nt8` can be removed. |
 
 ---
