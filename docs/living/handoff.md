@@ -1,6 +1,65 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-02 (machine-time W. Europe) — **S126: DtDbScanner (DT/DB tick-chart scanner) pulled in from an external repo, exhaustively backtested + walk-forward optimized — CLOSED, no mechanical edge, user reverting to discretionary use. See S126 block.** Prior S125 (Trade Playbook F5 pending) and S124 (RegimeTracker Lag F5 pending) are unaffected and still open — see those blocks below.
+**Last Updated:** 2026-10-02 (machine-time W. Europe) — **S127: RegimeTrackerV2 + DtDbScannerV2 built to fix the Indicator-Manager hide/show bug (only pivot dots were hiding); fix verified + committed + pushed to main.** S126 (DtDbScanner backtest/walk-forward, CLOSED no edge), S125 (Trade Playbook F5 pending) and S124 (RegimeTracker Lag F5 pending) are unaffected — see those blocks below.
+
+---
+
+## S127-nt8-visibility-fix (2026-10-02) — RegimeTrackerV2 / DtDbScannerV2 IsVisible-toggle fix
+
+**Trigger:** user's custom `IndicatorManagerUI` (in `BidAskFlow` namespace, `nt8/` — lets you
+hide/show indicators on a chart from a toolbar button) only hid the pivot dots on
+`RegimeTracker.cs`; the Bull/Bear shading and BOS/ChoCh labels stayed on screen, and
+`DtDbScanner.cs` didn't respond to the toggle at all.
+
+**Root cause:** NT8's `IsVisible` flag (what the menu sets) only gates an indicator's own
+`OnRender` override — that's why RegimeTracker's hand-painted pivot dots (drawn in its own
+`OnRender`) hid correctly. Everything else goes through mechanisms NT8 does **not** tie to
+the owning indicator's `IsVisible`: `BackBrushes[]` writes (shading) are composited by the
+chart's bar renderer independent of the indicator; `Draw.*` calls (BOS/ChoCh text, DT/DB
+lines, confirm arrows) create independent `ChartObject`s with their own lifetime.
+
+**Fix, in two NEW files (originals untouched — confirmed byte-identical via `git diff`
+before every commit):**
+- `nt8/indicators/RegimeTrackerV2.cs` — shading moved out of `BackBrushes[]` into `OnRender`
+  (painted as rectangles in the same `ChartBars.FromIndex..ToIndex`-bounded loop the dots
+  already use, so it inherits their correct show/hide behavior). BOS/ChoCh `Draw.Text`
+  return values are now kept in `_eventObjs`.
+- `nt8/indicators/DtDbScannerV2.cs` — every `Draw.Line`/`Draw.Text`/`Draw.ArrowUp`/
+  `Draw.ArrowDown` return value is kept in `_drawObjs`.
+- **First fix attempt failed** (round-tripped with user): syncing each tracked object's
+  `.IsVisible` from inside `OnBarUpdate()` doesn't work — toggling visibility from the
+  Indicator Manager only sets `IsVisible` + calls `ChartControl.InvalidateVisual()`, neither
+  of which fires `OnBarUpdate()`, so the sync could sit stale indefinitely. **Working fix:**
+  a 250ms `DispatcherTimer` (same pattern `IndicatorManagerUI.cs` already uses for its own
+  self-healing button) that polls for the flip independent of bar/tick flow, then syncs
+  every tracked object's `.IsVisible` and forces a redraw.
+- Verified via reflection against the real installed assemblies (`NinjaTrader.Core.dll` /
+  `NinjaTrader.Gui.dll`) that `DrawingTool.IsVisible` is a writable bool before relying on it.
+- Both files pass `scripts\nt8_compile_check.ps1` (`COMPILE_OK`) and are deployed to the
+  Custom\Indicators folder. **User F5'd and confirmed the toggle now works correctly on
+  both.**
+
+**Resource check (user asked, before trusting the fix):** process-level (whole NT8 PID)
+CPU/WorkingSet/PrivateMemory/threads/handles snapshots were taken before/during/after —
+explicitly **not** a clean isolated A/B (confounded by everything else NT8 does, and by
+.NET's private-memory high-water-mark behavior not shrinking on object removal). No spike or
+anomaly observed in any snapshot. Architecturally: the OnRender shading reuses the
+already-proven-cheap bounded per-frame loop the dots use; the timer tick is a single bool
+compare 4x/sec. Assessed as **not a meaningful resource drain** — verdict given with that
+reasoning, not a precise isolated number (none exists without a controlled restart-NT8 test).
+
+**Committed + pushed:** `4adc1260` (the two new files) → merged `c4eb9ade` → origin/main.
+Repo is **public**; `tdeutschmann-byte` (Thomas) is a confirmed collaborator and can see it
+on GitHub immediately, but his local clone was last active on stale branch
+`regime/v2-multistate` (July) — he needs to `git pull` on `main` to get the files on disk.
+
+**Status / what's NOT done:** V1 (`RegimeTracker.cs`, `DtDbScanner.cs`) are still the ones
+actually traded/used — V2s are a parallel, currently-idle pair kept **for when the originals
+need a future logic update** (user's explicit ask: "we may need to update the original indis
+again in the future"). Ambiguous and unresolved: whether a future update should (a) edit V1
+again and re-port the OnRender-shading + DispatcherTimer-visibility pattern by hand, or
+(b) make V2 the new base and retire V1 — **ask the user which, next time this comes up.**
+No outstanding F5/action needed right now; this item is closed for this session.
 
 ---
 
@@ -424,7 +483,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 18 | **Wyckoff 2.0 discretionary toolset + full-tape recording DB** | 🟢 ACTIVE (S121-wyckoff-tools 9/16, leglab) — **CONTINUE HERE** | **DB LIVE**: L1 tape+BBO recorder `L1TapeRecorderAddOn.cs` running on **ES 12-26** (ES-only per user; ~90% quote, self-healing) + nightly rollover + watchdog tasks + `check_l1_tape` tile. Footprint pipeline RETIRED (L1 reconstructs it). **Stage-1 tools built** (VP engine+NT8 drawer PENDING F5, Weis wave, VWAP-readable). **`wyckoff_marker.py` = the interactive HTML Wyckoff marker** (click-box+snap, auto events from box, box-free bull/bear/transition trend engine, multi-day, S/R+21EMA, flex-renko). Renko+wicks+**Sierra flex_renko**; NT8 `FlexRenkoBarsType.cs` deployed — **RESOLVED (S122): it's in Data Series → Type, NOT the Chart-Style dropdown; not a compile error (type + strings byte-verified in the DLL)**. **FINDING: 9/15 low = SPRING of overnight low.** NEXT: Stage-2 (TR-Box + retro event engine) + Stage-3 (OF trigger panel); VWAP host-exporter; marker threshold calibration (user marks AR/springs); optional ChoCH volume/spread confirm. **READ S121-wyckoff-tools BLOCK.** |
 | 20 | **Trade Playbook + Journal (separate repo `trade-playbook`)** | 🟡 PENDING F5 (S125 2026-10-01) | Live at https://trade-playbook-ten.vercel.app. Autostart uploader task **registered + verified running** on this machine (`TradePlaybookUploader`). Thomas onboarding **approved, GO** — web app auto-updates for him, only local files are snapshots. April historical trades: **decided, never importing them.** **ONLY remaining item: F5 ClaudeTrackerV2** (performance-incident drawing-code revert + Name fix + MAE/MFE columns + configurable export path, all in one recompile — see S125 block). |
 | 21 | DtDbScanner (DT/DB tick-chart scanner) — add + backtest/walk-forward | ⛔ CLOSED (S126 2026-10-02) — NO mechanical edge | Indicator added (`nt8/indicators/DtDbScanner.cs`), full-history walk-forward + stop/target sweep + freq gate: only 1500t/2000t ever trade >=3/day, both net losers OOS (1500t PF 0.92 -$96.9k; 2000t PF 0.93 -$45.1k). User closed it — discretionary use only, do not resume unasked. See S126 block |
-| 19 | **Regime tracker — BOS/ChoCh regime classifier (5m ES)** | 🟢 LAG RECONCILE DONE (S124 2026-09-24) — PENDING USER F5 | **Lag=1 is canonical** (user decision). S123 export-diff was the Lag setting (Documents=Lag3 vs Desktop=Lag1), NOT a build/tick engine difference. Python now models Lag (`mywedge.compute_mywedge(lag=)` + `swing_*_asof`); **Python(lag=1)↔both NT exports = 100%** (Documents `--session eth`, Desktop `--session date`). NT8 `RegimeTracker.cs` default Lag 3→1, compiled + **deployed — PENDING USER F5** (when flat). Invariant: lag2==lag3==finalised (non-repaint). Repaint effect: 476/500 trend segments identical, 1.04% bar diffs, ~4 short direction-flip windows. **PARKED (user will revisit): Lag 1 vs Lag 2** (chart-match+repaint vs settled/non-repaint). See S124 block. Earlier (S123): outside-bar rule ported (`Swings()`/`Extends()`). **Outside-bar rule (9/22-23):** mywedge marks an outside bar as BOTH a swing high and low; if it extended the structure at both ends both swings stand, else it collapses to the extreme it LEFT ON (`bar_dir`). Validated on 4 hand-marked charts at once — 02-13 **Bull b9**, 12-26 **one Bear b21-53**, 05-19 **Bear b16**, 05-21 **unchanged Bull b28**; other 8 sessions byte-identical. Three rejected variants recorded in the regime-tracker block — do NOT retry (the third, a general minor-pivot filter, broke 14/14 sessions). **Minor pivots beyond outside bars: CLOSED 9/23, user said leave as is** — zero-length in-bar trends (05-06 b5 etc.) are an accepted artifact. **PARKED:** 02-13 late ChoCh ~b76 (outside-bar intrabar order) — tracker is deliberately **bar-only, do NOT resolve with ticks**. Page generators now in `regime_tracker/pages/` (near-duplicates; consolidate before the next batch). Safety tag `pre-nt8-merge-20260923`; stale worktree `C:\Users\Thomas-Code\wt-nt8` can be removed. |
+| 19 | **Regime tracker — BOS/ChoCh regime classifier (5m ES)** | 🟢 LAG RECONCILE DONE (S124 2026-09-24) — PENDING USER F5 | **Lag=1 is canonical** (user decision). S123 export-diff was the Lag setting (Documents=Lag3 vs Desktop=Lag1), NOT a build/tick engine difference. Python now models Lag (`mywedge.compute_mywedge(lag=)` + `swing_*_asof`); **Python(lag=1)↔both NT exports = 100%** (Documents `--session eth`, Desktop `--session date`). NT8 `RegimeTracker.cs` default Lag 3→1, compiled + **deployed — PENDING USER F5** (when flat). Invariant: lag2==lag3==finalised (non-repaint). Repaint effect: 476/500 trend segments identical, 1.04% bar diffs, ~4 short direction-flip windows. **PARKED (user will revisit): Lag 1 vs Lag 2** (chart-match+repaint vs settled/non-repaint). See S124 block. Earlier (S123): outside-bar rule ported (`Swings()`/`Extends()`). **Outside-bar rule (9/22-23):** mywedge marks an outside bar as BOTH a swing high and low; if it extended the structure at both ends both swings stand, else it collapses to the extreme it LEFT ON (`bar_dir`). Validated on 4 hand-marked charts at once — 02-13 **Bull b9**, 12-26 **one Bear b21-53**, 05-19 **Bear b16**, 05-21 **unchanged Bull b28**; other 8 sessions byte-identical. Three rejected variants recorded in the regime-tracker block — do NOT retry (the third, a general minor-pivot filter, broke 14/14 sessions). **Minor pivots beyond outside bars: CLOSED 9/23, user said leave as is** — zero-length in-bar trends (05-06 b5 etc.) are an accepted artifact. **PARKED:** 02-13 late ChoCh ~b76 (outside-bar intrabar order) — tracker is deliberately **bar-only, do NOT resolve with ticks**. Page generators now in `regime_tracker/pages/` (near-duplicates; consolidate before the next batch). Safety tag `pre-nt8-merge-20260923`; stale worktree `C:\Users\Thomas-Code\wt-nt8` can be removed. **S127 2026-10-02: Indicator-Manager hide/show bug fixed in a NEW clone `RegimeTrackerV2.cs` (+ `DtDbScannerV2.cs`) — V1 untouched, still the one in use. See S127 block before next edit to either original.** |
 
 ---
 
