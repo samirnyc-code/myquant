@@ -191,6 +191,73 @@ def _recon_df():
     return pd.DataFrame(out, columns=cols)
 
 
+_DELTA_CACHE = {}
+
+
+def _live_delta(strike, right):
+    """Live 0DTE delta for one SPXW strike via ThetaData snapshot greeks (same
+    endpoint/pattern as _prob_in_zone's call_delta). Cached 30s. None on failure."""
+    import time
+    import urllib.request
+
+    key = (round(float(strike), 1), right)
+    hit = _DELTA_CACHE.get(key)
+    if hit and time.time() - hit[0] < 30:
+        return hit[1]
+    exp = dt.date.today().strftime("%Y%m%d")
+    rt = "call" if right == "C" else "put"
+    val = None
+    try:
+        u = (f"http://127.0.0.1:25503/v3/option/snapshot/greeks/first_order?symbol=SPXW"
+             f"&expiration={exp}&strike={float(strike):.3f}&right={rt}&format=csv")
+        body = urllib.request.urlopen(u, timeout=4).read().decode("utf-8", "replace")
+        lines = [l for l in body.splitlines() if l.strip()]
+        h = [x.strip().strip('"') for x in lines[0].split(",")]
+        d = dict(zip(h, [x.strip().strip('"') for x in lines[-1].split(",")]))
+        val = float(d["delta"])
+    except Exception:
+        val = None
+    _DELTA_CACHE[key] = (time.time(), val)
+    return val
+
+
+def expiry_adjusted_unreal(open_trades, marks_last):
+    """Blend each open leg's raw mark (marks.csv unreal_pnl -- the cost to buy it
+    back RIGHT NOW) toward its expiry payout, weighted by the live market-implied
+    probability the short strike finishes OTM (P(OTM) ~= 1-delta for a short call,
+    ~= delta for a short put). A comfortably-OTM credit spread can sit at a near-flat
+    raw mark for hours and then jump to full credit the moment it expires -- this
+    produces a running estimate that already reflects that expected outcome instead
+    of a cliff at the close. Falls back to the raw mark per-leg (then 0) on any
+    pricing failure for that leg; never raises."""
+    if open_trades is None or not len(open_trades):
+        return 0.0
+    total = 0.0
+    for _, tr in open_trades.iterrows():
+        tid = tr.get("trade_id")
+        raw_mark = None
+        if marks_last is not None and len(marks_last) and tid in marks_last.index:
+            v = marks_last.loc[tid].get("unreal_pnl")
+            raw_mark = float(v) if v == v else None
+        max_gain = tr.get("max_gain")
+        try:
+            legs = json.loads(tr.get("legs") or "[]")
+        except Exception:
+            legs = []
+        short = next((l for l in legs if l.get("side") == "sell"), None)
+        p_otm = None
+        if short and max_gain is not None:
+            delta = _live_delta(short["strike"], short["right"])
+            if delta is not None:
+                p_otm = (1 - delta) if short["right"] == "C" else delta
+        if p_otm is not None and max_gain is not None:
+            fallback = raw_mark if raw_mark is not None else 0.0
+            total += p_otm * float(max_gain) + (1 - p_otm) * fallback
+        elif raw_mark is not None:
+            total += raw_mark
+    return total
+
+
 def load_stats():
     trades = pd.concat([_shown(tlog.load()), _recon_df()], ignore_index=True)
     closed = trades[trades.exit_dt.notna()] if len(trades) else trades
@@ -214,6 +281,14 @@ def load_stats():
     else:
         p_today = pd.Series(dtype=float)
     close_now_val = (float(p_today.sum()) if len(p_today) else 0.0) + (unreal or 0.0)
+    # Expiry-adjusted estimate (S128 2026-10-05): close_now is cost-to-buy-back-RIGHT-
+    # NOW, which sits near-flat for hours on a comfortably-OTM credit spread then jumps
+    # to full credit at expiry -- looked like a bug (-$477 -> +$1,033 in "5 minutes").
+    # This blends each open leg's raw mark toward its expiry payout by live delta so the
+    # running number already reflects the expected outcome instead of a cliff at the close.
+    open_tr_eod = trades[trades.exit_dt.isna()] if len(trades) else trades
+    exp_unreal = expiry_adjusted_unreal(open_tr_eod, lastm)
+    exp_close_now_val = (float(p_today.sum()) if len(p_today) else 0.0) + exp_unreal
     # Max-profit zone for the CURRENT open book (reuses maxprofit_zone.compute_zone):
     # inside [highest short put, lowest short call] every short expires OTM -> full
     # credit. Tile shows the zone + whether spot is inside + distance to nearest edge.
@@ -254,6 +329,7 @@ def load_stats():
         "realized": money(p.sum()) if len(p) else "—",
         "running": money(unreal) if unreal is not None else "—",
         "close_now": money(close_now_val),
+        "exp_close_now": money(exp_close_now_val),
         "collateral": money(coll, signed=False),
         "margin": money(float(acct.maint_margin), signed=False) if acct is not None else "—",
         "netliq": money(float(acct.net_liq), signed=False) if acct is not None else "—",
@@ -383,6 +459,7 @@ def tile_specs(s):
         ("realized", "Realized P&L", s["realized"], _pnl_cls(s["realized"])),
         ("running", "Running (open)", s["running"], _pnl_cls(s["running"])),
         ("close_now", "Close now", s["close_now"], _pnl_cls(s["close_now"])),
+        ("exp_close_now", "Exp. @ expiry (est.)", s["exp_close_now"], _pnl_cls(s["exp_close_now"])),
         ("mpz", "Max-profit zone", s["mpz"], s["mpz_cls"]),
         ("mpz_pin", "P(settle in zone)", s["mpz_pin"], s["mpz_cls"]),
         ("win", "Win rate", s["win"], ""),
@@ -1004,6 +1081,7 @@ def today_credit_line(trades):
     open_credit = float(open_.credit.clip(lower=0).sum()) * 100
     # unrealized from marks
     unreal = None
+    mk = None
     mf = SIM / "marks.csv"
     if mf.exists() and len(open_):
         try:
@@ -1025,6 +1103,17 @@ def today_credit_line(trades):
         day = realized + unreal
         parts.append(f"→ day if closed now <b class='{'pos' if day >= 0 else 'neg'}' "
                      f"style='font-size:15px'>{m(day)}</b>")
+        # Expiry-adjusted estimate (S128): close-now is cost-to-buy-back-RIGHT-NOW,
+        # which sits near-flat for hours on a comfortably-OTM spread then jumps to full
+        # credit at expiry (looked like a bug). Blend each leg toward its expiry payout
+        # by live delta so this reflects the expected outcome, not a cliff at the close.
+        try:
+            exp_unreal = expiry_adjusted_unreal(open_, mk)
+            exp_day = realized + exp_unreal
+            parts.append(f"· if held to expiry (est.) <b class='{'pos' if exp_day >= 0 else 'neg'}' "
+                         f"style='font-size:15px'>{m(exp_day)}</b>")
+        except Exception:
+            pass
     return ("<div id='today-banner' style='background:#131826;border:1px solid #2a3245;border-radius:8px;"
             "padding:8px 12px;margin:6px 0;font-size:13px'>📊 <b>TODAY</b> · "
             + " · ".join(parts) + "</div>")
@@ -1963,7 +2052,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 #p-ibtd th:first-child,#p-ibtd td:first-child{{text-align:left}}
 </style>
 <div class="muted" style="font-size:12px;margin:4px 0 8px">Live IB paper fills vs ThetaData-priced (TD) reconstruction — today's shadow book. Was the standalone :8610 page; now integrated here.</div>
-<div class="kpis" style="margin:6px 0 14px">{stat_tiles(s, only=("running", "close_now", "mpz", "mpz_pin"))}</div>
+<div class="kpis" style="margin:6px 0 14px">{stat_tiles(s, only=("running", "close_now", "exp_close_now", "mpz", "mpz_pin"))}</div>
 {zone_bar_html(s)}
 {ibtd_html}
 </div>

@@ -1,0 +1,17 @@
+{
+  "es_local_symbol": "ESZ6",
+  "es_delayed_px": 7837.0,
+  "spx_delayed_px": null,
+  "measured_basis_es_minus_spx": null,
+  "dashboard_live_json": {
+    "ts_et": "14:52:11",
+    "ts_epoch": 1791229931,
+    "spx": 7774.95,
+    "vix": 15.59,
+    "es_est": null,
+    "basis": null,
+    "ratio": null,
+    "basis_ts": null,
+    "state": "live"
+  }
+}
