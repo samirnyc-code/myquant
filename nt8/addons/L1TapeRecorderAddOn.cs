@@ -73,6 +73,13 @@ namespace NinjaTrader.NinjaScript.AddOns
 
         private bool hooked;       // Connection event hooked once
         private bool subscribed;   // market-data subscription live
+        // guards the check-and-set of `subscribed` below. S139 (2026-10-05): two "Connected"
+        // status events landed 0.7s apart; both read subscribed==false (Subscribe() only flipped
+        // it inside its async Dispatcher callback, well after the check) and both opened a
+        // MarketData subscription + CSV writer, so one writer won the file's write-lock and the
+        // other failed-and-retried on every tick forever. Fix: flip the flag synchronously, under
+        // this lock, at the moment the decision to (re)subscribe is made -- before any async work.
+        private readonly object subLock = new object();
         private System.Timers.Timer haltTimer;
         private DateTime lastData = DateTime.MinValue;   // wall-time of the last data event (silent-stall detector)
         private const double StallResubSecs = 90;        // no data this long while open -> force a resubscribe
@@ -109,7 +116,12 @@ namespace NinjaTrader.NinjaScript.AddOns
             {
                 if (e.PriceStatus == ConnectionStatus.Connected)
                 {
-                    if (!subscribed) Subscribe();
+                    lock (subLock)
+                    {
+                        if (subscribed) return;
+                        subscribed = true;
+                    }
+                    Subscribe();
                 }
                 else if (e.PriceStatus == ConnectionStatus.Disconnected || e.PriceStatus == ConnectionStatus.ConnectionLost)
                 {
@@ -126,12 +138,16 @@ namespace NinjaTrader.NinjaScript.AddOns
             catch (Exception ex) { Log("L1TapeRecorderAddOn conn err: " + ex.Message, LogLevel.Error); }
         }
 
+        // Caller is responsible for having already set `subscribed = true` synchronously
+        // (under subLock) before calling this -- see OnConnectionStatusUpdate and the
+        // stall-resubscribe timer. On any failure here, roll that flag back so a later
+        // reconnect/stall tick can retry instead of being permanently locked out.
         private void Subscribe()
         {
             try
             {
                 instrument = Instrument.GetInstrument(SymbolName);
-                if (instrument == null) { Log("L1TapeRecorderAddOn: instrument not found: " + SymbolName, LogLevel.Error); return; }
+                if (instrument == null) { Log("L1TapeRecorderAddOn: instrument not found: " + SymbolName, LogLevel.Error); subscribed = false; return; }
                 // subscribe/unsubscribe MUST be on the instrument's dispatcher thread (Help Guide)
                 instrument.Dispatcher.InvokeAsync(() =>
                 {
@@ -139,7 +155,6 @@ namespace NinjaTrader.NinjaScript.AddOns
                     {
                         marketData = new MarketData(instrument);
                         marketData.Update += OnMarketData;
-                        subscribed = true;
                         lastBidP = lastAskP = double.NaN; lastBidS = lastAskS = -1;   // force a fresh quote after resync
                         DateTime now = Core.Globals.Now;
                         lastData = now;   // grace period so a fresh subscription doesn't instantly trip the stall detector
@@ -149,10 +164,10 @@ namespace NinjaTrader.NinjaScript.AddOns
                         EnsureHaltTimer();
                         Log("L1TapeRecorderAddOn: feed CONNECTED, recording " + SymbolName, LogLevel.Information);
                     }
-                    catch (Exception ex) { Log("L1TapeRecorderAddOn subscribe err: " + ex.Message, LogLevel.Error); }
+                    catch (Exception ex) { subscribed = false; Log("L1TapeRecorderAddOn subscribe err: " + ex.Message, LogLevel.Error); }
                 });
             }
-            catch (Exception ex) { Log("L1TapeRecorderAddOn Subscribe err: " + ex.Message, LogLevel.Error); }
+            catch (Exception ex) { subscribed = false; Log("L1TapeRecorderAddOn Subscribe err: " + ex.Message, LogLevel.Error); }
         }
 
         private void Unsubscribe()
@@ -305,7 +320,11 @@ namespace NinjaTrader.NinjaScript.AddOns
                         Log(string.Format("L1TapeRecorderAddOn: data SILENT {0:N0}s while open — forcing resubscribe",
                                           (now - lastData).TotalSeconds), LogLevel.Warning);
                         lastData = now;
-                        Unsubscribe();
+                        lock (subLock)
+                        {
+                            Unsubscribe();
+                            subscribed = true;   // see subLock comment: flip synchronously before Subscribe()'s async work
+                        }
                         Subscribe();
                     }
                 }

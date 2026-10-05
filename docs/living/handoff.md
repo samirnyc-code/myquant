@@ -1,6 +1,54 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-05 (machine-time W. Europe) — **S128: added "Entry method" multi-select field to the Trade Playbook's Entry criteria section (separate repo `trade-playbook`); code committed+pushed, DB column push to Neon still PENDING user action.** S127 (NT8 visibility fix, DONE), S126/S125/S124 unaffected — see blocks below.
+**Last Updated:** 2026-10-05 (machine-time W. Europe) — **S129: L1TapeRecorderAddOn duplicate-subscription race fixed; RegimeTrackerV2 got a "current session only" calc option; new RegimeTrackerPanel indicator (sub-panel regime band). All committed + pushed.** S128 (Trade Playbook Entry-method field, code done/DB push pending), S127 (NT8 visibility fix, DONE), S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S129-l1tape-regime-panel (2026-10-05) — L1 tape duplicate-subscription fix + RegimeTrackerV2 session-only calc + new RegimeTrackerPanel indicator
+
+**1. `nt8/addons/L1TapeRecorderAddOn.cs` — fixed a real production bug.** 500K+ repeated
+"open failed: used by another process" log errors over ~1h40m. Root cause found via the NT8
+log (`log.20261005.00002.en.txt`): two "feed CONNECTED" events fired 0.7s apart at 08:52:50,
+both passing the `if (!subscribed) Subscribe()` guard because `subscribed = true` was only
+set *inside* `Subscribe()`'s async `Dispatcher.InvokeAsync` callback — a real race window.
+Two concurrent `MarketData` subscriptions opened the same CSV; one held the write-lock, the
+other retried-and-failed on every tick forever. Fix: `subscribed` now flips synchronously
+under a new `subLock`, before any async work, at both call sites (connection-event handler +
+stall-timer forced resubscribe). No code fix alone could kill the *existing* duplicate
+(it's an orphaned `MarketData` handle the AddOn's own object lifecycle can't reach anymore,
+proven by F5 reloads not stopping the spam) — required a full NT8 restart, which the user did.
+**Gap-checked afterward** (new script `scripts/l1_gap_check.py`, saved
+`data/l1_tape/_analysis/ES_12-26_l1_2026-10-05_gap_report_2026-10-05.csv`): two real holes,
+~236s (the stall+reconnect that triggered the race) and ~135s (the restart itself); nothing
+lost during the ~1h50m the duplicate was merely failing-and-retrying alongside a working writer.
+
+**2. `nt8/indicators/RegimeTrackerV2.cs` — added `CurrentSessionOnly` option.** New
+"Only calculate current session" toggle: a one-time forward scan finds the bar where the
+most recent session starts; everything before it is skipped entirely (no wedge update, no
+pivot/BOS/ChoCh calc, no drawing, no CSV rows) instead of merely reset at the boundary —
+cuts CPU/memory on charts loaded with years of history. Independent of `ResetOnNewSession`/
+`WeeklyResetOnly`.
+
+**3. `nt8/indicators/RegimeTrackerPanel.cs` — new indicator, sub-panel regime band.** User
+wanted the Bull/Bear/Range classification in its own panel below the chart, not as a price
+overlay. Had to be a SEPARATE indicator class: NinjaScript fixes `IsOverlay` at
+`State.SetDefaults`, before any user-set `[NinjaScriptProperty]` value exists, so it can't be
+a runtime toggle on RegimeTrackerV2 itself. **First attempt wrapped RegimeTrackerV2 as a
+hidden child indicator** (`IsVisible = false`, read its `.Regime[0]`) — broke: logging proved
+the child got stuck at `State.DataLoaded` / `CurrentBar=-1` forever (two levels of indicator
+composition, Panel→V2→MyWedge, didn't work the way the proven one level, V2→MyWedge, does).
+**Rewrote self-contained**: full regime state machine copied inline (own MyWedge child, same
+`.Update()` pattern RegimeTrackerV2 already proves works), stripped of all overlay drawing/CSV
+export. Then iterated on rendering per user feedback: native `PlotStyle.Bar` split bars
+above/below a zero line with gaps between them — replaced with custom `OnRender` painting one
+full-panel-height rectangle per bar, edge-to-edge (same technique as RegimeTrackerV2's own
+price-panel shading, just filling the whole panel instead of the price range) — a solid band,
+no zero line, no gaps. Range/transition colored gold/yellow (was gray). Added `ShadeOpacity`
+(0-100, default 100/solid — this panel IS the content, nothing to see through, unlike
+RegimeTrackerV2's own default of 22% which overlays on top of price).
+
+**All three compiled clean (`nt8_compile_check.ps1`) and deployed to the Custom folder; user
+F5'd/restarted after each. Committed + pushed to main.**
 
 ---
 

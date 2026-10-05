@@ -64,6 +64,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private Data.SessionIterator _sessionIt;
 		private DateTime      _weekAnchor;   // Sunday-anchored week-start date of the last week a weekly reset fired for
 
+		// ── current-session-only calc ──────────────────────────────────────────
+		// bar index where the most-recently-started session begins; bars before
+		// it are skipped entirely (no wedge update, no regime/pivot/event calc,
+		// no drawing) instead of just resetting state at the boundary, so a
+		// chart loaded with years of history doesn't pay for all of it.
+		private int _sessionOnlyCutoffBar = -1;   // -1 = not yet computed
+
 		// ── rendering ─────────────────────────────────────────────────────────
 		private Brush _bullShade, _bearShade;
 		private Dictionary<int, bool>   _pivLow, _pivHigh;   // bar index -> isMajor (drawn in OnRender)
@@ -123,6 +130,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ExportFileName = "";
 				ResetOnNewSession = true;
 				WeeklyResetOnly   = false;
+				CurrentSessionOnly = false;
 
 				// style — pivots
 				MinorDotBrush  = Brushes.Gray;
@@ -167,6 +175,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_procBar    = 0;
 				_sessionIt  = new Data.SessionIterator(Bars);
 				_weekAnchor = DateTime.MinValue;
+				_sessionOnlyCutoffBar = -1;
 
 				_wedge = MyWedge(Input, LookBack, ShowW2L, WedgeSymmetry, OLSensitivity,
 					CTSB_Ignore, IB_Ignore, ShowWedgeSB, SignalBarIBS, ContinueMC, ContinueOnGap);
@@ -243,7 +252,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SyncEventVisibility();
 
 			if (_wedge == null) return;
-			_wedge.Update();
+
+			if (CurrentSessionOnly && _sessionOnlyCutoffBar < 0)
+				_sessionOnlyCutoffBar = FindCurrentSessionStartBar();
+
+			// below the cutoff: skip the wedge update too (not just regime/draw
+			// logic) so a multi-year chart doesn't pay MyWedge's per-bar cost either.
+			// MyWedge already treats BarsSinceNewTradingDay==0/1 as a fresh-session
+			// start, which is exactly the state it's in the first time Update() is
+			// called here (at the cutoff bar) with this skipped.
+			if (!(CurrentSessionOnly && CurrentBar < _sessionOnlyCutoffBar))
+				_wedge.Update();
 
 			// carry the exposed Regime plot/series forward each bar so downstream
 			// reads never hit an unset value (updated for real once bar is processed)
@@ -253,9 +272,31 @@ namespace NinjaTrader.NinjaScript.Indicators
 			while (_procBar <= CurrentBar - Lag)
 			{
 				int barsAgo = CurrentBar - _procBar;
-				ProcessBar(_procBar, barsAgo);
+				if (!(CurrentSessionOnly && _procBar < _sessionOnlyCutoffBar))
+					ProcessBar(_procBar, barsAgo);
 				_procBar++;
 			}
+		}
+
+		// one-time forward scan (Bars is already fully loaded by the time
+		// OnBarUpdate first fires) to find the bar index where the most recent
+		// session in the loaded data begins, so historical bars before it can be
+		// skipped outright instead of merely reset at the boundary.
+		private int FindCurrentSessionStartBar()
+		{
+			if (Bars == null || Bars.Count == 0) return 0;
+			var si = new Data.SessionIterator(Bars);
+			int lastNewSessionBar = 0;
+			for (int b = 0; b < Bars.Count; b++)
+			{
+				DateTime t = Bars.GetTime(b);
+				if (si.IsNewSession(t, true))
+				{
+					lastNewSessionBar = b;
+					si.GetNextSession(t, true);
+				}
+			}
+			return lastNewSessionBar;
 		}
 
 		// ── the compute_regime() loop body, for one finalised bar ─────────────
@@ -264,7 +305,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// bar 0 has nothing to reset (DataLoaded already started the state
 			// machine fresh); SessionIterator is only exercised from bar 1 on,
 			// same as RegimePhaseMachine.cs's CurrentBar<1 guard.
-			if (i > 0 && ResetOnNewSession)
+			if (i > 0 && (ResetOnNewSession || CurrentSessionOnly))
 			{
 				DateTime t = Time[barsAgo];
 				if (_sessionIt.IsNewSession(t, true))
@@ -275,11 +316,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 					// date relative to _weekAnchor, so the weekly reset still fires
 					// on the first session of the week even without a literal Sunday bar.
 					DateTime weekStart = t.Date.AddDays(-(int)t.Date.DayOfWeek);
-					if (!WeeklyResetOnly || weekStart != _weekAnchor)
+					if (ResetOnNewSession && (!WeeklyResetOnly || weekStart != _weekAnchor))
 					{
 						ResetRegimeState();
 						_weekAnchor = weekStart;
 					}
+					// a later session than the pre-scanned cutoff has started live
+					// (chart rolled into a new day) -- it becomes the new "current
+					// session"; this bar itself (i == the new cutoff) still runs.
+					if (CurrentSessionOnly && i > _sessionOnlyCutoffBar)
+						_sessionOnlyCutoffBar = i;
 					_sessionIt.GetNextSession(t, true);
 				}
 			}
@@ -703,6 +749,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name = "Export file (empty = Documents\\regime_tracker_v2_<instr>.csv)", GroupName = "Regime", Order = 7)] public string ExportFileName { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Reset on new session", GroupName = "Regime", Order = 8)] public bool ResetOnNewSession { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Weekly reset only (Sunday ETH start)", GroupName = "Regime", Order = 9)] public bool WeeklyResetOnly { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Only calculate current session (skip history, cheaper on long charts)", GroupName = "Regime", Order = 10)] public bool CurrentSessionOnly { get; set; }
 
 		// ── Style: pivots ─────────────────────────────────────────────────────
 		[XmlIgnore] [Display(Name = "Minor dot color", GroupName = "Style — pivots", Order = 0)]
