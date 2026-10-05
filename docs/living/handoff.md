@@ -1,6 +1,41 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-02 (machine-time W. Europe) — **S127: RegimeTrackerV2 + DtDbScannerV2 built to fix the Indicator-Manager hide/show bug (only pivot dots were hiding); fix verified + committed + pushed to main.** S126 (DtDbScanner backtest/walk-forward, CLOSED no edge), S125 (Trade Playbook F5 pending) and S124 (RegimeTracker Lag F5 pending) are unaffected — see those blocks below.
+**Last Updated:** 2026-10-05 (machine-time W. Europe) — **S128: added "Entry method" multi-select field to the Trade Playbook's Entry criteria section (separate repo `trade-playbook`); code committed+pushed, DB column push to Neon still PENDING user action.** S127 (NT8 visibility fix, DONE), S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S128-playbook-entry-method (2026-10-05) — Entry method field added to Trade Playbook Entry criteria
+
+**What:** added an "Entry method" field to the Entry criteria section of the Trade Playbook
+app (separate private repo `samirnyc-code/trade-playbook`, Desktop\trade-playbook,
+https://trade-playbook-ten.vercel.app — see S125 block below for full app context). Renders
+as a multi-select (same pattern as Session/Timeframe: checkbox presets + free-text "Add
+another…" for custom values), so multiple methods can be attached to one setup. Presets:
+Market, Limit, Stop-market, Stop-limit, Market-if-touched, Scale-in (ladder),
+Retest-and-confirm, Manual discretionary — traders can add their own via the UI.
+
+**Files changed (trade-playbook repo):** `prisma/schema.prisma` (new `entryMethod String
+@default("")` column, comma-joined CSV like `session`/`timeframe`), `src/lib/types.ts`
+(`SetupT.entryMethod` + `SETUP_FIELDS`), `src/lib/api.ts` (`mapSetup`), `src/components/
+PlaybookApp.tsx` (preset list, field-order entry, `used.entryMethods` memo, `MultiSelect`
+render case). `tsc --noEmit` clean. Committed `02c9cb5`, pushed to `trade-playbook` main
+(Vercel auto-deploys on push).
+
+Also updated this repo's reference sheet `reports/playbook-fields.html` (documents the
+same form fields) to list the new field under §03 Entry criteria.
+
+**⚠️ OPEN — DB column not yet applied to production Neon.** Could not pull
+`DATABASE_URL`/`DIRECT_URL` myself — Vercel marks them sensitive, `vercel env pull` returns
+`[SENSITIVE]` placeholders even for the linked project. The deployed app code now expects
+the `entryMethod` column; **until the column exists on Neon, Setup load/save in the live
+app can error for both traders.** User chose to run it themselves:
+1. Reveal `DATABASE_URL` + `DIRECT_URL` in Vercel dashboard → trade-playbook → Settings →
+   Environment Variables, put them in `Desktop\trade-playbook\.env.local`.
+2. `cd Desktop\trade-playbook && npm run db:push` — additive only (new column, default
+   `""`), no data loss, safe on a live DB.
+
+**Next session: verify this db:push actually happened** (check the live app, or ask) before
+assuming the field works end-to-end.
 
 ---
 
