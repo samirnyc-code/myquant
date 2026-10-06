@@ -89,16 +89,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool     _rthOpenCapturedToday;
 		private bool     _weekAwaitingRthOpen, _monthAwaitingRthOpen;
 
+		// bar index of the running RTH/ETH high/low PRINT (updated only when a new
+		// extreme is actually made) + the most recent bar processed in that session —
+		// these become the "prior" start-bars below once the session flushes.
+		private int _rthHighBar = -1, _rthLowBar = -1, _rthLastBar = -1;
+		private int _ethHighBar = -1, _ethLowBar = -1, _ethLastBar = -1;
+
 		// ── values actually drawn (prior completed session + opens) ──────
 		private double _priorRthHigh = double.NaN, _priorRthLow = double.NaN, _priorRthClose = double.NaN;
 		private double _priorEthHigh = double.NaN, _priorEthLow = double.NaN, _priorEthClose = double.NaN;
 		private double _rthOpenToday = double.NaN, _rthOpenThisWeek = double.NaN, _rthOpenThisMonth = double.NaN;
 		private double _ethOpenToday = double.NaN, _ethOpenThisWeek = double.NaN, _ethOpenThisMonth = double.NaN;
 
-		// ── bar index each level's line should START drawing from (the bar where that
-		// value was established) — lines are rays from here to the current bar, NOT
-		// full chart-width spans.
-		private int _priorRthStartBar = -1, _priorEthStartBar = -1;
+		// ── bar index each level's line should START drawing from — the bar where
+		// that EXACT price actually printed (the high/low/close tick itself), NOT an
+		// administrative marker like the day-roll bar. Lines are rays from here to the
+		// current bar, never full chart-width spans.
+		private int _priorRthHighStartBar = -1, _priorRthLowStartBar = -1, _priorRthCloseStartBar = -1;
+		private int _priorEthHighStartBar = -1, _priorEthLowStartBar = -1, _priorEthCloseStartBar = -1;
 		private int _rthOpenStartBar  = -1, _ethOpenStartBar  = -1;
 		private int _rthWeekStartBar  = -1, _ethWeekStartBar  = -1;
 		private int _rthMonthStartBar = -1, _ethMonthStartBar = -1;
@@ -163,7 +171,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_priorEthHigh = _priorEthLow = _priorEthClose = double.NaN;
 				_rthOpenToday = _rthOpenThisWeek = _rthOpenThisMonth = double.NaN;
 				_ethOpenToday = _ethOpenThisWeek = _ethOpenThisMonth = double.NaN;
-				_priorRthStartBar = _priorEthStartBar = -1;
+				_rthHighBar = _rthLowBar = _rthLastBar = -1;
+				_ethHighBar = _ethLowBar = _ethLastBar = -1;
+				_priorRthHighStartBar = _priorRthLowStartBar = _priorRthCloseStartBar = -1;
+				_priorEthHighStartBar = _priorEthLowStartBar = _priorEthCloseStartBar = -1;
 				_rthOpenStartBar  = _ethOpenStartBar  = -1;
 				_rthWeekStartBar  = _ethWeekStartBar  = -1;
 				_rthMonthStartBar = _ethMonthStartBar = -1;
@@ -213,8 +224,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			if (tradingDay != _curTradingDay)
 			{
-				if (_haveRth) { _priorRthHigh = _rthHigh; _priorRthLow = _rthLow; _priorRthClose = _rthCloseLast; _priorRthStartBar = CurrentBar; }
-				if (_haveEth) { _priorEthHigh = _ethHigh; _priorEthLow = _ethLow; _priorEthClose = _ethCloseLast; _priorEthStartBar = CurrentBar; }
+				if (_haveRth)
+				{
+					_priorRthHigh = _rthHigh; _priorRthHighStartBar = _rthHighBar;
+					_priorRthLow  = _rthLow;  _priorRthLowStartBar  = _rthLowBar;
+					_priorRthClose = _rthCloseLast; _priorRthCloseStartBar = _rthLastBar;
+				}
+				if (_haveEth)
+				{
+					_priorEthHigh = _ethHigh; _priorEthHighStartBar = _ethHighBar;
+					_priorEthLow  = _ethLow;  _priorEthLowStartBar  = _ethLowBar;
+					_priorEthClose = _ethCloseLast; _priorEthCloseStartBar = _ethLastBar;
+				}
 
 				_curTradingDay        = tradingDay;
 				_haveRth = _haveEth   = false;
@@ -259,9 +280,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			if (isRth)
 			{
-				if (!_haveRth) { _rthHigh = High[0]; _rthLow = Low[0]; _haveRth = true; }
-				else           { _rthHigh = Math.Max(_rthHigh, High[0]); _rthLow = Math.Min(_rthLow, Low[0]); }
+				if (!_haveRth) { _rthHigh = High[0]; _rthHighBar = CurrentBar; _rthLow = Low[0]; _rthLowBar = CurrentBar; _haveRth = true; }
+				else
+				{
+					if (High[0] > _rthHigh) { _rthHigh = High[0]; _rthHighBar = CurrentBar; }
+					if (Low[0]  < _rthLow)  { _rthLow  = Low[0];  _rthLowBar  = CurrentBar; }
+				}
 				_rthCloseLast = Close[0];
+				_rthLastBar   = CurrentBar;
 
 				if (!_rthOpenCapturedToday)
 				{
@@ -274,9 +300,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else
 			{
-				if (!_haveEth) { _ethHigh = High[0]; _ethLow = Low[0]; _haveEth = true; }
-				else           { _ethHigh = Math.Max(_ethHigh, High[0]); _ethLow = Math.Min(_ethLow, Low[0]); }
+				if (!_haveEth) { _ethHigh = High[0]; _ethHighBar = CurrentBar; _ethLow = Low[0]; _ethLowBar = CurrentBar; _haveEth = true; }
+				else
+				{
+					if (High[0] > _ethHigh) { _ethHigh = High[0]; _ethHighBar = CurrentBar; }
+					if (Low[0]  < _ethLow)  { _ethLow  = Low[0];  _ethLowBar  = CurrentBar; }
+				}
 				_ethCloseLast = Close[0];
+				_ethLastBar   = CurrentBar;
 			}
 		}
 
@@ -340,18 +371,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 			var list = new List<LevelDef>(12);
 			if (_rthVisible)
 			{
-				Add(list, RHOY_Enabled, RHOY_Label, _priorRthHigh,    RHOY_Color, RHOY_Opacity, RHOY_Style, RHOY_Thickness, 0, _priorRthStartBar);
-				Add(list, RLOY_Enabled, RLOY_Label, _priorRthLow,     RLOY_Color, RLOY_Opacity, RLOY_Style, RLOY_Thickness, 0, _priorRthStartBar);
-				Add(list, RCOY_Enabled, RCOY_Label, _priorRthClose,   RCOY_Color, RCOY_Opacity, RCOY_Style, RCOY_Thickness, 0, _priorRthStartBar);
+				Add(list, RHOY_Enabled, RHOY_Label, _priorRthHigh,    RHOY_Color, RHOY_Opacity, RHOY_Style, RHOY_Thickness, 0, _priorRthHighStartBar);
+				Add(list, RLOY_Enabled, RLOY_Label, _priorRthLow,     RLOY_Color, RLOY_Opacity, RLOY_Style, RLOY_Thickness, 0, _priorRthLowStartBar);
+				Add(list, RCOY_Enabled, RCOY_Label, _priorRthClose,   RCOY_Color, RCOY_Opacity, RCOY_Style, RCOY_Thickness, 0, _priorRthCloseStartBar);
 				Add(list, ROoD_Enabled, ROoD_Label, _rthOpenToday,    ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, _rthOpenStartBar);
 				Add(list, ROoW_Enabled, ROoW_Label, _rthOpenThisWeek, ROoW_Color, ROoW_Opacity, ROoW_Style, ROoW_Thickness, 0, _rthWeekStartBar);
 				Add(list, ROoM_Enabled, ROoM_Label, _rthOpenThisMonth,ROoM_Color, ROoM_Opacity, ROoM_Style, ROoM_Thickness, 0, _rthMonthStartBar);
 			}
 			if (_ethVisible)
 			{
-				Add(list, EHOY_Enabled, EHOY_Label, _priorEthHigh,    EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 1, _priorEthStartBar);
-				Add(list, ELOY_Enabled, ELOY_Label, _priorEthLow,     ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 1, _priorEthStartBar);
-				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,   ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 1, _priorEthStartBar);
+				Add(list, EHOY_Enabled, EHOY_Label, _priorEthHigh,    EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 1, _priorEthHighStartBar);
+				Add(list, ELOY_Enabled, ELOY_Label, _priorEthLow,     ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 1, _priorEthLowStartBar);
+				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,   ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 1, _priorEthCloseStartBar);
 				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,    EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 1, _ethOpenStartBar);
 				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek, EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 1, _ethWeekStartBar);
 				Add(list, EOoM_Enabled, EOoM_Label, _ethOpenThisMonth,EOoM_Color, EOoM_Opacity, EOoM_Style, EOoM_Thickness, 1, _ethMonthStartBar);
