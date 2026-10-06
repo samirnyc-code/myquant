@@ -648,7 +648,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (cacheSessionSRLevels != null)
 				for (int idx = 0; idx < cacheSessionSRLevels.Length; idx++)
-					if (cacheSessionSRLevels[idx] != null && cacheSessionSRLevels[idx].EqualsInput(input))
+					if (cacheSessionSRLevels[idx] != null &&  cacheSessionSRLevels[idx].EqualsInput(input))
 						return cacheSessionSRLevels[idx];
 			return CacheIndicator<SessionSRLevels>(new SessionSRLevels(), input, ref cacheSessionSRLevels);
 		}
@@ -664,7 +664,7 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 			return indicator.SessionSRLevels(Input);
 		}
 
-		public Indicators.SessionSRLevels SessionSRLevels(ISeries<double> input)
+		public Indicators.SessionSRLevels SessionSRLevels(ISeries<double> input )
 		{
 			return indicator.SessionSRLevels(input);
 		}
@@ -680,7 +680,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			return indicator.SessionSRLevels(Input);
 		}
 
-		public Indicators.SessionSRLevels SessionSRLevels(ISeries<double> input)
+		public Indicators.SessionSRLevels SessionSRLevels(ISeries<double> input )
 		{
 			return indicator.SessionSRLevels(input);
 		}
