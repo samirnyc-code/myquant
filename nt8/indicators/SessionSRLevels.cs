@@ -503,137 +503,134 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		#region Properties
 
-		[NinjaScriptProperty]
 		[Display(Name = "RTH template name", Order = 0, GroupName = "00 Session Templates",
 			Description = "NT8 Trading Hours template used for the RTH window (begin/end + holidays/half-days).")]
 		public string RthTemplateName { get; set; }
 
-		[NinjaScriptProperty]
 		[Display(Name = "Expected chart template (informational)", Order = 1, GroupName = "00 Session Templates",
 			Description = "Just a sanity check: Print()s a warning at DataLoaded if the chart's own Trading Hours template name differs (expects the 23h Globex template so ETH bars actually exist).")]
 		public string FullTemplateNameHint { get; set; }
 
-		[NinjaScriptProperty]
 		[Range(6, 24)]
 		[Display(Name = "Label font size", Order = 2, GroupName = "01 Display")]
 		public int LabelFontSize { get; set; }
 
-		[NinjaScriptProperty]
 		[Display(Name = "Show price in label", Order = 3, GroupName = "01 Display",
 			Description = "Off = just the label text (e.g. \"COY RTH\"), no price value appended.")]
 		public bool ShowPriceInLabel { get; set; }
 
 		// ---- RTH HOY ----
-		[NinjaScriptProperty] [Display(Name = "Enabled", Order = 0, GroupName = "02 RTH - HOY (prior RTH high)")] public bool RHOY_Enabled { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Label", Order = 1, GroupName = "02 RTH - HOY (prior RTH high)")] public string RHOY_Label { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "02 RTH - HOY (prior RTH high)")] public bool RHOY_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "02 RTH - HOY (prior RTH high)")] public string RHOY_Label { get; set; }
 		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "02 RTH - HOY (prior RTH high)")] public WMBrush RHOY_Color { get; set; }
 		[Browsable(false)] public string RHOY_ColorSerialize { get { return Serialize.BrushToString(RHOY_Color); } set { RHOY_Color = Serialize.StringToBrush(value); } }
-		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "02 RTH - HOY (prior RTH high)")] public int RHOY_Opacity { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Line style", Order = 4, GroupName = "02 RTH - HOY (prior RTH high)")] public LevelLineStyle RHOY_Style { get; set; }
-		[NinjaScriptProperty] [Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "02 RTH - HOY (prior RTH high)")] public int RHOY_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "02 RTH - HOY (prior RTH high)")] public int RHOY_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "02 RTH - HOY (prior RTH high)")] public LevelLineStyle RHOY_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "02 RTH - HOY (prior RTH high)")] public int RHOY_Thickness { get; set; }
 
 		// ---- RTH LOY ----
-		[NinjaScriptProperty] [Display(Name = "Enabled", Order = 0, GroupName = "03 RTH - LOY (prior RTH low)")] public bool RLOY_Enabled { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Label", Order = 1, GroupName = "03 RTH - LOY (prior RTH low)")] public string RLOY_Label { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "03 RTH - LOY (prior RTH low)")] public bool RLOY_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "03 RTH - LOY (prior RTH low)")] public string RLOY_Label { get; set; }
 		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "03 RTH - LOY (prior RTH low)")] public WMBrush RLOY_Color { get; set; }
 		[Browsable(false)] public string RLOY_ColorSerialize { get { return Serialize.BrushToString(RLOY_Color); } set { RLOY_Color = Serialize.StringToBrush(value); } }
-		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "03 RTH - LOY (prior RTH low)")] public int RLOY_Opacity { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Line style", Order = 4, GroupName = "03 RTH - LOY (prior RTH low)")] public LevelLineStyle RLOY_Style { get; set; }
-		[NinjaScriptProperty] [Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "03 RTH - LOY (prior RTH low)")] public int RLOY_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "03 RTH - LOY (prior RTH low)")] public int RLOY_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "03 RTH - LOY (prior RTH low)")] public LevelLineStyle RLOY_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "03 RTH - LOY (prior RTH low)")] public int RLOY_Thickness { get; set; }
 
 		// ---- RTH COY ----
-		[NinjaScriptProperty] [Display(Name = "Enabled", Order = 0, GroupName = "04 RTH - COY (prior RTH close)")] public bool RCOY_Enabled { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Label", Order = 1, GroupName = "04 RTH - COY (prior RTH close)")] public string RCOY_Label { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "04 RTH - COY (prior RTH close)")] public bool RCOY_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "04 RTH - COY (prior RTH close)")] public string RCOY_Label { get; set; }
 		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "04 RTH - COY (prior RTH close)")] public WMBrush RCOY_Color { get; set; }
 		[Browsable(false)] public string RCOY_ColorSerialize { get { return Serialize.BrushToString(RCOY_Color); } set { RCOY_Color = Serialize.StringToBrush(value); } }
-		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "04 RTH - COY (prior RTH close)")] public int RCOY_Opacity { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Line style", Order = 4, GroupName = "04 RTH - COY (prior RTH close)")] public LevelLineStyle RCOY_Style { get; set; }
-		[NinjaScriptProperty] [Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "04 RTH - COY (prior RTH close)")] public int RCOY_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "04 RTH - COY (prior RTH close)")] public int RCOY_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "04 RTH - COY (prior RTH close)")] public LevelLineStyle RCOY_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "04 RTH - COY (prior RTH close)")] public int RCOY_Thickness { get; set; }
 
 		// ---- RTH OoD ----
-		[NinjaScriptProperty] [Display(Name = "Enabled", Order = 0, GroupName = "05 RTH - OoD (open of day)")] public bool ROoD_Enabled { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Label", Order = 1, GroupName = "05 RTH - OoD (open of day)")] public string ROoD_Label { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "05 RTH - OoD (open of day)")] public bool ROoD_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "05 RTH - OoD (open of day)")] public string ROoD_Label { get; set; }
 		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "05 RTH - OoD (open of day)")] public WMBrush ROoD_Color { get; set; }
 		[Browsable(false)] public string ROoD_ColorSerialize { get { return Serialize.BrushToString(ROoD_Color); } set { ROoD_Color = Serialize.StringToBrush(value); } }
-		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "05 RTH - OoD (open of day)")] public int ROoD_Opacity { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Line style", Order = 4, GroupName = "05 RTH - OoD (open of day)")] public LevelLineStyle ROoD_Style { get; set; }
-		[NinjaScriptProperty] [Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "05 RTH - OoD (open of day)")] public int ROoD_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "05 RTH - OoD (open of day)")] public int ROoD_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "05 RTH - OoD (open of day)")] public LevelLineStyle ROoD_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "05 RTH - OoD (open of day)")] public int ROoD_Thickness { get; set; }
 
 		// ---- RTH OoW ----
-		[NinjaScriptProperty] [Display(Name = "Enabled", Order = 0, GroupName = "06 RTH - OoW (open of week)")] public bool ROoW_Enabled { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Label", Order = 1, GroupName = "06 RTH - OoW (open of week)")] public string ROoW_Label { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "06 RTH - OoW (open of week)")] public bool ROoW_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "06 RTH - OoW (open of week)")] public string ROoW_Label { get; set; }
 		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "06 RTH - OoW (open of week)")] public WMBrush ROoW_Color { get; set; }
 		[Browsable(false)] public string ROoW_ColorSerialize { get { return Serialize.BrushToString(ROoW_Color); } set { ROoW_Color = Serialize.StringToBrush(value); } }
-		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "06 RTH - OoW (open of week)")] public int ROoW_Opacity { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Line style", Order = 4, GroupName = "06 RTH - OoW (open of week)")] public LevelLineStyle ROoW_Style { get; set; }
-		[NinjaScriptProperty] [Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "06 RTH - OoW (open of week)")] public int ROoW_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "06 RTH - OoW (open of week)")] public int ROoW_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "06 RTH - OoW (open of week)")] public LevelLineStyle ROoW_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "06 RTH - OoW (open of week)")] public int ROoW_Thickness { get; set; }
 
 		// ---- RTH OoM ----
-		[NinjaScriptProperty] [Display(Name = "Enabled", Order = 0, GroupName = "07 RTH - OoM (open of month)")] public bool ROoM_Enabled { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Label", Order = 1, GroupName = "07 RTH - OoM (open of month)")] public string ROoM_Label { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "07 RTH - OoM (open of month)")] public bool ROoM_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "07 RTH - OoM (open of month)")] public string ROoM_Label { get; set; }
 		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "07 RTH - OoM (open of month)")] public WMBrush ROoM_Color { get; set; }
 		[Browsable(false)] public string ROoM_ColorSerialize { get { return Serialize.BrushToString(ROoM_Color); } set { ROoM_Color = Serialize.StringToBrush(value); } }
-		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "07 RTH - OoM (open of month)")] public int ROoM_Opacity { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Line style", Order = 4, GroupName = "07 RTH - OoM (open of month)")] public LevelLineStyle ROoM_Style { get; set; }
-		[NinjaScriptProperty] [Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "07 RTH - OoM (open of month)")] public int ROoM_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "07 RTH - OoM (open of month)")] public int ROoM_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "07 RTH - OoM (open of month)")] public LevelLineStyle ROoM_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "07 RTH - OoM (open of month)")] public int ROoM_Thickness { get; set; }
 
 		// ---- ETH HOY ----
-		[NinjaScriptProperty] [Display(Name = "Enabled", Order = 0, GroupName = "08 ETH - HOY (prior ETH-only high)")] public bool EHOY_Enabled { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Label", Order = 1, GroupName = "08 ETH - HOY (prior ETH-only high)")] public string EHOY_Label { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "08 ETH - HOY (prior ETH-only high)")] public bool EHOY_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "08 ETH - HOY (prior ETH-only high)")] public string EHOY_Label { get; set; }
 		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "08 ETH - HOY (prior ETH-only high)")] public WMBrush EHOY_Color { get; set; }
 		[Browsable(false)] public string EHOY_ColorSerialize { get { return Serialize.BrushToString(EHOY_Color); } set { EHOY_Color = Serialize.StringToBrush(value); } }
-		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "08 ETH - HOY (prior ETH-only high)")] public int EHOY_Opacity { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Line style", Order = 4, GroupName = "08 ETH - HOY (prior ETH-only high)")] public LevelLineStyle EHOY_Style { get; set; }
-		[NinjaScriptProperty] [Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "08 ETH - HOY (prior ETH-only high)")] public int EHOY_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "08 ETH - HOY (prior ETH-only high)")] public int EHOY_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "08 ETH - HOY (prior ETH-only high)")] public LevelLineStyle EHOY_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "08 ETH - HOY (prior ETH-only high)")] public int EHOY_Thickness { get; set; }
 
 		// ---- ETH LOY ----
-		[NinjaScriptProperty] [Display(Name = "Enabled", Order = 0, GroupName = "09 ETH - LOY (prior ETH-only low)")] public bool ELOY_Enabled { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Label", Order = 1, GroupName = "09 ETH - LOY (prior ETH-only low)")] public string ELOY_Label { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "09 ETH - LOY (prior ETH-only low)")] public bool ELOY_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "09 ETH - LOY (prior ETH-only low)")] public string ELOY_Label { get; set; }
 		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "09 ETH - LOY (prior ETH-only low)")] public WMBrush ELOY_Color { get; set; }
 		[Browsable(false)] public string ELOY_ColorSerialize { get { return Serialize.BrushToString(ELOY_Color); } set { ELOY_Color = Serialize.StringToBrush(value); } }
-		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "09 ETH - LOY (prior ETH-only low)")] public int ELOY_Opacity { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Line style", Order = 4, GroupName = "09 ETH - LOY (prior ETH-only low)")] public LevelLineStyle ELOY_Style { get; set; }
-		[NinjaScriptProperty] [Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "09 ETH - LOY (prior ETH-only low)")] public int ELOY_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "09 ETH - LOY (prior ETH-only low)")] public int ELOY_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "09 ETH - LOY (prior ETH-only low)")] public LevelLineStyle ELOY_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "09 ETH - LOY (prior ETH-only low)")] public int ELOY_Thickness { get; set; }
 
 		// ---- ETH COY ----
-		[NinjaScriptProperty] [Display(Name = "Enabled", Order = 0, GroupName = "10 ETH - COY (prior ETH-only close)")] public bool ECOY_Enabled { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Label", Order = 1, GroupName = "10 ETH - COY (prior ETH-only close)")] public string ECOY_Label { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "10 ETH - COY (prior ETH-only close)")] public bool ECOY_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "10 ETH - COY (prior ETH-only close)")] public string ECOY_Label { get; set; }
 		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "10 ETH - COY (prior ETH-only close)")] public WMBrush ECOY_Color { get; set; }
 		[Browsable(false)] public string ECOY_ColorSerialize { get { return Serialize.BrushToString(ECOY_Color); } set { ECOY_Color = Serialize.StringToBrush(value); } }
-		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "10 ETH - COY (prior ETH-only close)")] public int ECOY_Opacity { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Line style", Order = 4, GroupName = "10 ETH - COY (prior ETH-only close)")] public LevelLineStyle ECOY_Style { get; set; }
-		[NinjaScriptProperty] [Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "10 ETH - COY (prior ETH-only close)")] public int ECOY_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "10 ETH - COY (prior ETH-only close)")] public int ECOY_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "10 ETH - COY (prior ETH-only close)")] public LevelLineStyle ECOY_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "10 ETH - COY (prior ETH-only close)")] public int ECOY_Thickness { get; set; }
 
 		// ---- ETH OoD ----
-		[NinjaScriptProperty] [Display(Name = "Enabled", Order = 0, GroupName = "11 ETH - OoD (open of day / evening open)")] public bool EOoD_Enabled { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Label", Order = 1, GroupName = "11 ETH - OoD (open of day / evening open)")] public string EOoD_Label { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "11 ETH - OoD (open of day / evening open)")] public bool EOoD_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "11 ETH - OoD (open of day / evening open)")] public string EOoD_Label { get; set; }
 		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "11 ETH - OoD (open of day / evening open)")] public WMBrush EOoD_Color { get; set; }
 		[Browsable(false)] public string EOoD_ColorSerialize { get { return Serialize.BrushToString(EOoD_Color); } set { EOoD_Color = Serialize.StringToBrush(value); } }
-		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "11 ETH - OoD (open of day / evening open)")] public int EOoD_Opacity { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Line style", Order = 4, GroupName = "11 ETH - OoD (open of day / evening open)")] public LevelLineStyle EOoD_Style { get; set; }
-		[NinjaScriptProperty] [Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "11 ETH - OoD (open of day / evening open)")] public int EOoD_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "11 ETH - OoD (open of day / evening open)")] public int EOoD_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "11 ETH - OoD (open of day / evening open)")] public LevelLineStyle EOoD_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "11 ETH - OoD (open of day / evening open)")] public int EOoD_Thickness { get; set; }
 
 		// ---- ETH OoW ----
-		[NinjaScriptProperty] [Display(Name = "Enabled", Order = 0, GroupName = "12 ETH - OoW (open of week)")] public bool EOoW_Enabled { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Label", Order = 1, GroupName = "12 ETH - OoW (open of week)")] public string EOoW_Label { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "12 ETH - OoW (open of week)")] public bool EOoW_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "12 ETH - OoW (open of week)")] public string EOoW_Label { get; set; }
 		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "12 ETH - OoW (open of week)")] public WMBrush EOoW_Color { get; set; }
 		[Browsable(false)] public string EOoW_ColorSerialize { get { return Serialize.BrushToString(EOoW_Color); } set { EOoW_Color = Serialize.StringToBrush(value); } }
-		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "12 ETH - OoW (open of week)")] public int EOoW_Opacity { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Line style", Order = 4, GroupName = "12 ETH - OoW (open of week)")] public LevelLineStyle EOoW_Style { get; set; }
-		[NinjaScriptProperty] [Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "12 ETH - OoW (open of week)")] public int EOoW_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "12 ETH - OoW (open of week)")] public int EOoW_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "12 ETH - OoW (open of week)")] public LevelLineStyle EOoW_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "12 ETH - OoW (open of week)")] public int EOoW_Thickness { get; set; }
 
 		// ---- ETH OoM ----
-		[NinjaScriptProperty] [Display(Name = "Enabled", Order = 0, GroupName = "13 ETH - OoM (open of month)")] public bool EOoM_Enabled { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Label", Order = 1, GroupName = "13 ETH - OoM (open of month)")] public string EOoM_Label { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "13 ETH - OoM (open of month)")] public bool EOoM_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "13 ETH - OoM (open of month)")] public string EOoM_Label { get; set; }
 		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "13 ETH - OoM (open of month)")] public WMBrush EOoM_Color { get; set; }
 		[Browsable(false)] public string EOoM_ColorSerialize { get { return Serialize.BrushToString(EOoM_Color); } set { EOoM_Color = Serialize.StringToBrush(value); } }
-		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "13 ETH - OoM (open of month)")] public int EOoM_Opacity { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Line style", Order = 4, GroupName = "13 ETH - OoM (open of month)")] public LevelLineStyle EOoM_Style { get; set; }
-		[NinjaScriptProperty] [Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "13 ETH - OoM (open of month)")] public int EOoM_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "13 ETH - OoM (open of month)")] public int EOoM_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "13 ETH - OoM (open of month)")] public LevelLineStyle EOoM_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "13 ETH - OoM (open of month)")] public int EOoM_Thickness { get; set; }
 
 		#endregion
 	}
 }
+
 
 #region NinjaScript generated code. Neither change nor remove.
 
@@ -642,18 +639,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private SessionSRLevels[] cacheSessionSRLevels;
-		public SessionSRLevels SessionSRLevels(string rthTemplateName, string fullTemplateNameHint, int labelFontSize, bool showPriceInLabel, bool rHOY_Enabled, string rHOY_Label, int rHOY_Opacity, LevelLineStyle rHOY_Style, int rHOY_Thickness, bool rLOY_Enabled, string rLOY_Label, int rLOY_Opacity, LevelLineStyle rLOY_Style, int rLOY_Thickness, bool rCOY_Enabled, string rCOY_Label, int rCOY_Opacity, LevelLineStyle rCOY_Style, int rCOY_Thickness, bool rOoD_Enabled, string rOoD_Label, int rOoD_Opacity, LevelLineStyle rOoD_Style, int rOoD_Thickness, bool rOoW_Enabled, string rOoW_Label, int rOoW_Opacity, LevelLineStyle rOoW_Style, int rOoW_Thickness, bool rOoM_Enabled, string rOoM_Label, int rOoM_Opacity, LevelLineStyle rOoM_Style, int rOoM_Thickness, bool eHOY_Enabled, string eHOY_Label, int eHOY_Opacity, LevelLineStyle eHOY_Style, int eHOY_Thickness, bool eLOY_Enabled, string eLOY_Label, int eLOY_Opacity, LevelLineStyle eLOY_Style, int eLOY_Thickness, bool eCOY_Enabled, string eCOY_Label, int eCOY_Opacity, LevelLineStyle eCOY_Style, int eCOY_Thickness, bool eOoD_Enabled, string eOoD_Label, int eOoD_Opacity, LevelLineStyle eOoD_Style, int eOoD_Thickness, bool eOoW_Enabled, string eOoW_Label, int eOoW_Opacity, LevelLineStyle eOoW_Style, int eOoW_Thickness, bool eOoM_Enabled, string eOoM_Label, int eOoM_Opacity, LevelLineStyle eOoM_Style, int eOoM_Thickness)
+		public SessionSRLevels SessionSRLevels()
 		{
-			return SessionSRLevels(Input, rthTemplateName, fullTemplateNameHint, labelFontSize, showPriceInLabel, rHOY_Enabled, rHOY_Label, rHOY_Opacity, rHOY_Style, rHOY_Thickness, rLOY_Enabled, rLOY_Label, rLOY_Opacity, rLOY_Style, rLOY_Thickness, rCOY_Enabled, rCOY_Label, rCOY_Opacity, rCOY_Style, rCOY_Thickness, rOoD_Enabled, rOoD_Label, rOoD_Opacity, rOoD_Style, rOoD_Thickness, rOoW_Enabled, rOoW_Label, rOoW_Opacity, rOoW_Style, rOoW_Thickness, rOoM_Enabled, rOoM_Label, rOoM_Opacity, rOoM_Style, rOoM_Thickness, eHOY_Enabled, eHOY_Label, eHOY_Opacity, eHOY_Style, eHOY_Thickness, eLOY_Enabled, eLOY_Label, eLOY_Opacity, eLOY_Style, eLOY_Thickness, eCOY_Enabled, eCOY_Label, eCOY_Opacity, eCOY_Style, eCOY_Thickness, eOoD_Enabled, eOoD_Label, eOoD_Opacity, eOoD_Style, eOoD_Thickness, eOoW_Enabled, eOoW_Label, eOoW_Opacity, eOoW_Style, eOoW_Thickness, eOoM_Enabled, eOoM_Label, eOoM_Opacity, eOoM_Style, eOoM_Thickness);
+			return SessionSRLevels(Input);
 		}
 
-		public SessionSRLevels SessionSRLevels(ISeries<double> input, string rthTemplateName, string fullTemplateNameHint, int labelFontSize, bool showPriceInLabel, bool rHOY_Enabled, string rHOY_Label, int rHOY_Opacity, LevelLineStyle rHOY_Style, int rHOY_Thickness, bool rLOY_Enabled, string rLOY_Label, int rLOY_Opacity, LevelLineStyle rLOY_Style, int rLOY_Thickness, bool rCOY_Enabled, string rCOY_Label, int rCOY_Opacity, LevelLineStyle rCOY_Style, int rCOY_Thickness, bool rOoD_Enabled, string rOoD_Label, int rOoD_Opacity, LevelLineStyle rOoD_Style, int rOoD_Thickness, bool rOoW_Enabled, string rOoW_Label, int rOoW_Opacity, LevelLineStyle rOoW_Style, int rOoW_Thickness, bool rOoM_Enabled, string rOoM_Label, int rOoM_Opacity, LevelLineStyle rOoM_Style, int rOoM_Thickness, bool eHOY_Enabled, string eHOY_Label, int eHOY_Opacity, LevelLineStyle eHOY_Style, int eHOY_Thickness, bool eLOY_Enabled, string eLOY_Label, int eLOY_Opacity, LevelLineStyle eLOY_Style, int eLOY_Thickness, bool eCOY_Enabled, string eCOY_Label, int eCOY_Opacity, LevelLineStyle eCOY_Style, int eCOY_Thickness, bool eOoD_Enabled, string eOoD_Label, int eOoD_Opacity, LevelLineStyle eOoD_Style, int eOoD_Thickness, bool eOoW_Enabled, string eOoW_Label, int eOoW_Opacity, LevelLineStyle eOoW_Style, int eOoW_Thickness, bool eOoM_Enabled, string eOoM_Label, int eOoM_Opacity, LevelLineStyle eOoM_Style, int eOoM_Thickness)
+		public SessionSRLevels SessionSRLevels(ISeries<double> input)
 		{
 			if (cacheSessionSRLevels != null)
 				for (int idx = 0; idx < cacheSessionSRLevels.Length; idx++)
-					if (cacheSessionSRLevels[idx] != null && cacheSessionSRLevels[idx].RthTemplateName == rthTemplateName && cacheSessionSRLevels[idx].FullTemplateNameHint == fullTemplateNameHint && cacheSessionSRLevels[idx].LabelFontSize == labelFontSize && cacheSessionSRLevels[idx].ShowPriceInLabel == showPriceInLabel && cacheSessionSRLevels[idx].RHOY_Enabled == rHOY_Enabled && cacheSessionSRLevels[idx].RHOY_Label == rHOY_Label && cacheSessionSRLevels[idx].RHOY_Opacity == rHOY_Opacity && cacheSessionSRLevels[idx].RHOY_Style == rHOY_Style && cacheSessionSRLevels[idx].RHOY_Thickness == rHOY_Thickness && cacheSessionSRLevels[idx].RLOY_Enabled == rLOY_Enabled && cacheSessionSRLevels[idx].RLOY_Label == rLOY_Label && cacheSessionSRLevels[idx].RLOY_Opacity == rLOY_Opacity && cacheSessionSRLevels[idx].RLOY_Style == rLOY_Style && cacheSessionSRLevels[idx].RLOY_Thickness == rLOY_Thickness && cacheSessionSRLevels[idx].RCOY_Enabled == rCOY_Enabled && cacheSessionSRLevels[idx].RCOY_Label == rCOY_Label && cacheSessionSRLevels[idx].RCOY_Opacity == rCOY_Opacity && cacheSessionSRLevels[idx].RCOY_Style == rCOY_Style && cacheSessionSRLevels[idx].RCOY_Thickness == rCOY_Thickness && cacheSessionSRLevels[idx].ROoD_Enabled == rOoD_Enabled && cacheSessionSRLevels[idx].ROoD_Label == rOoD_Label && cacheSessionSRLevels[idx].ROoD_Opacity == rOoD_Opacity && cacheSessionSRLevels[idx].ROoD_Style == rOoD_Style && cacheSessionSRLevels[idx].ROoD_Thickness == rOoD_Thickness && cacheSessionSRLevels[idx].ROoW_Enabled == rOoW_Enabled && cacheSessionSRLevels[idx].ROoW_Label == rOoW_Label && cacheSessionSRLevels[idx].ROoW_Opacity == rOoW_Opacity && cacheSessionSRLevels[idx].ROoW_Style == rOoW_Style && cacheSessionSRLevels[idx].ROoW_Thickness == rOoW_Thickness && cacheSessionSRLevels[idx].ROoM_Enabled == rOoM_Enabled && cacheSessionSRLevels[idx].ROoM_Label == rOoM_Label && cacheSessionSRLevels[idx].ROoM_Opacity == rOoM_Opacity && cacheSessionSRLevels[idx].ROoM_Style == rOoM_Style && cacheSessionSRLevels[idx].ROoM_Thickness == rOoM_Thickness && cacheSessionSRLevels[idx].EHOY_Enabled == eHOY_Enabled && cacheSessionSRLevels[idx].EHOY_Label == eHOY_Label && cacheSessionSRLevels[idx].EHOY_Opacity == eHOY_Opacity && cacheSessionSRLevels[idx].EHOY_Style == eHOY_Style && cacheSessionSRLevels[idx].EHOY_Thickness == eHOY_Thickness && cacheSessionSRLevels[idx].ELOY_Enabled == eLOY_Enabled && cacheSessionSRLevels[idx].ELOY_Label == eLOY_Label && cacheSessionSRLevels[idx].ELOY_Opacity == eLOY_Opacity && cacheSessionSRLevels[idx].ELOY_Style == eLOY_Style && cacheSessionSRLevels[idx].ELOY_Thickness == eLOY_Thickness && cacheSessionSRLevels[idx].ECOY_Enabled == eCOY_Enabled && cacheSessionSRLevels[idx].ECOY_Label == eCOY_Label && cacheSessionSRLevels[idx].ECOY_Opacity == eCOY_Opacity && cacheSessionSRLevels[idx].ECOY_Style == eCOY_Style && cacheSessionSRLevels[idx].ECOY_Thickness == eCOY_Thickness && cacheSessionSRLevels[idx].EOoD_Enabled == eOoD_Enabled && cacheSessionSRLevels[idx].EOoD_Label == eOoD_Label && cacheSessionSRLevels[idx].EOoD_Opacity == eOoD_Opacity && cacheSessionSRLevels[idx].EOoD_Style == eOoD_Style && cacheSessionSRLevels[idx].EOoD_Thickness == eOoD_Thickness && cacheSessionSRLevels[idx].EOoW_Enabled == eOoW_Enabled && cacheSessionSRLevels[idx].EOoW_Label == eOoW_Label && cacheSessionSRLevels[idx].EOoW_Opacity == eOoW_Opacity && cacheSessionSRLevels[idx].EOoW_Style == eOoW_Style && cacheSessionSRLevels[idx].EOoW_Thickness == eOoW_Thickness && cacheSessionSRLevels[idx].EOoM_Enabled == eOoM_Enabled && cacheSessionSRLevels[idx].EOoM_Label == eOoM_Label && cacheSessionSRLevels[idx].EOoM_Opacity == eOoM_Opacity && cacheSessionSRLevels[idx].EOoM_Style == eOoM_Style && cacheSessionSRLevels[idx].EOoM_Thickness == eOoM_Thickness && cacheSessionSRLevels[idx].EqualsInput(input))
+					if (cacheSessionSRLevels[idx] != null && cacheSessionSRLevels[idx].EqualsInput(input))
 						return cacheSessionSRLevels[idx];
-			return CacheIndicator<SessionSRLevels>(new SessionSRLevels(){ RthTemplateName = rthTemplateName, FullTemplateNameHint = fullTemplateNameHint, LabelFontSize = labelFontSize, ShowPriceInLabel = showPriceInLabel, RHOY_Enabled = rHOY_Enabled, RHOY_Label = rHOY_Label, RHOY_Opacity = rHOY_Opacity, RHOY_Style = rHOY_Style, RHOY_Thickness = rHOY_Thickness, RLOY_Enabled = rLOY_Enabled, RLOY_Label = rLOY_Label, RLOY_Opacity = rLOY_Opacity, RLOY_Style = rLOY_Style, RLOY_Thickness = rLOY_Thickness, RCOY_Enabled = rCOY_Enabled, RCOY_Label = rCOY_Label, RCOY_Opacity = rCOY_Opacity, RCOY_Style = rCOY_Style, RCOY_Thickness = rCOY_Thickness, ROoD_Enabled = rOoD_Enabled, ROoD_Label = rOoD_Label, ROoD_Opacity = rOoD_Opacity, ROoD_Style = rOoD_Style, ROoD_Thickness = rOoD_Thickness, ROoW_Enabled = rOoW_Enabled, ROoW_Label = rOoW_Label, ROoW_Opacity = rOoW_Opacity, ROoW_Style = rOoW_Style, ROoW_Thickness = rOoW_Thickness, ROoM_Enabled = rOoM_Enabled, ROoM_Label = rOoM_Label, ROoM_Opacity = rOoM_Opacity, ROoM_Style = rOoM_Style, ROoM_Thickness = rOoM_Thickness, EHOY_Enabled = eHOY_Enabled, EHOY_Label = eHOY_Label, EHOY_Opacity = eHOY_Opacity, EHOY_Style = eHOY_Style, EHOY_Thickness = eHOY_Thickness, ELOY_Enabled = eLOY_Enabled, ELOY_Label = eLOY_Label, ELOY_Opacity = eLOY_Opacity, ELOY_Style = eLOY_Style, ELOY_Thickness = eLOY_Thickness, ECOY_Enabled = eCOY_Enabled, ECOY_Label = eCOY_Label, ECOY_Opacity = eCOY_Opacity, ECOY_Style = eCOY_Style, ECOY_Thickness = eCOY_Thickness, EOoD_Enabled = eOoD_Enabled, EOoD_Label = eOoD_Label, EOoD_Opacity = eOoD_Opacity, EOoD_Style = eOoD_Style, EOoD_Thickness = eOoD_Thickness, EOoW_Enabled = eOoW_Enabled, EOoW_Label = eOoW_Label, EOoW_Opacity = eOoW_Opacity, EOoW_Style = eOoW_Style, EOoW_Thickness = eOoW_Thickness, EOoM_Enabled = eOoM_Enabled, EOoM_Label = eOoM_Label, EOoM_Opacity = eOoM_Opacity, EOoM_Style = eOoM_Style, EOoM_Thickness = eOoM_Thickness }, input, ref cacheSessionSRLevels);
+			return CacheIndicator<SessionSRLevels>(new SessionSRLevels(), input, ref cacheSessionSRLevels);
 		}
 	}
 }
@@ -662,14 +659,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.SessionSRLevels SessionSRLevels(string rthTemplateName, string fullTemplateNameHint, int labelFontSize, bool showPriceInLabel, bool rHOY_Enabled, string rHOY_Label, int rHOY_Opacity, LevelLineStyle rHOY_Style, int rHOY_Thickness, bool rLOY_Enabled, string rLOY_Label, int rLOY_Opacity, LevelLineStyle rLOY_Style, int rLOY_Thickness, bool rCOY_Enabled, string rCOY_Label, int rCOY_Opacity, LevelLineStyle rCOY_Style, int rCOY_Thickness, bool rOoD_Enabled, string rOoD_Label, int rOoD_Opacity, LevelLineStyle rOoD_Style, int rOoD_Thickness, bool rOoW_Enabled, string rOoW_Label, int rOoW_Opacity, LevelLineStyle rOoW_Style, int rOoW_Thickness, bool rOoM_Enabled, string rOoM_Label, int rOoM_Opacity, LevelLineStyle rOoM_Style, int rOoM_Thickness, bool eHOY_Enabled, string eHOY_Label, int eHOY_Opacity, LevelLineStyle eHOY_Style, int eHOY_Thickness, bool eLOY_Enabled, string eLOY_Label, int eLOY_Opacity, LevelLineStyle eLOY_Style, int eLOY_Thickness, bool eCOY_Enabled, string eCOY_Label, int eCOY_Opacity, LevelLineStyle eCOY_Style, int eCOY_Thickness, bool eOoD_Enabled, string eOoD_Label, int eOoD_Opacity, LevelLineStyle eOoD_Style, int eOoD_Thickness, bool eOoW_Enabled, string eOoW_Label, int eOoW_Opacity, LevelLineStyle eOoW_Style, int eOoW_Thickness, bool eOoM_Enabled, string eOoM_Label, int eOoM_Opacity, LevelLineStyle eOoM_Style, int eOoM_Thickness)
+		public Indicators.SessionSRLevels SessionSRLevels()
 		{
-			return indicator.SessionSRLevels(Input, rthTemplateName, fullTemplateNameHint, labelFontSize, showPriceInLabel, rHOY_Enabled, rHOY_Label, rHOY_Opacity, rHOY_Style, rHOY_Thickness, rLOY_Enabled, rLOY_Label, rLOY_Opacity, rLOY_Style, rLOY_Thickness, rCOY_Enabled, rCOY_Label, rCOY_Opacity, rCOY_Style, rCOY_Thickness, rOoD_Enabled, rOoD_Label, rOoD_Opacity, rOoD_Style, rOoD_Thickness, rOoW_Enabled, rOoW_Label, rOoW_Opacity, rOoW_Style, rOoW_Thickness, rOoM_Enabled, rOoM_Label, rOoM_Opacity, rOoM_Style, rOoM_Thickness, eHOY_Enabled, eHOY_Label, eHOY_Opacity, eHOY_Style, eHOY_Thickness, eLOY_Enabled, eLOY_Label, eLOY_Opacity, eLOY_Style, eLOY_Thickness, eCOY_Enabled, eCOY_Label, eCOY_Opacity, eCOY_Style, eCOY_Thickness, eOoD_Enabled, eOoD_Label, eOoD_Opacity, eOoD_Style, eOoD_Thickness, eOoW_Enabled, eOoW_Label, eOoW_Opacity, eOoW_Style, eOoW_Thickness, eOoM_Enabled, eOoM_Label, eOoM_Opacity, eOoM_Style, eOoM_Thickness);
+			return indicator.SessionSRLevels(Input);
 		}
 
-		public Indicators.SessionSRLevels SessionSRLevels(ISeries<double> input , string rthTemplateName, string fullTemplateNameHint, int labelFontSize, bool showPriceInLabel, bool rHOY_Enabled, string rHOY_Label, int rHOY_Opacity, LevelLineStyle rHOY_Style, int rHOY_Thickness, bool rLOY_Enabled, string rLOY_Label, int rLOY_Opacity, LevelLineStyle rLOY_Style, int rLOY_Thickness, bool rCOY_Enabled, string rCOY_Label, int rCOY_Opacity, LevelLineStyle rCOY_Style, int rCOY_Thickness, bool rOoD_Enabled, string rOoD_Label, int rOoD_Opacity, LevelLineStyle rOoD_Style, int rOoD_Thickness, bool rOoW_Enabled, string rOoW_Label, int rOoW_Opacity, LevelLineStyle rOoW_Style, int rOoW_Thickness, bool rOoM_Enabled, string rOoM_Label, int rOoM_Opacity, LevelLineStyle rOoM_Style, int rOoM_Thickness, bool eHOY_Enabled, string eHOY_Label, int eHOY_Opacity, LevelLineStyle eHOY_Style, int eHOY_Thickness, bool eLOY_Enabled, string eLOY_Label, int eLOY_Opacity, LevelLineStyle eLOY_Style, int eLOY_Thickness, bool eCOY_Enabled, string eCOY_Label, int eCOY_Opacity, LevelLineStyle eCOY_Style, int eCOY_Thickness, bool eOoD_Enabled, string eOoD_Label, int eOoD_Opacity, LevelLineStyle eOoD_Style, int eOoD_Thickness, bool eOoW_Enabled, string eOoW_Label, int eOoW_Opacity, LevelLineStyle eOoW_Style, int eOoW_Thickness, bool eOoM_Enabled, string eOoM_Label, int eOoM_Opacity, LevelLineStyle eOoM_Style, int eOoM_Thickness)
+		public Indicators.SessionSRLevels SessionSRLevels(ISeries<double> input)
 		{
-			return indicator.SessionSRLevels(input, rthTemplateName, fullTemplateNameHint, labelFontSize, showPriceInLabel, rHOY_Enabled, rHOY_Label, rHOY_Opacity, rHOY_Style, rHOY_Thickness, rLOY_Enabled, rLOY_Label, rLOY_Opacity, rLOY_Style, rLOY_Thickness, rCOY_Enabled, rCOY_Label, rCOY_Opacity, rCOY_Style, rCOY_Thickness, rOoD_Enabled, rOoD_Label, rOoD_Opacity, rOoD_Style, rOoD_Thickness, rOoW_Enabled, rOoW_Label, rOoW_Opacity, rOoW_Style, rOoW_Thickness, rOoM_Enabled, rOoM_Label, rOoM_Opacity, rOoM_Style, rOoM_Thickness, eHOY_Enabled, eHOY_Label, eHOY_Opacity, eHOY_Style, eHOY_Thickness, eLOY_Enabled, eLOY_Label, eLOY_Opacity, eLOY_Style, eLOY_Thickness, eCOY_Enabled, eCOY_Label, eCOY_Opacity, eCOY_Style, eCOY_Thickness, eOoD_Enabled, eOoD_Label, eOoD_Opacity, eOoD_Style, eOoD_Thickness, eOoW_Enabled, eOoW_Label, eOoW_Opacity, eOoW_Style, eOoW_Thickness, eOoM_Enabled, eOoM_Label, eOoM_Opacity, eOoM_Style, eOoM_Thickness);
+			return indicator.SessionSRLevels(input);
 		}
 	}
 }
@@ -678,14 +675,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.SessionSRLevels SessionSRLevels(string rthTemplateName, string fullTemplateNameHint, int labelFontSize, bool showPriceInLabel, bool rHOY_Enabled, string rHOY_Label, int rHOY_Opacity, LevelLineStyle rHOY_Style, int rHOY_Thickness, bool rLOY_Enabled, string rLOY_Label, int rLOY_Opacity, LevelLineStyle rLOY_Style, int rLOY_Thickness, bool rCOY_Enabled, string rCOY_Label, int rCOY_Opacity, LevelLineStyle rCOY_Style, int rCOY_Thickness, bool rOoD_Enabled, string rOoD_Label, int rOoD_Opacity, LevelLineStyle rOoD_Style, int rOoD_Thickness, bool rOoW_Enabled, string rOoW_Label, int rOoW_Opacity, LevelLineStyle rOoW_Style, int rOoW_Thickness, bool rOoM_Enabled, string rOoM_Label, int rOoM_Opacity, LevelLineStyle rOoM_Style, int rOoM_Thickness, bool eHOY_Enabled, string eHOY_Label, int eHOY_Opacity, LevelLineStyle eHOY_Style, int eHOY_Thickness, bool eLOY_Enabled, string eLOY_Label, int eLOY_Opacity, LevelLineStyle eLOY_Style, int eLOY_Thickness, bool eCOY_Enabled, string eCOY_Label, int eCOY_Opacity, LevelLineStyle eCOY_Style, int eCOY_Thickness, bool eOoD_Enabled, string eOoD_Label, int eOoD_Opacity, LevelLineStyle eOoD_Style, int eOoD_Thickness, bool eOoW_Enabled, string eOoW_Label, int eOoW_Opacity, LevelLineStyle eOoW_Style, int eOoW_Thickness, bool eOoM_Enabled, string eOoM_Label, int eOoM_Opacity, LevelLineStyle eOoM_Style, int eOoM_Thickness)
+		public Indicators.SessionSRLevels SessionSRLevels()
 		{
-			return indicator.SessionSRLevels(Input, rthTemplateName, fullTemplateNameHint, labelFontSize, showPriceInLabel, rHOY_Enabled, rHOY_Label, rHOY_Opacity, rHOY_Style, rHOY_Thickness, rLOY_Enabled, rLOY_Label, rLOY_Opacity, rLOY_Style, rLOY_Thickness, rCOY_Enabled, rCOY_Label, rCOY_Opacity, rCOY_Style, rCOY_Thickness, rOoD_Enabled, rOoD_Label, rOoD_Opacity, rOoD_Style, rOoD_Thickness, rOoW_Enabled, rOoW_Label, rOoW_Opacity, rOoW_Style, rOoW_Thickness, rOoM_Enabled, rOoM_Label, rOoM_Opacity, rOoM_Style, rOoM_Thickness, eHOY_Enabled, eHOY_Label, eHOY_Opacity, eHOY_Style, eHOY_Thickness, eLOY_Enabled, eLOY_Label, eLOY_Opacity, eLOY_Style, eLOY_Thickness, eCOY_Enabled, eCOY_Label, eCOY_Opacity, eCOY_Style, eCOY_Thickness, eOoD_Enabled, eOoD_Label, eOoD_Opacity, eOoD_Style, eOoD_Thickness, eOoW_Enabled, eOoW_Label, eOoW_Opacity, eOoW_Style, eOoW_Thickness, eOoM_Enabled, eOoM_Label, eOoM_Opacity, eOoM_Style, eOoM_Thickness);
+			return indicator.SessionSRLevels(Input);
 		}
 
-		public Indicators.SessionSRLevels SessionSRLevels(ISeries<double> input , string rthTemplateName, string fullTemplateNameHint, int labelFontSize, bool showPriceInLabel, bool rHOY_Enabled, string rHOY_Label, int rHOY_Opacity, LevelLineStyle rHOY_Style, int rHOY_Thickness, bool rLOY_Enabled, string rLOY_Label, int rLOY_Opacity, LevelLineStyle rLOY_Style, int rLOY_Thickness, bool rCOY_Enabled, string rCOY_Label, int rCOY_Opacity, LevelLineStyle rCOY_Style, int rCOY_Thickness, bool rOoD_Enabled, string rOoD_Label, int rOoD_Opacity, LevelLineStyle rOoD_Style, int rOoD_Thickness, bool rOoW_Enabled, string rOoW_Label, int rOoW_Opacity, LevelLineStyle rOoW_Style, int rOoW_Thickness, bool rOoM_Enabled, string rOoM_Label, int rOoM_Opacity, LevelLineStyle rOoM_Style, int rOoM_Thickness, bool eHOY_Enabled, string eHOY_Label, int eHOY_Opacity, LevelLineStyle eHOY_Style, int eHOY_Thickness, bool eLOY_Enabled, string eLOY_Label, int eLOY_Opacity, LevelLineStyle eLOY_Style, int eLOY_Thickness, bool eCOY_Enabled, string eCOY_Label, int eCOY_Opacity, LevelLineStyle eCOY_Style, int eCOY_Thickness, bool eOoD_Enabled, string eOoD_Label, int eOoD_Opacity, LevelLineStyle eOoD_Style, int eOoD_Thickness, bool eOoW_Enabled, string eOoW_Label, int eOoW_Opacity, LevelLineStyle eOoW_Style, int eOoW_Thickness, bool eOoM_Enabled, string eOoM_Label, int eOoM_Opacity, LevelLineStyle eOoM_Style, int eOoM_Thickness)
+		public Indicators.SessionSRLevels SessionSRLevels(ISeries<double> input)
 		{
-			return indicator.SessionSRLevels(input, rthTemplateName, fullTemplateNameHint, labelFontSize, showPriceInLabel, rHOY_Enabled, rHOY_Label, rHOY_Opacity, rHOY_Style, rHOY_Thickness, rLOY_Enabled, rLOY_Label, rLOY_Opacity, rLOY_Style, rLOY_Thickness, rCOY_Enabled, rCOY_Label, rCOY_Opacity, rCOY_Style, rCOY_Thickness, rOoD_Enabled, rOoD_Label, rOoD_Opacity, rOoD_Style, rOoD_Thickness, rOoW_Enabled, rOoW_Label, rOoW_Opacity, rOoW_Style, rOoW_Thickness, rOoM_Enabled, rOoM_Label, rOoM_Opacity, rOoM_Style, rOoM_Thickness, eHOY_Enabled, eHOY_Label, eHOY_Opacity, eHOY_Style, eHOY_Thickness, eLOY_Enabled, eLOY_Label, eLOY_Opacity, eLOY_Style, eLOY_Thickness, eCOY_Enabled, eCOY_Label, eCOY_Opacity, eCOY_Style, eCOY_Thickness, eOoD_Enabled, eOoD_Label, eOoD_Opacity, eOoD_Style, eOoD_Thickness, eOoW_Enabled, eOoW_Label, eOoW_Opacity, eOoW_Style, eOoW_Thickness, eOoM_Enabled, eOoM_Label, eOoM_Opacity, eOoM_Style, eOoM_Thickness);
+			return indicator.SessionSRLevels(input);
 		}
 	}
 }
