@@ -669,7 +669,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private SessionSRLevelsV2[] cacheSessionSRLevels;
+		private SessionSRLevelsV2[] cacheSessionSRLevelsV2;
 		public SessionSRLevelsV2 SessionSRLevelsV2()
 		{
 			return SessionSRLevelsV2(Input);
@@ -677,11 +677,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		public SessionSRLevelsV2 SessionSRLevelsV2(ISeries<double> input)
 		{
-			if (cacheSessionSRLevels != null)
-				for (int idx = 0; idx < cacheSessionSRLevels.Length; idx++)
-					if (cacheSessionSRLevels[idx] != null &&  cacheSessionSRLevels[idx].EqualsInput(input))
-						return cacheSessionSRLevels[idx];
-			return CacheIndicator<SessionSRLevelsV2>(new SessionSRLevelsV2(), input, ref cacheSessionSRLevels);
+			if (cacheSessionSRLevelsV2 != null)
+				for (int idx = 0; idx < cacheSessionSRLevelsV2.Length; idx++)
+					if (cacheSessionSRLevelsV2[idx] != null &&  cacheSessionSRLevelsV2[idx].EqualsInput(input))
+						return cacheSessionSRLevelsV2[idx];
+			return CacheIndicator<SessionSRLevelsV2>(new SessionSRLevelsV2(), input, ref cacheSessionSRLevelsV2);
 		}
 	}
 }
