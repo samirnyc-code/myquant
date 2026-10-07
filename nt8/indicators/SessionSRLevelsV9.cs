@@ -173,6 +173,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ROoD_Enabled = true;  ROoD_Label = "OoD RTH"; ROoD_Color = Brushes.MediumSeaGreen; ROoD_Opacity = 100; ROoD_Style = LevelLineStyle.Solid; ROoD_Thickness = 2;
 				ROoW_Enabled = true;  ROoW_Label = "OoW RTH"; ROoW_Color = Brushes.DarkOrange;     ROoW_Opacity = 100; ROoW_Style = LevelLineStyle.Solid; ROoW_Thickness = 2;
 				ROoM_Enabled = true;  ROoM_Label = "OoM RTH"; ROoM_Color = Brushes.MediumPurple;   ROoM_Opacity = 100; ROoM_Style = LevelLineStyle.Solid; ROoM_Thickness = 2;
+				ROoM_ManualPrice = 0; ROoM_ManualMonth = Core.Globals.MinDate;
 
 				// ETH defaults: same hue family, dashed, thickness 1, lower default opacity. Label = "{metric} ETH".
 				EHOY_Enabled = true;  EHOY_Label = "H ETH";   EHOY_Color = Brushes.IndianRed;      EHOY_Opacity = 70; EHOY_Style = LevelLineStyle.Dash; EHOY_Thickness = 1;
@@ -181,6 +182,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				EOoD_Enabled = true;  EOoD_Label = "OoD ETH"; EOoD_Color = Brushes.MediumSeaGreen; EOoD_Opacity = 70; EOoD_Style = LevelLineStyle.Dash; EOoD_Thickness = 1;
 				EOoW_Enabled = true;  EOoW_Label = "OoW ETH"; EOoW_Color = Brushes.DarkOrange;     EOoW_Opacity = 70; EOoW_Style = LevelLineStyle.Dash; EOoW_Thickness = 1;
 				EOoM_Enabled = true;  EOoM_Label = "OoM ETH"; EOoM_Color = Brushes.MediumPurple;   EOoM_Opacity = 70; EOoM_Style = LevelLineStyle.Dash; EOoM_Thickness = 1;
+				EOoM_ManualPrice = 0; EOoM_ManualMonth = Core.Globals.MinDate;
 
 				// Custom/manual levels: off and price=0 by default (nothing drawn until you
 				// type a price in and tick Enabled). StartDate defaults to the MinDate
@@ -418,6 +420,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return d.Date.AddDays(-diff);
 		}
 
+		// year*12+month key for a manual-OoM month; <=MinDate (unset) returns a non-matching -1.
+		private static int MonthKeyOf(DateTime d)
+		{
+			return d <= Core.Globals.MinDate ? -1 : d.Year * 12 + d.Month;
+		}
+
 		// ══════════════════════════ Rendering ════════════════════════════
 		// Lines are RAYS: they start at the bar where that level's value was actually
 		// established and run right to the current bar — never the full panel width,
@@ -470,7 +478,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Add(list, RCOY_Enabled, RCOY_Label, _priorRthClose,   RCOY_Color, RCOY_Opacity, RCOY_Style, RCOY_Thickness, 0, _priorRthCloseStartBar);
 				Add(list, ROoD_Enabled, ROoD_Label, _rthOpenToday,    ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, _rthOpenStartBar);
 				Add(list, ROoW_Enabled, ROoW_Label, _rthOpenThisWeek, ROoW_Color, ROoW_Opacity, ROoW_Style, ROoW_Thickness, 0, _rthWeekStartBar);
-				Add(list, ROoM_Enabled, ROoM_Label, _rthOpenThisMonth,ROoM_Color, ROoM_Opacity, ROoM_Style, ROoM_Thickness, 0, _rthMonthStartBar);
+				// RTH OoM: manual override wins when a price is set and its month == the current month
+				double rOoM = _rthOpenThisMonth; int rOoMBar = _rthMonthStartBar;
+				if (ROoM_ManualPrice != 0 && MonthKeyOf(ROoM_ManualMonth) == _curMonthKey)
+				{ rOoM = ROoM_ManualPrice; rOoMBar = ChartBars.FromIndex; }
+				Add(list, ROoM_Enabled, ROoM_Label, rOoM, ROoM_Color, ROoM_Opacity, ROoM_Style, ROoM_Thickness, 0, rOoMBar);
 			}
 			if (_ethVisible)
 			{
@@ -484,7 +496,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,    ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 1, ethStart);
 				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,     EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 1, ethStart);
 				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek,  EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 1, ethStart);
-				Add(list, EOoM_Enabled, EOoM_Label, _ethOpenThisMonth, EOoM_Color, EOoM_Opacity, EOoM_Style, EOoM_Thickness, 1, ethStart);
+				// ETH OoM: manual override wins when a price is set and its month == the current ETH month
+				double eOoM = _ethOpenThisMonth;
+				if (EOoM_ManualPrice != 0 && MonthKeyOf(EOoM_ManualMonth) == _ethCurMonthKey)
+					eOoM = EOoM_ManualPrice;
+				Add(list, EOoM_Enabled, EOoM_Label, eOoM, EOoM_Color, EOoM_Opacity, EOoM_Style, EOoM_Thickness, 1, ethStart);
 			}
 
 			// Custom/manual levels: no "session" origin bar to anchor to, so the start date
@@ -746,6 +762,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "07 RTH - OoM (open of month)")] public int ROoM_Opacity { get; set; }
 		[Display(Name = "Line style", Order = 4, GroupName = "07 RTH - OoM (open of month)")] public LevelLineStyle ROoM_Style { get; set; }
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "07 RTH - OoM (open of month)")] public int ROoM_Thickness { get; set; }
+		[Display(Name = "Manual price (0 = auto)", Order = 6, GroupName = "07 RTH - OoM (open of month)", Description = "Type the RTH open-of-month price here to avoid loading a month of data. Used only when the month below matches the current month.")] public double ROoM_ManualPrice { get; set; }
+		[Display(Name = "Manual month (pick any date in it)", Order = 7, GroupName = "07 RTH - OoM (open of month)", Description = "Which month the manual price above is for. The manual price shows only while this month is the current month.")] public DateTime ROoM_ManualMonth { get; set; }
 
 		// ---- ETH HOY ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "08 ETH - H (current ETH high)")] public bool EHOY_Enabled { get; set; }
@@ -800,6 +818,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "13 ETH - OoM (open of month)")] public int EOoM_Opacity { get; set; }
 		[Display(Name = "Line style", Order = 4, GroupName = "13 ETH - OoM (open of month)")] public LevelLineStyle EOoM_Style { get; set; }
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "13 ETH - OoM (open of month)")] public int EOoM_Thickness { get; set; }
+		[Display(Name = "Manual price (0 = auto)", Order = 6, GroupName = "13 ETH - OoM (open of month)", Description = "Type the ETH open-of-month price here to avoid loading a month of data. Used only when the month below matches the current month.")] public double EOoM_ManualPrice { get; set; }
+		[Display(Name = "Manual month (pick any date in it)", Order = 7, GroupName = "13 ETH - OoM (open of month)", Description = "Which month the manual price above is for. The manual price shows only while this month is the current month.")] public DateTime EOoM_ManualMonth { get; set; }
 
 		// ---- Custom 1 ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "14 Custom 1")] public bool C1_Enabled { get; set; }
