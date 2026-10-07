@@ -7,6 +7,10 @@
 //   HOY/LOY/COY = High/Low/Close of the prior completed session (NOT "of year" despite
 //                 the name — "Of Yesterday" in the Globex-sense of "the last one").
 //   OoD/OoW/OoM = Open of Day / Week / Month for that session.
+//   EXCEPTION: EHOY/ELOY (properties still named *HOY*/*LOY* for template/persistence
+//              compatibility, but relabeled "H ETH"/"L ETH") track the CURRENT, still
+//              in-progress ETH-only session's running high/low, not the prior completed
+//              one — live-updating reference, requested instead of the prior-day version.
 //
 // SESSION SOURCE (why this gets the timing right):
 //   RTH window   = read from the NT8 Trading Hours template named by RthTemplateName
@@ -89,16 +93,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool     _rthOpenCapturedToday;
 		private bool     _weekAwaitingRthOpen, _monthAwaitingRthOpen;
 
+		// bar index of the running RTH/ETH high/low PRINT (updated only when a new
+		// extreme is actually made) + the most recent bar processed in that session —
+		// these become the "prior" start-bars below once the session flushes.
+		private int _rthHighBar = -1, _rthLowBar = -1, _rthLastBar = -1;
+		private int _ethHighBar = -1, _ethLowBar = -1, _ethLastBar = -1;
+
 		// ── values actually drawn (prior completed session + opens) ──────
 		private double _priorRthHigh = double.NaN, _priorRthLow = double.NaN, _priorRthClose = double.NaN;
 		private double _priorEthHigh = double.NaN, _priorEthLow = double.NaN, _priorEthClose = double.NaN;
 		private double _rthOpenToday = double.NaN, _rthOpenThisWeek = double.NaN, _rthOpenThisMonth = double.NaN;
 		private double _ethOpenToday = double.NaN, _ethOpenThisWeek = double.NaN, _ethOpenThisMonth = double.NaN;
 
-		// ── bar index each level's line should START drawing from (the bar where that
-		// value was established) — lines are rays from here to the current bar, NOT
-		// full chart-width spans.
-		private int _priorRthStartBar = -1, _priorEthStartBar = -1;
+		// ── bar index each level's line should START drawing from — the bar where
+		// that EXACT price actually printed (the high/low/close tick itself), NOT an
+		// administrative marker like the day-roll bar. Lines are rays from here to the
+		// current bar, never full chart-width spans.
+		private int _priorRthHighStartBar = -1, _priorRthLowStartBar = -1, _priorRthCloseStartBar = -1;
+		private int _priorEthHighStartBar = -1, _priorEthLowStartBar = -1, _priorEthCloseStartBar = -1;
 		private int _rthOpenStartBar  = -1, _ethOpenStartBar  = -1;
 		private int _rthWeekStartBar  = -1, _ethWeekStartBar  = -1;
 		private int _rthMonthStartBar = -1, _ethMonthStartBar = -1;
@@ -107,8 +119,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private Grid   ctButtonsGrid;
 		private bool   ctPanelActive;
 		private int    ctBaseRowCount;
-		private Button btnRth, btnEth;
-		private bool   _rthVisible = true, _ethVisible = true;
+		private Button btnRth, btnEth, btnLabels;
+		private bool   _rthVisible = true, _ethVisible = true, _labelsVisible = true;
 		private WMColor ColorOn  = WMColor.FromRgb(0, 140, 0);
 		private WMColor ColorOff = WMColor.FromRgb(80, 80, 80);
 
@@ -136,6 +148,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				FullTemplateNameHint = "CME US Index Futures ETH";
 				LabelFontSize       = 11;
 				ShowPriceInLabel    = true;
+				ExtendBarsRight     = 10;
 
 				// RTH defaults: solid, saturated, thickness 2. Label = "{metric} RTH".
 				RHOY_Enabled = true;  RHOY_Label = "HOY RTH"; RHOY_Color = Brushes.IndianRed;      RHOY_Opacity = 100; RHOY_Style = LevelLineStyle.Solid; RHOY_Thickness = 2;
@@ -146,19 +159,29 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ROoM_Enabled = true;  ROoM_Label = "OoM RTH"; ROoM_Color = Brushes.MediumPurple;   ROoM_Opacity = 100; ROoM_Style = LevelLineStyle.Solid; ROoM_Thickness = 2;
 
 				// ETH defaults: same hue family, dashed, thickness 1, lower default opacity. Label = "{metric} ETH".
-				EHOY_Enabled = true;  EHOY_Label = "HOY ETH"; EHOY_Color = Brushes.IndianRed;      EHOY_Opacity = 70; EHOY_Style = LevelLineStyle.Dash; EHOY_Thickness = 1;
-				ELOY_Enabled = true;  ELOY_Label = "LOY ETH"; ELOY_Color = Brushes.RoyalBlue;      ELOY_Opacity = 70; ELOY_Style = LevelLineStyle.Dash; ELOY_Thickness = 1;
+				EHOY_Enabled = true;  EHOY_Label = "H ETH";   EHOY_Color = Brushes.IndianRed;      EHOY_Opacity = 70; EHOY_Style = LevelLineStyle.Dash; EHOY_Thickness = 1;
+				ELOY_Enabled = true;  ELOY_Label = "L ETH";   ELOY_Color = Brushes.RoyalBlue;      ELOY_Opacity = 70; ELOY_Style = LevelLineStyle.Dash; ELOY_Thickness = 1;
 				ECOY_Enabled = true;  ECOY_Label = "COY ETH"; ECOY_Color = Brushes.Goldenrod;      ECOY_Opacity = 70; ECOY_Style = LevelLineStyle.Dash; ECOY_Thickness = 1;
 				EOoD_Enabled = true;  EOoD_Label = "OoD ETH"; EOoD_Color = Brushes.MediumSeaGreen; EOoD_Opacity = 70; EOoD_Style = LevelLineStyle.Dash; EOoD_Thickness = 1;
 				EOoW_Enabled = true;  EOoW_Label = "OoW ETH"; EOoW_Color = Brushes.DarkOrange;     EOoW_Opacity = 70; EOoW_Style = LevelLineStyle.Dash; EOoW_Thickness = 1;
 				EOoM_Enabled = true;  EOoM_Label = "OoM ETH"; EOoM_Color = Brushes.MediumPurple;   EOoM_Opacity = 70; EOoM_Style = LevelLineStyle.Dash; EOoM_Thickness = 1;
 
-				// Custom/manual levels: off + price 0 by default (nothing drawn until you type a
-				// price and tick Enabled). Full chart-width ray; neutral gray/solid.
-				C1_Enabled = false; C1_Label = "Custom 1"; C1_Price = 0; C1_Color = Brushes.Silver; C1_Opacity = 100; C1_Style = LevelLineStyle.Solid; C1_Thickness = 2;
-				C2_Enabled = false; C2_Label = "Custom 2"; C2_Price = 0; C2_Color = Brushes.Silver; C2_Opacity = 100; C2_Style = LevelLineStyle.Solid; C2_Thickness = 2;
-				C3_Enabled = false; C3_Label = "Custom 3"; C3_Price = 0; C3_Color = Brushes.Silver; C3_Opacity = 100; C3_Style = LevelLineStyle.Solid; C3_Thickness = 2;
-				C4_Enabled = false; C4_Label = "Custom 4"; C4_Price = 0; C4_Color = Brushes.Silver; C4_Opacity = 100; C4_Style = LevelLineStyle.Solid; C4_Thickness = 2;
+				// Custom/manual levels: off and price=0 by default (nothing drawn until you
+				// type a price in and tick Enabled). StartDate defaults to the MinDate
+				// sentinel (= "not set" -> leftmost visible bar); pick a date via the
+				// calendar dropdown to anchor the ray there instead. Neutral gray/solid so
+				// they read as user-placed, not computed.
+				// C1/C2 restored from the "SR Daily" template saved under the old V5 name
+				// (templates\Indicator\SessionSRLevelsV5\SR Daily.xml) — these were real
+				// configured levels, wiped when the V5->V6 rename orphaned that template.
+				C1_Enabled = true;  C1_Label = "MM ATH";      C1_Price = 7946.75; C1_StartDate = Core.Globals.MinDate; C1_Color = Brushes.DeepPink; C1_Opacity = 100; C1_Style = LevelLineStyle.Solid; C1_Thickness = 2;
+				C2_Enabled = true;  C2_Label = "ATH 8/13/26"; C2_Price = 7906.25; C2_StartDate = Core.Globals.MinDate; C2_Color = Brushes.Magenta;  C2_Opacity = 100; C2_Style = LevelLineStyle.Dash;  C2_Thickness = 2;
+				C3_Enabled = false; C3_Label = "Custom 3"; C3_Price = 0; C3_StartDate = Core.Globals.MinDate; C3_Color = Brushes.Silver; C3_Opacity = 100; C3_Style = LevelLineStyle.Solid; C3_Thickness = 2;
+				C4_Enabled = false; C4_Label = "Custom 4"; C4_Price = 0; C4_StartDate = Core.Globals.MinDate; C4_Color = Brushes.Silver; C4_Opacity = 100; C4_Style = LevelLineStyle.Solid; C4_Thickness = 2;
+				C5_Enabled = false; C5_Label = "Custom 5"; C5_Price = 0; C5_StartDate = Core.Globals.MinDate; C5_Color = Brushes.Silver; C5_Opacity = 100; C5_Style = LevelLineStyle.Solid; C5_Thickness = 2;
+				C6_Enabled = false; C6_Label = "Custom 6"; C6_Price = 0; C6_StartDate = Core.Globals.MinDate; C6_Color = Brushes.Silver; C6_Opacity = 100; C6_Style = LevelLineStyle.Solid; C6_Thickness = 2;
+				C7_Enabled = false; C7_Label = "Custom 7"; C7_Price = 0; C7_StartDate = Core.Globals.MinDate; C7_Color = Brushes.Silver; C7_Opacity = 100; C7_Style = LevelLineStyle.Solid; C7_Thickness = 2;
+				C8_Enabled = false; C8_Label = "Custom 8"; C8_Price = 0; C8_StartDate = Core.Globals.MinDate; C8_Color = Brushes.Silver; C8_Opacity = 100; C8_Style = LevelLineStyle.Solid; C8_Thickness = 2;
 			}
 			else if (State == State.Configure)
 			{
@@ -170,7 +193,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_priorEthHigh = _priorEthLow = _priorEthClose = double.NaN;
 				_rthOpenToday = _rthOpenThisWeek = _rthOpenThisMonth = double.NaN;
 				_ethOpenToday = _ethOpenThisWeek = _ethOpenThisMonth = double.NaN;
-				_priorRthStartBar = _priorEthStartBar = -1;
+				_rthHighBar = _rthLowBar = _rthLastBar = -1;
+				_ethHighBar = _ethLowBar = _ethLastBar = -1;
+				_priorRthHighStartBar = _priorRthLowStartBar = _priorRthCloseStartBar = -1;
+				_priorEthHighStartBar = _priorEthLowStartBar = _priorEthCloseStartBar = -1;
 				_rthOpenStartBar  = _ethOpenStartBar  = -1;
 				_rthWeekStartBar  = _ethWeekStartBar  = -1;
 				_rthMonthStartBar = _ethMonthStartBar = -1;
@@ -220,8 +246,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			if (tradingDay != _curTradingDay)
 			{
-				if (_haveRth) { _priorRthHigh = _rthHigh; _priorRthLow = _rthLow; _priorRthClose = _rthCloseLast; _priorRthStartBar = CurrentBar; }
-				if (_haveEth) { _priorEthHigh = _ethHigh; _priorEthLow = _ethLow; _priorEthClose = _ethCloseLast; _priorEthStartBar = CurrentBar; }
+				if (_haveRth)
+				{
+					_priorRthHigh = _rthHigh; _priorRthHighStartBar = _rthHighBar;
+					_priorRthLow  = _rthLow;  _priorRthLowStartBar  = _rthLowBar;
+					_priorRthClose = _rthCloseLast; _priorRthCloseStartBar = _rthLastBar;
+				}
+				if (_haveEth)
+				{
+					_priorEthHigh = _ethHigh; _priorEthHighStartBar = _ethHighBar;
+					_priorEthLow  = _ethLow;  _priorEthLowStartBar  = _ethLowBar;
+					_priorEthClose = _ethCloseLast; _priorEthCloseStartBar = _ethLastBar;
+				}
 
 				_curTradingDay        = tradingDay;
 				_haveRth = _haveEth   = false;
@@ -266,9 +302,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			if (isRth)
 			{
-				if (!_haveRth) { _rthHigh = High[0]; _rthLow = Low[0]; _haveRth = true; }
-				else           { _rthHigh = Math.Max(_rthHigh, High[0]); _rthLow = Math.Min(_rthLow, Low[0]); }
+				if (!_haveRth) { _rthHigh = High[0]; _rthHighBar = CurrentBar; _rthLow = Low[0]; _rthLowBar = CurrentBar; _haveRth = true; }
+				else
+				{
+					if (High[0] > _rthHigh) { _rthHigh = High[0]; _rthHighBar = CurrentBar; }
+					if (Low[0]  < _rthLow)  { _rthLow  = Low[0];  _rthLowBar  = CurrentBar; }
+				}
 				_rthCloseLast = Close[0];
+				_rthLastBar   = CurrentBar;
 
 				if (!_rthOpenCapturedToday)
 				{
@@ -281,9 +322,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else
 			{
-				if (!_haveEth) { _ethHigh = High[0]; _ethLow = Low[0]; _haveEth = true; }
-				else           { _ethHigh = Math.Max(_ethHigh, High[0]); _ethLow = Math.Min(_ethLow, Low[0]); }
+				if (!_haveEth) { _ethHigh = High[0]; _ethHighBar = CurrentBar; _ethLow = Low[0]; _ethLowBar = CurrentBar; _haveEth = true; }
+				else
+				{
+					if (High[0] > _ethHigh) { _ethHigh = High[0]; _ethHighBar = CurrentBar; }
+					if (Low[0]  < _ethLow)  { _ethLow  = Low[0];  _ethLowBar  = CurrentBar; }
+				}
 				_ethCloseLast = Close[0];
+				_ethLastBar   = CurrentBar;
 			}
 		}
 
@@ -315,7 +361,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			float panelLeft = (float)ChartPanel.X;
 			int lastIdx = ChartBars.ToIndex;
 			if (lastIdx < 0) return;
-			float lineEndX = chartControl.GetXByBarIndex(ChartBars, lastIdx);
+			float lineEndX = chartControl.GetXByBarIndex(ChartBars, lastIdx + ExtendBarsRight);
 
 			var labels = new List<LabelInfo>();
 			foreach (LevelDef d in defs)
@@ -337,7 +383,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				labels.Add(new LabelInfo { y = y, trueY = y, text = text, brush = sdxBrush, col = d.col });
 			}
 
-			DrawLabels(labels, lineEndX + 6f);
+			if (_labelsVisible) DrawLabels(labels, lineEndX + 6f);
 
 			foreach (LabelInfo li in labels) li.brush.Dispose();
 		}
@@ -347,31 +393,48 @@ namespace NinjaTrader.NinjaScript.Indicators
 			var list = new List<LevelDef>(12);
 			if (_rthVisible)
 			{
-				Add(list, RHOY_Enabled, RHOY_Label, _priorRthHigh,    RHOY_Color, RHOY_Opacity, RHOY_Style, RHOY_Thickness, 0, _priorRthStartBar);
-				Add(list, RLOY_Enabled, RLOY_Label, _priorRthLow,     RLOY_Color, RLOY_Opacity, RLOY_Style, RLOY_Thickness, 0, _priorRthStartBar);
-				Add(list, RCOY_Enabled, RCOY_Label, _priorRthClose,   RCOY_Color, RCOY_Opacity, RCOY_Style, RCOY_Thickness, 0, _priorRthStartBar);
+				Add(list, RHOY_Enabled, RHOY_Label, _priorRthHigh,    RHOY_Color, RHOY_Opacity, RHOY_Style, RHOY_Thickness, 0, _priorRthHighStartBar);
+				Add(list, RLOY_Enabled, RLOY_Label, _priorRthLow,     RLOY_Color, RLOY_Opacity, RLOY_Style, RLOY_Thickness, 0, _priorRthLowStartBar);
+				Add(list, RCOY_Enabled, RCOY_Label, _priorRthClose,   RCOY_Color, RCOY_Opacity, RCOY_Style, RCOY_Thickness, 0, _priorRthCloseStartBar);
 				Add(list, ROoD_Enabled, ROoD_Label, _rthOpenToday,    ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, _rthOpenStartBar);
 				Add(list, ROoW_Enabled, ROoW_Label, _rthOpenThisWeek, ROoW_Color, ROoW_Opacity, ROoW_Style, ROoW_Thickness, 0, _rthWeekStartBar);
 				Add(list, ROoM_Enabled, ROoM_Label, _rthOpenThisMonth,ROoM_Color, ROoM_Opacity, ROoM_Style, ROoM_Thickness, 0, _rthMonthStartBar);
 			}
 			if (_ethVisible)
 			{
-				Add(list, EHOY_Enabled, EHOY_Label, _priorEthHigh,    EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 1, _priorEthStartBar);
-				Add(list, ELOY_Enabled, ELOY_Label, _priorEthLow,     ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 1, _priorEthStartBar);
-				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,   ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 1, _priorEthStartBar);
+				Add(list, EHOY_Enabled, EHOY_Label, _ethHigh, EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 1, _ethHighBar);
+				Add(list, ELOY_Enabled, ELOY_Label, _ethLow, ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 1, _ethLowBar);
+				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,   ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 1, _priorEthCloseStartBar);
 				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,    EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 1, _ethOpenStartBar);
 				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek, EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 1, _ethWeekStartBar);
 				Add(list, EOoM_Enabled, EOoM_Label, _ethOpenThisMonth,EOoM_Color, EOoM_Opacity, EOoM_Style, EOoM_Thickness, 1, _ethMonthStartBar);
 			}
 
-			// Custom/manual levels: no session origin bar, ray from leftmost visible bar.
-			int leftIdx = ChartBars.FromIndex;
-			Add(list, C1_Enabled && C1_Price != 0, C1_Label, C1_Price, C1_Color, C1_Opacity, C1_Style, C1_Thickness, 2, leftIdx);
-			Add(list, C2_Enabled && C2_Price != 0, C2_Label, C2_Price, C2_Color, C2_Opacity, C2_Style, C2_Thickness, 2, leftIdx);
-			Add(list, C3_Enabled && C3_Price != 0, C3_Label, C3_Price, C3_Color, C3_Opacity, C3_Style, C3_Thickness, 2, leftIdx);
-			Add(list, C4_Enabled && C4_Price != 0, C4_Label, C4_Price, C4_Color, C4_Opacity, C4_Style, C4_Thickness, 2, leftIdx);
+			// Custom/manual levels: no "session" origin bar to anchor to, so the start date
+			// is a user-picked calendar date (StartDate property -> a calendar dropdown in
+			// the Properties grid). Left unset (Core.Globals.MinDate sentinel) -> falls back
+			// to the leftmost visible bar, same as before.
+			Add(list, C1_Enabled && C1_Price != 0, C1_Label, C1_Price, C1_Color, C1_Opacity, C1_Style, C1_Thickness, 2, ResolveCustomStartBar(C1_StartDate));
+			Add(list, C2_Enabled && C2_Price != 0, C2_Label, C2_Price, C2_Color, C2_Opacity, C2_Style, C2_Thickness, 2, ResolveCustomStartBar(C2_StartDate));
+			Add(list, C3_Enabled && C3_Price != 0, C3_Label, C3_Price, C3_Color, C3_Opacity, C3_Style, C3_Thickness, 2, ResolveCustomStartBar(C3_StartDate));
+			Add(list, C4_Enabled && C4_Price != 0, C4_Label, C4_Price, C4_Color, C4_Opacity, C4_Style, C4_Thickness, 2, ResolveCustomStartBar(C4_StartDate));
+			Add(list, C5_Enabled && C5_Price != 0, C5_Label, C5_Price, C5_Color, C5_Opacity, C5_Style, C5_Thickness, 2, ResolveCustomStartBar(C5_StartDate));
+			Add(list, C6_Enabled && C6_Price != 0, C6_Label, C6_Price, C6_Color, C6_Opacity, C6_Style, C6_Thickness, 2, ResolveCustomStartBar(C6_StartDate));
+			Add(list, C7_Enabled && C7_Price != 0, C7_Label, C7_Price, C7_Color, C7_Opacity, C7_Style, C7_Thickness, 2, ResolveCustomStartBar(C7_StartDate));
+			Add(list, C8_Enabled && C8_Price != 0, C8_Label, C8_Price, C8_Color, C8_Opacity, C8_Style, C8_Thickness, 2, ResolveCustomStartBar(C8_StartDate));
 
 			return list;
+		}
+
+		// StartDate unset (still the MinDate sentinel) -> leftmost visible bar (old
+		// behavior). Otherwise resolve to the bar index at/after that calendar date;
+		// Bars.GetBar(-1) (date before all loaded history, or not found) -> also falls
+		// back to leftmost visible rather than hiding the level entirely.
+		private int ResolveCustomStartBar(DateTime startDate)
+		{
+			if (startDate <= Core.Globals.MinDate) return ChartBars.FromIndex;
+			int idx = Bars.GetBar(startDate);
+			return idx >= 0 ? idx : ChartBars.FromIndex;
 		}
 
 		private static void Add(List<LevelDef> list, bool enabled, string label, double price,
@@ -429,11 +492,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				for (int i = 1; i < col.Count; i++)
 					if (col[i].y < col[i - 1].y + gap) col[i].y = col[i - 1].y + gap;
 				float x = baseX + c * colW;
+				float textH = LabelFontSize + 6f;
 				foreach (LabelInfo li in col)
 				{
 					if (Math.Abs(li.y - li.trueY) > 1.5f)
-						RenderTarget.DrawLine(new Vector2(x - 6f, li.trueY), new Vector2(x - 1f, li.y + LabelFontSize * 0.5f), li.brush, 0.6f);
-					RenderTarget.DrawText(li.text, tf, new RectangleF(x, li.y, colW, LabelFontSize + 6f), li.brush);
+						RenderTarget.DrawLine(new Vector2(x - 6f, li.trueY), new Vector2(x - 1f, li.y), li.brush, 0.6f);
+					// Vertically CENTER the text on the line's y, not top-aligned below it.
+					RenderTarget.DrawText(li.text, tf, new RectangleF(x, li.y - textH / 2f, colW, textH), li.brush);
 				}
 			}
 			tf.Dispose();
@@ -470,6 +535,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				btnEth.Click += (o, e) => { _ethVisible = !_ethVisible; SetBtn(btnEth, _ethVisible ? ColorOn : ColorOff); ChartControl.InvalidateVisual(); };
 
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount, btnRth, btnEth);
+
+				btnLabels = MakeBtn(s, "LABELS", "Toggle level labels / price text", _labelsVisible ? ColorOn : ColorOff);
+				btnLabels.Click += (o, e) => { _labelsVisible = !_labelsVisible; SetBtn(btnLabels, _labelsVisible ? ColorOn : ColorOff); ChartControl.InvalidateVisual(); };
+				AddFullRow(ctButtonsGrid, ctBaseRowCount + 1, btnLabels);
+
 				ctPanelActive = true;
 			}
 			catch (Exception ex) { Print("SessionSRLevelsV9 CreateWPFControls: " + ex.Message); }
@@ -485,7 +555,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					ctButtonsGrid.Children.RemoveAt(ctButtonsGrid.Children.Count - 1);
 				while (ctButtonsGrid.RowDefinitions.Count > baseRows)
 					ctButtonsGrid.RowDefinitions.RemoveAt(ctButtonsGrid.RowDefinitions.Count - 1);
-				btnRth = btnEth = null;
+				btnRth = btnEth = btnLabels = null;
 				ctPanelActive = false;
 			}
 			catch (Exception ex) { Print("SessionSRLevelsV9 DisposeWPFControls: " + ex.Message); }
@@ -516,6 +586,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			grid.Children.Add(g);
 		}
 
+		private void AddFullRow(Grid grid, int row, Button btn)
+		{
+			grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(36) });
+			Grid.SetRow(btn, row); Grid.SetColumn(btn, 0); Grid.SetColumnSpan(btn, 3);
+			grid.Children.Add(btn);
+		}
+
 		#region Properties
 
 		[Display(Name = "RTH template name", Order = 0, GroupName = "00 Session Templates",
@@ -533,6 +610,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name = "Show price in label", Order = 3, GroupName = "01 Display",
 			Description = "Off = just the label text (e.g. \"COY RTH\"), no price value appended.")]
 		public bool ShowPriceInLabel { get; set; }
+
+		[Range(0, 500)]
+		[Display(Name = "Extend lines right (bars)", Order = 4, GroupName = "01 Display",
+			Description = "How many bars past the current bar the lines/labels are drawn out to.")]
+		public int ExtendBarsRight { get; set; }
 
 		// ---- RTH HOY ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "02 RTH - HOY (prior RTH high)")] public bool RHOY_Enabled { get; set; }
@@ -589,22 +671,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "07 RTH - OoM (open of month)")] public int ROoM_Thickness { get; set; }
 
 		// ---- ETH HOY ----
-		[Display(Name = "Enabled", Order = 0, GroupName = "08 ETH - HOY (prior ETH-only high)")] public bool EHOY_Enabled { get; set; }
-		[Display(Name = "Label", Order = 1, GroupName = "08 ETH - HOY (prior ETH-only high)")] public string EHOY_Label { get; set; }
-		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "08 ETH - HOY (prior ETH-only high)")] public WMBrush EHOY_Color { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "08 ETH - H (current ETH high)")] public bool EHOY_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "08 ETH - H (current ETH high)")] public string EHOY_Label { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "08 ETH - H (current ETH high)")] public WMBrush EHOY_Color { get; set; }
 		[Browsable(false)] public string EHOY_ColorSerialize { get { return Serialize.BrushToString(EHOY_Color); } set { EHOY_Color = Serialize.StringToBrush(value); } }
-		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "08 ETH - HOY (prior ETH-only high)")] public int EHOY_Opacity { get; set; }
-		[Display(Name = "Line style", Order = 4, GroupName = "08 ETH - HOY (prior ETH-only high)")] public LevelLineStyle EHOY_Style { get; set; }
-		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "08 ETH - HOY (prior ETH-only high)")] public int EHOY_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "08 ETH - H (current ETH high)")] public int EHOY_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "08 ETH - H (current ETH high)")] public LevelLineStyle EHOY_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "08 ETH - H (current ETH high)")] public int EHOY_Thickness { get; set; }
 
 		// ---- ETH LOY ----
-		[Display(Name = "Enabled", Order = 0, GroupName = "09 ETH - LOY (prior ETH-only low)")] public bool ELOY_Enabled { get; set; }
-		[Display(Name = "Label", Order = 1, GroupName = "09 ETH - LOY (prior ETH-only low)")] public string ELOY_Label { get; set; }
-		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "09 ETH - LOY (prior ETH-only low)")] public WMBrush ELOY_Color { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "09 ETH - L (current ETH low)")] public bool ELOY_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "09 ETH - L (current ETH low)")] public string ELOY_Label { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "09 ETH - L (current ETH low)")] public WMBrush ELOY_Color { get; set; }
 		[Browsable(false)] public string ELOY_ColorSerialize { get { return Serialize.BrushToString(ELOY_Color); } set { ELOY_Color = Serialize.StringToBrush(value); } }
-		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "09 ETH - LOY (prior ETH-only low)")] public int ELOY_Opacity { get; set; }
-		[Display(Name = "Line style", Order = 4, GroupName = "09 ETH - LOY (prior ETH-only low)")] public LevelLineStyle ELOY_Style { get; set; }
-		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "09 ETH - LOY (prior ETH-only low)")] public int ELOY_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "09 ETH - L (current ETH low)")] public int ELOY_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "09 ETH - L (current ETH low)")] public LevelLineStyle ELOY_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "09 ETH - L (current ETH low)")] public int ELOY_Thickness { get; set; }
 
 		// ---- ETH COY ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "10 ETH - COY (prior ETH-only close)")] public bool ECOY_Enabled { get; set; }
@@ -651,6 +733,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0, 100)] [Display(Name = "Opacity %", Order = 4, GroupName = "14 Custom 1")] public int C1_Opacity { get; set; }
 		[Display(Name = "Line style", Order = 5, GroupName = "14 Custom 1")] public LevelLineStyle C1_Style { get; set; }
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 6, GroupName = "14 Custom 1")] public int C1_Thickness { get; set; }
+		[Display(Name = "Start date (blank = leftmost visible bar)", Order = 7, GroupName = "14 Custom 1")] public DateTime C1_StartDate { get; set; }
 
 		// ---- Custom 2 ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "15 Custom 2")] public bool C2_Enabled { get; set; }
@@ -661,6 +744,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0, 100)] [Display(Name = "Opacity %", Order = 4, GroupName = "15 Custom 2")] public int C2_Opacity { get; set; }
 		[Display(Name = "Line style", Order = 5, GroupName = "15 Custom 2")] public LevelLineStyle C2_Style { get; set; }
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 6, GroupName = "15 Custom 2")] public int C2_Thickness { get; set; }
+		[Display(Name = "Start date (blank = leftmost visible bar)", Order = 7, GroupName = "15 Custom 2")] public DateTime C2_StartDate { get; set; }
 
 		// ---- Custom 3 ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "16 Custom 3")] public bool C3_Enabled { get; set; }
@@ -671,6 +755,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0, 100)] [Display(Name = "Opacity %", Order = 4, GroupName = "16 Custom 3")] public int C3_Opacity { get; set; }
 		[Display(Name = "Line style", Order = 5, GroupName = "16 Custom 3")] public LevelLineStyle C3_Style { get; set; }
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 6, GroupName = "16 Custom 3")] public int C3_Thickness { get; set; }
+		[Display(Name = "Start date (blank = leftmost visible bar)", Order = 7, GroupName = "16 Custom 3")] public DateTime C3_StartDate { get; set; }
 
 		// ---- Custom 4 ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "17 Custom 4")] public bool C4_Enabled { get; set; }
@@ -681,6 +766,51 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0, 100)] [Display(Name = "Opacity %", Order = 4, GroupName = "17 Custom 4")] public int C4_Opacity { get; set; }
 		[Display(Name = "Line style", Order = 5, GroupName = "17 Custom 4")] public LevelLineStyle C4_Style { get; set; }
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 6, GroupName = "17 Custom 4")] public int C4_Thickness { get; set; }
+		[Display(Name = "Start date (blank = leftmost visible bar)", Order = 7, GroupName = "17 Custom 4")] public DateTime C4_StartDate { get; set; }
+
+		// ---- Custom 5 ----
+		[Display(Name = "Enabled", Order = 0, GroupName = "18 Custom 5")] public bool C5_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "18 Custom 5")] public string C5_Label { get; set; }
+		[Display(Name = "Price", Order = 2, GroupName = "18 Custom 5")] public double C5_Price { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 3, GroupName = "18 Custom 5")] public WMBrush C5_Color { get; set; }
+		[Browsable(false)] public string C5_ColorSerialize { get { return Serialize.BrushToString(C5_Color); } set { C5_Color = Serialize.StringToBrush(value); } }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 4, GroupName = "18 Custom 5")] public int C5_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 5, GroupName = "18 Custom 5")] public LevelLineStyle C5_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 6, GroupName = "18 Custom 5")] public int C5_Thickness { get; set; }
+		[Display(Name = "Start date (blank = leftmost visible bar)", Order = 7, GroupName = "18 Custom 5")] public DateTime C5_StartDate { get; set; }
+
+		// ---- Custom 6 ----
+		[Display(Name = "Enabled", Order = 0, GroupName = "19 Custom 6")] public bool C6_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "19 Custom 6")] public string C6_Label { get; set; }
+		[Display(Name = "Price", Order = 2, GroupName = "19 Custom 6")] public double C6_Price { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 3, GroupName = "19 Custom 6")] public WMBrush C6_Color { get; set; }
+		[Browsable(false)] public string C6_ColorSerialize { get { return Serialize.BrushToString(C6_Color); } set { C6_Color = Serialize.StringToBrush(value); } }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 4, GroupName = "19 Custom 6")] public int C6_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 5, GroupName = "19 Custom 6")] public LevelLineStyle C6_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 6, GroupName = "19 Custom 6")] public int C6_Thickness { get; set; }
+		[Display(Name = "Start date (blank = leftmost visible bar)", Order = 7, GroupName = "19 Custom 6")] public DateTime C6_StartDate { get; set; }
+
+		// ---- Custom 7 ----
+		[Display(Name = "Enabled", Order = 0, GroupName = "20 Custom 7")] public bool C7_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "20 Custom 7")] public string C7_Label { get; set; }
+		[Display(Name = "Price", Order = 2, GroupName = "20 Custom 7")] public double C7_Price { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 3, GroupName = "20 Custom 7")] public WMBrush C7_Color { get; set; }
+		[Browsable(false)] public string C7_ColorSerialize { get { return Serialize.BrushToString(C7_Color); } set { C7_Color = Serialize.StringToBrush(value); } }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 4, GroupName = "20 Custom 7")] public int C7_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 5, GroupName = "20 Custom 7")] public LevelLineStyle C7_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 6, GroupName = "20 Custom 7")] public int C7_Thickness { get; set; }
+		[Display(Name = "Start date (blank = leftmost visible bar)", Order = 7, GroupName = "20 Custom 7")] public DateTime C7_StartDate { get; set; }
+
+		// ---- Custom 8 ----
+		[Display(Name = "Enabled", Order = 0, GroupName = "21 Custom 8")] public bool C8_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "21 Custom 8")] public string C8_Label { get; set; }
+		[Display(Name = "Price", Order = 2, GroupName = "21 Custom 8")] public double C8_Price { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 3, GroupName = "21 Custom 8")] public WMBrush C8_Color { get; set; }
+		[Browsable(false)] public string C8_ColorSerialize { get { return Serialize.BrushToString(C8_Color); } set { C8_Color = Serialize.StringToBrush(value); } }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 4, GroupName = "21 Custom 8")] public int C8_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 5, GroupName = "21 Custom 8")] public LevelLineStyle C8_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 6, GroupName = "21 Custom 8")] public int C8_Thickness { get; set; }
+		[Display(Name = "Start date (blank = leftmost visible bar)", Order = 7, GroupName = "21 Custom 8")] public DateTime C8_StartDate { get; set; }
 
 		#endregion
 	}
