@@ -7,6 +7,10 @@
 //   HOY/LOY/COY = High/Low/Close of the prior completed session (NOT "of year" despite
 //                 the name — "Of Yesterday" in the Globex-sense of "the last one").
 //   OoD/OoW/OoM = Open of Day / Week / Month for that session.
+//   EXCEPTION: EHOY/ELOY (properties still named *HOY*/*LOY* for template/persistence
+//              compatibility, but relabeled "H ETH"/"L ETH") track the CURRENT, still
+//              in-progress ETH-only session's running high/low, not the prior completed
+//              one — live-updating reference, requested instead of the prior-day version.
 //
 // SESSION SOURCE (why this gets the timing right):
 //   RTH window   = read from the NT8 Trading Hours template named by RthTemplateName
@@ -154,8 +158,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ROoM_Enabled = true;  ROoM_Label = "OoM RTH"; ROoM_Color = Brushes.MediumPurple;   ROoM_Opacity = 100; ROoM_Style = LevelLineStyle.Solid; ROoM_Thickness = 2;
 
 				// ETH defaults: same hue family, dashed, thickness 1, lower default opacity. Label = "{metric} ETH".
-				EHOY_Enabled = true;  EHOY_Label = "HOY ETH"; EHOY_Color = Brushes.IndianRed;      EHOY_Opacity = 70; EHOY_Style = LevelLineStyle.Dash; EHOY_Thickness = 1;
-				ELOY_Enabled = true;  ELOY_Label = "LOY ETH"; ELOY_Color = Brushes.RoyalBlue;      ELOY_Opacity = 70; ELOY_Style = LevelLineStyle.Dash; ELOY_Thickness = 1;
+				EHOY_Enabled = true;  EHOY_Label = "H ETH";   EHOY_Color = Brushes.IndianRed;      EHOY_Opacity = 70; EHOY_Style = LevelLineStyle.Dash; EHOY_Thickness = 1;
+				ELOY_Enabled = true;  ELOY_Label = "L ETH";   ELOY_Color = Brushes.RoyalBlue;      ELOY_Opacity = 70; ELOY_Style = LevelLineStyle.Dash; ELOY_Thickness = 1;
 				ECOY_Enabled = true;  ECOY_Label = "COY ETH"; ECOY_Color = Brushes.Goldenrod;      ECOY_Opacity = 70; ECOY_Style = LevelLineStyle.Dash; ECOY_Thickness = 1;
 				EOoD_Enabled = true;  EOoD_Label = "OoD ETH"; EOoD_Color = Brushes.MediumSeaGreen; EOoD_Opacity = 70; EOoD_Style = LevelLineStyle.Dash; EOoD_Thickness = 1;
 				EOoW_Enabled = true;  EOoW_Label = "OoW ETH"; EOoW_Color = Brushes.DarkOrange;     EOoW_Opacity = 70; EOoW_Style = LevelLineStyle.Dash; EOoW_Thickness = 1;
@@ -397,8 +401,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			if (_ethVisible)
 			{
-				Add(list, EHOY_Enabled, EHOY_Label, _priorEthHigh,    EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 1, _priorEthHighStartBar);
-				Add(list, ELOY_Enabled, ELOY_Label, _priorEthLow,     ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 1, _priorEthLowStartBar);
+				Add(list, EHOY_Enabled, EHOY_Label, _ethHigh, EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 1, _ethHighBar);
+				Add(list, ELOY_Enabled, ELOY_Label, _ethLow, ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 1, _ethLowBar);
 				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,   ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 1, _priorEthCloseStartBar);
 				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,    EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 1, _ethOpenStartBar);
 				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek, EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 1, _ethWeekStartBar);
@@ -649,22 +653,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "07 RTH - OoM (open of month)")] public int ROoM_Thickness { get; set; }
 
 		// ---- ETH HOY ----
-		[Display(Name = "Enabled", Order = 0, GroupName = "08 ETH - HOY (prior ETH-only high)")] public bool EHOY_Enabled { get; set; }
-		[Display(Name = "Label", Order = 1, GroupName = "08 ETH - HOY (prior ETH-only high)")] public string EHOY_Label { get; set; }
-		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "08 ETH - HOY (prior ETH-only high)")] public WMBrush EHOY_Color { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "08 ETH - H (current ETH high)")] public bool EHOY_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "08 ETH - H (current ETH high)")] public string EHOY_Label { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "08 ETH - H (current ETH high)")] public WMBrush EHOY_Color { get; set; }
 		[Browsable(false)] public string EHOY_ColorSerialize { get { return Serialize.BrushToString(EHOY_Color); } set { EHOY_Color = Serialize.StringToBrush(value); } }
-		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "08 ETH - HOY (prior ETH-only high)")] public int EHOY_Opacity { get; set; }
-		[Display(Name = "Line style", Order = 4, GroupName = "08 ETH - HOY (prior ETH-only high)")] public LevelLineStyle EHOY_Style { get; set; }
-		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "08 ETH - HOY (prior ETH-only high)")] public int EHOY_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "08 ETH - H (current ETH high)")] public int EHOY_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "08 ETH - H (current ETH high)")] public LevelLineStyle EHOY_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "08 ETH - H (current ETH high)")] public int EHOY_Thickness { get; set; }
 
 		// ---- ETH LOY ----
-		[Display(Name = "Enabled", Order = 0, GroupName = "09 ETH - LOY (prior ETH-only low)")] public bool ELOY_Enabled { get; set; }
-		[Display(Name = "Label", Order = 1, GroupName = "09 ETH - LOY (prior ETH-only low)")] public string ELOY_Label { get; set; }
-		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "09 ETH - LOY (prior ETH-only low)")] public WMBrush ELOY_Color { get; set; }
+		[Display(Name = "Enabled", Order = 0, GroupName = "09 ETH - L (current ETH low)")] public bool ELOY_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "09 ETH - L (current ETH low)")] public string ELOY_Label { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "09 ETH - L (current ETH low)")] public WMBrush ELOY_Color { get; set; }
 		[Browsable(false)] public string ELOY_ColorSerialize { get { return Serialize.BrushToString(ELOY_Color); } set { ELOY_Color = Serialize.StringToBrush(value); } }
-		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "09 ETH - LOY (prior ETH-only low)")] public int ELOY_Opacity { get; set; }
-		[Display(Name = "Line style", Order = 4, GroupName = "09 ETH - LOY (prior ETH-only low)")] public LevelLineStyle ELOY_Style { get; set; }
-		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "09 ETH - LOY (prior ETH-only low)")] public int ELOY_Thickness { get; set; }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "09 ETH - L (current ETH low)")] public int ELOY_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "09 ETH - L (current ETH low)")] public LevelLineStyle ELOY_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "09 ETH - L (current ETH low)")] public int ELOY_Thickness { get; set; }
 
 		// ---- ETH COY ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "10 ETH - COY (prior ETH-only close)")] public bool ECOY_Enabled { get; set; }
