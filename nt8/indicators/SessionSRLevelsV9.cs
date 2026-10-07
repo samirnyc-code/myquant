@@ -119,7 +119,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// work on ANY chart — incl. an RTH-only chart whose own bars never fall in ETH
 		// hours. This series has its own session timeline, tracked separately from RTH.
 		private SessionIterator _ethDayIter;
+		private SessionIterator _rthMembershipIter;   // separate RTH iterator used to lock the overnight H/L at RTH open
 		private bool     _ethSeriesAdded;
+		private bool     _ethLocked;                  // true once RTH has opened for the current ETH session
 		private DateTime _ethCurTradingDay = Core.Globals.MinDate;
 		private DateTime _ethCurWeekStart  = Core.Globals.MinDate;
 		private int      _ethCurMonthKey   = -1;
@@ -213,7 +215,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 					catch (Exception ex) { Print("SessionSRLevelsV9: could not add ETH data series '" + FullTemplateNameHint + "': " + ex.Message); }
 				}
-				_ethDayIter = null;
+				_ethDayIter = null; _rthMembershipIter = null; _ethLocked = false;
 				_ethCurTradingDay = Core.Globals.MinDate; _ethCurWeekStart = Core.Globals.MinDate; _ethCurMonthKey = -1;
 				_primaryDayOpenBar = -1;
 
@@ -246,6 +248,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					_rthHours = TradingHours.Get(RthTemplateName);
 					if (_rthHours == null) throw new Exception("template not found");
 					_rthIter = new SessionIterator(_rthHours);
+					_rthMembershipIter = new SessionIterator(_rthHours);
 					_rthOk   = true;
 				}
 				catch (Exception ex)
@@ -348,9 +351,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		// ETH levels come from the hidden ETH-hours series (BarsArray[1]) — so they work
-		// on any chart, including RTH-only. Session boundaries from that series' own
-		// SessionIterator. Values only (no bar indices): ETH lines render full visible
-		// width since an overnight extreme has no corresponding primary (e.g. RTH) bar.
+		// on any chart, including RTH-only. The ETH template is 23h (17:00->16:00), which
+		// INCLUDES RTH — so the ETH H/L is the OVERNIGHT range only: it accumulates from the
+		// session open up to the RTH open, then LOCKS (stays frozen through RTH and the
+		// post-RTH tail until the next overnight session begins). ETH lines render full
+		// visible width since an overnight extreme has no corresponding primary (RTH) bar.
 		private void HandleEthSeries()
 		{
 			if (!_ethSeriesAdded || _ethDayIter == null || CurrentBars[1] < 0) return;
@@ -368,6 +373,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 				_ethCurTradingDay = etd;
 				_haveEth          = false;
+				_ethLocked        = false;   // new overnight session — accumulate again until RTH open
 				_ethOpenToday     = Opens[1][0];
 
 				DateTime wk = MondayOf(etd);
@@ -376,11 +382,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (mk != _ethCurMonthKey)  { _ethCurMonthKey = mk; _ethOpenThisMonth = Opens[1][0]; }
 			}
 
-			if (!_haveEth) { _ethHigh = Highs[1][0]; _ethLow = Lows[1][0]; _haveEth = true; }
-			else
+			// Once this ETH bar is inside the RTH window, lock the overnight H/L for the rest
+			// of the ETH session (stays locked through RTH + the 15:15-16:00 post-close tail).
+			if (!_ethLocked && _rthOk && _rthMembershipIter != null)
 			{
-				if (Highs[1][0] > _ethHigh) _ethHigh = Highs[1][0];
-				if (Lows[1][0]  < _ethLow)  _ethLow  = Lows[1][0];
+				DateTime tRth = ConvertToRthTz(et);
+				if (_rthMembershipIter.IsNewSession(tRth, true))
+					_rthMembershipIter.GetNextSession(tRth, true);
+				if (tRth >= _rthMembershipIter.ActualSessionBegin && tRth <= _rthMembershipIter.ActualSessionEnd)
+					_ethLocked = true;
+			}
+
+			if (!_ethLocked)
+			{
+				if (!_haveEth) { _ethHigh = Highs[1][0]; _ethLow = Lows[1][0]; _haveEth = true; }
+				else
+				{
+					if (Highs[1][0] > _ethHigh) _ethHigh = Highs[1][0];
+					if (Lows[1][0]  < _ethLow)  _ethLow  = Lows[1][0];
+				}
 			}
 			_ethCloseLast = Closes[1][0];
 		}
