@@ -115,6 +115,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int _rthWeekStartBar  = -1, _ethWeekStartBar  = -1;
 		private int _rthMonthStartBar = -1, _ethMonthStartBar = -1;
 
+		// ── ETH from a dedicated hidden ETH-hours series (BarsArray[1]) so ETH levels
+		// work on ANY chart — incl. an RTH-only chart whose own bars never fall in ETH
+		// hours. This series has its own session timeline, tracked separately from RTH.
+		private SessionIterator _ethDayIter;
+		private bool     _ethSeriesAdded;
+		private DateTime _ethCurTradingDay = Core.Globals.MinDate;
+		private DateTime _ethCurWeekStart  = Core.Globals.MinDate;
+		private int      _ethCurMonthKey   = -1;
+
 		// ── Chart Trader toggle buttons ───────────────────────────────────
 		private Grid   ctButtonsGrid;
 		private bool   ctPanelActive;
@@ -185,6 +194,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else if (State == State.Configure)
 			{
+				// Hidden ETH-hours series: feeds ALL ETH levels so they work regardless of
+				// the chart's own Trading Hours template (incl. RTH-only charts).
+				_ethSeriesAdded = false;
+				if (!string.IsNullOrEmpty(FullTemplateNameHint))
+				{
+					try
+					{
+						AddDataSeries(Instrument.FullName,
+							new BarsPeriod { BarsPeriodType = BarsPeriodType.Minute, Value = 1 },
+							FullTemplateNameHint);
+						_ethSeriesAdded = true;
+					}
+					catch (Exception ex) { Print("SessionSRLevelsV9: could not add ETH data series '" + FullTemplateNameHint + "': " + ex.Message); }
+				}
+				_ethDayIter = null;
+				_ethCurTradingDay = Core.Globals.MinDate; _ethCurWeekStart = Core.Globals.MinDate; _ethCurMonthKey = -1;
+
 				_dayIter = null; _rthHours = null; _rthIter = null; _rthOk = false;
 				_curTradingDay = Core.Globals.MinDate; _curWeekStart = Core.Globals.MinDate; _curMonthKey = -1;
 				_haveRth = _haveEth = false;
@@ -205,6 +231,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				_displayTz = NinjaTrader.Core.Globals.GeneralOptions.TimeZoneInfo;
 				_dayIter   = new SessionIterator(Bars);
+
+				if (_ethSeriesAdded && BarsArray.Length > 1)
+					_ethDayIter = new SessionIterator(BarsArray[1]);
 
 				try
 				{
@@ -239,6 +268,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		protected override void OnBarUpdate()
 		{
+			if (BarsInProgress == 1) { HandleEthSeries(); return; }
+			if (BarsInProgress != 0) return;
 			if (CurrentBar < 0 || !Bars.BarsType.IsIntraday) return;
 
 			DateTime barTime    = Time[0];
@@ -252,34 +283,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 					_priorRthLow  = _rthLow;  _priorRthLowStartBar  = _rthLowBar;
 					_priorRthClose = _rthCloseLast; _priorRthCloseStartBar = _rthLastBar;
 				}
-				if (_haveEth)
-				{
-					_priorEthHigh = _ethHigh; _priorEthHighStartBar = _ethHighBar;
-					_priorEthLow  = _ethLow;  _priorEthLowStartBar  = _ethLowBar;
-					_priorEthClose = _ethCloseLast; _priorEthCloseStartBar = _ethLastBar;
-				}
 
 				_curTradingDay        = tradingDay;
-				_haveRth = _haveEth   = false;
+				_haveRth              = false;
 				_rthOpenCapturedToday = false;
-
-				_ethOpenToday    = Open[0];   // full Globex day's first bar = the overnight ("ETH") open
-				_ethOpenStartBar = CurrentBar;
 
 				DateTime wkStart = MondayOf(tradingDay);
 				if (wkStart != _curWeekStart)
 				{
 					_curWeekStart         = wkStart;
-					_ethOpenThisWeek      = Open[0];
-					_ethWeekStartBar      = CurrentBar;
 					_weekAwaitingRthOpen  = true;
 				}
 				int monthKey = tradingDay.Year * 12 + tradingDay.Month;
 				if (monthKey != _curMonthKey)
 				{
 					_curMonthKey           = monthKey;
-					_ethOpenThisMonth      = Open[0];
-					_ethMonthStartBar      = CurrentBar;
 					_monthAwaitingRthOpen  = true;
 				}
 
@@ -320,17 +338,44 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (_monthAwaitingRthOpen) { _rthOpenThisMonth = Open[0]; _rthMonthStartBar = CurrentBar; _monthAwaitingRthOpen = false; }
 				}
 			}
+		}
+
+		// ETH levels come from the hidden ETH-hours series (BarsArray[1]) — so they work
+		// on any chart, including RTH-only. Session boundaries from that series' own
+		// SessionIterator. Values only (no bar indices): ETH lines render full visible
+		// width since an overnight extreme has no corresponding primary (e.g. RTH) bar.
+		private void HandleEthSeries()
+		{
+			if (!_ethSeriesAdded || _ethDayIter == null || CurrentBars[1] < 0) return;
+
+			DateTime et  = Times[1][0];
+			DateTime etd = _ethDayIter.GetTradingDay(et);
+
+			if (etd != _ethCurTradingDay)
+			{
+				if (_haveEth)
+				{
+					_priorEthHigh  = _ethHigh;
+					_priorEthLow   = _ethLow;
+					_priorEthClose = _ethCloseLast;
+				}
+				_ethCurTradingDay = etd;
+				_haveEth          = false;
+				_ethOpenToday     = Opens[1][0];
+
+				DateTime wk = MondayOf(etd);
+				if (wk != _ethCurWeekStart) { _ethCurWeekStart = wk; _ethOpenThisWeek = Opens[1][0]; }
+				int mk = etd.Year * 12 + etd.Month;
+				if (mk != _ethCurMonthKey)  { _ethCurMonthKey = mk; _ethOpenThisMonth = Opens[1][0]; }
+			}
+
+			if (!_haveEth) { _ethHigh = Highs[1][0]; _ethLow = Lows[1][0]; _haveEth = true; }
 			else
 			{
-				if (!_haveEth) { _ethHigh = High[0]; _ethHighBar = CurrentBar; _ethLow = Low[0]; _ethLowBar = CurrentBar; _haveEth = true; }
-				else
-				{
-					if (High[0] > _ethHigh) { _ethHigh = High[0]; _ethHighBar = CurrentBar; }
-					if (Low[0]  < _ethLow)  { _ethLow  = Low[0];  _ethLowBar  = CurrentBar; }
-				}
-				_ethCloseLast = Close[0];
-				_ethLastBar   = CurrentBar;
+				if (Highs[1][0] > _ethHigh) _ethHigh = Highs[1][0];
+				if (Lows[1][0]  < _ethLow)  _ethLow  = Lows[1][0];
 			}
+			_ethCloseLast = Closes[1][0];
 		}
 
 		private DateTime ConvertToRthTz(DateTime t)
@@ -402,12 +447,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			if (_ethVisible)
 			{
-				Add(list, EHOY_Enabled, EHOY_Label, _ethHigh, EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 1, _ethHighBar);
-				Add(list, ELOY_Enabled, ELOY_Label, _ethLow, ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 1, _ethLowBar);
-				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,   ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 1, _priorEthCloseStartBar);
-				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,    EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 1, _ethOpenStartBar);
-				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek, EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 1, _ethWeekStartBar);
-				Add(list, EOoM_Enabled, EOoM_Label, _ethOpenThisMonth,EOoM_Color, EOoM_Opacity, EOoM_Style, EOoM_Thickness, 1, _ethMonthStartBar);
+				// ETH values come from the hidden ETH series — draw full visible width
+				// (the overnight extreme has no primary/RTH bar to anchor to).
+				int ethStart = ChartBars.FromIndex;
+				Add(list, EHOY_Enabled, EHOY_Label, _ethHigh,          EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 1, ethStart);
+				Add(list, ELOY_Enabled, ELOY_Label, _ethLow,           ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 1, ethStart);
+				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,    ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 1, ethStart);
+				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,     EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 1, ethStart);
+				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek,  EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 1, ethStart);
+				Add(list, EOoM_Enabled, EOoM_Label, _ethOpenThisMonth, EOoM_Color, EOoM_Opacity, EOoM_Style, EOoM_Thickness, 1, ethStart);
 			}
 
 			// Custom/manual levels: no "session" origin bar to anchor to, so the start date
