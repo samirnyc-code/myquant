@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Xml.Serialization;
 using NinjaTrader.Cbi;
@@ -68,6 +69,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private DateTime newWeek = DateTime.MinValue;
 
+		// ── Chart Trader toggle button ──────────────────────────────────
+		private Grid   ctButtonsGrid;
+		private bool   ctPanelActive;
+		private int    ctBaseRowCount;
+		private Button btnLabels;
+		private bool   _labelsVisible = true;
+		private WMColor ColorOn  = WMColor.FromRgb(0, 140, 0);
+		private WMColor ColorOff = WMColor.FromRgb(80, 80, 80);
+
 		private struct LevelDef
 		{
 			public bool enabled; public string label; public double price;
@@ -98,6 +108,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				LabelFontSize				= 12;
 				ShowPriceInLabel			= false;
+				ExtendBarsRight				= 10;
 
 				OpenLabel  = "OoLW"; OpenColor  = Brushes.Gold;    OpenOpacity  = 100; OpenStyle  = LevelLineStyle.DashDot; OpenThickness  = 2;
 				HighLabel  = "HoLW"; HighColor  = Brushes.Magenta; HighOpacity  = 100; HighStyle  = LevelLineStyle.DashDot; HighThickness  = 2;
@@ -110,6 +121,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 				AddPlot(new Stroke(Brushes.Transparent, DashStyleHelper.DashDot, 3), PlotStyle.HLine, "PriorWeekHigh");
 				AddPlot(new Stroke(Brushes.Transparent, DashStyleHelper.DashDot, 3), PlotStyle.HLine, "PriorWeekLow");
 				AddPlot(new Stroke(Brushes.Transparent, DashStyleHelper.DashDot, 3), PlotStyle.HLine, "PriorWeekClose");
+			}
+			else if (State == State.Historical)
+			{
+				if (ChartControl != null && !ctPanelActive)
+					ChartControl.Dispatcher.InvokeAsync((Action)CreateWPFControls);
+			}
+			else if (State == State.Terminated)
+			{
+				if (ChartControl != null)
+					ChartControl.Dispatcher.InvokeAsync((Action)DisposeWPFControls);
 			}
 		}
 
@@ -174,7 +195,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			float panelLeft = (float)ChartPanel.X;
 			int lastIdx = ChartBars.ToIndex;
 			if (lastIdx < 0) return;
-			float lineEndX = chartControl.GetXByBarIndex(ChartBars, lastIdx + 1);   // current bar + 1
+			float lineEndX = chartControl.GetXByBarIndex(ChartBars, lastIdx + ExtendBarsRight);
 
 			var defs = new List<LevelDef>(4);
 			AddDef(defs, ShowOpen,  OpenLabel,  prWeeklyOpen,  OpenColor,  OpenOpacity,  OpenStyle,  OpenThickness,  prWeeklyOpenBar);
@@ -202,7 +223,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				labels.Add(new LabelInfo { y = y, trueY = y, text = text, brush = sdxBrush });
 			}
 
-			DrawLabels(labels, lineEndX + 6f);
+			if (_labelsVisible) DrawLabels(labels, lineEndX + 6f);
 
 			foreach (LabelInfo li in labels) li.brush.Dispose();
 		}
@@ -265,6 +286,73 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private static string F(double p) { return p.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture); }
 
+		// ══════════════════════ Chart Trader panel ══════════════════════
+		private void CreateWPFControls()
+		{
+			if (ctPanelActive) return;
+			try
+			{
+				var win = Window.GetWindow(ChartControl.Parent) as NinjaTrader.Gui.Chart.Chart;
+				if (win == null) { Print("PriorWeekOHLCV3: chart window not found"); return; }
+				var chartTrader = win.FindFirst("ChartWindowChartTraderControl") as NinjaTrader.Gui.Chart.ChartTrader;
+				if (chartTrader == null) { Print("PriorWeekOHLCV3: ChartTrader not found (is Chart Trader shown?)"); return; }
+				var outerGrid = chartTrader.Content as Grid;
+				if (outerGrid == null) return;
+				foreach (UIElement child in outerGrid.Children)
+				{
+					Grid g = child as Grid;
+					if (g != null) { ctButtonsGrid = g; break; }
+				}
+				if (ctButtonsGrid == null) { Print("PriorWeekOHLCV3: button grid not found"); return; }
+
+				ctBaseRowCount = ctButtonsGrid.RowDefinitions.Count;
+				Style s = Application.Current.TryFindResource("Button") as Style;
+
+				btnLabels = MakeBtn(s, "PWO LABELS", "Toggle PriorWeekOHLC labels / price text", _labelsVisible ? ColorOn : ColorOff);
+				btnLabels.Click += (o, e) => { _labelsVisible = !_labelsVisible; SetBtn(btnLabels, _labelsVisible ? ColorOn : ColorOff); ChartControl.InvalidateVisual(); };
+				AddFullRow(ctButtonsGrid, ctBaseRowCount, btnLabels);
+
+				ctPanelActive = true;
+			}
+			catch (Exception ex) { Print("PriorWeekOHLCV3 CreateWPFControls: " + ex.Message); }
+		}
+
+		private void DisposeWPFControls()
+		{
+			try
+			{
+				if (!ctPanelActive || ctButtonsGrid == null) return;
+				int baseRows = Math.Max(0, ctBaseRowCount);
+				while (ctButtonsGrid.Children.Count > baseRows)
+					ctButtonsGrid.Children.RemoveAt(ctButtonsGrid.Children.Count - 1);
+				while (ctButtonsGrid.RowDefinitions.Count > baseRows)
+					ctButtonsGrid.RowDefinitions.RemoveAt(ctButtonsGrid.RowDefinitions.Count - 1);
+				btnLabels = null;
+				ctPanelActive = false;
+			}
+			catch (Exception ex) { Print("PriorWeekOHLCV3 DisposeWPFControls: " + ex.Message); }
+		}
+
+		private Button MakeBtn(Style s, string label, string tip, WMColor bg)
+		{
+			return new Button() { Content = label, Style = s, Height = 34, Margin = new Thickness(1),
+				FontSize = 11, FontWeight = FontWeights.Bold, ToolTip = tip,
+				Background = new WMSolidColorBrush(bg), Foreground = Brushes.White };
+		}
+
+		private void SetBtn(Button btn, WMColor bg)
+		{
+			if (btn == null || ChartControl == null) return;
+			ChartControl.Dispatcher.InvokeAsync((Action)(() => { if (btn != null) btn.Background = new WMSolidColorBrush(bg); }));
+		}
+
+		private void AddFullRow(Grid grid, int row, Button btn)
+		{
+			grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(36) });
+			Grid.SetRow(btn, row); Grid.SetColumn(btn, 0); Grid.SetColumnSpan(btn, 3);
+			grid.Children.Add(btn);
+		}
+
 		#region Properties
         [Browsable(false)]	// this line prevents the data series from being displayed in the indicator properties dialog, do not remove
         [XmlIgnore()]		// this line ensures that the indicator can be saved/recovered as part of a chart template, do not remove
@@ -301,6 +389,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name = "Show price in label", Order = 1, GroupName = "00 Display",
 			Description = "Off = just the label text (e.g. \"HoLW\"), no price value appended.")]
 		public bool ShowPriceInLabel { get; set; }
+
+		[Range(0, 500)]
+		[Display(Name = "Extend lines right (bars)", Order = 2, GroupName = "00 Display",
+			Description = "How many bars past the current bar the lines/labels are drawn out to.")]
+		public int ExtendBarsRight { get; set; }
 
 		// ---- Open ----
 		[Display(Name = "Show Weekly Open", Order = 0, GroupName = "01 Open")]

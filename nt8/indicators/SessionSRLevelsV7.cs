@@ -119,8 +119,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private Grid   ctButtonsGrid;
 		private bool   ctPanelActive;
 		private int    ctBaseRowCount;
-		private Button btnRth, btnEth;
-		private bool   _rthVisible = true, _ethVisible = true;
+		private Button btnRth, btnEth, btnLabels;
+		private bool   _rthVisible = true, _ethVisible = true, _labelsVisible = true;
 		private WMColor ColorOn  = WMColor.FromRgb(0, 140, 0);
 		private WMColor ColorOff = WMColor.FromRgb(80, 80, 80);
 
@@ -148,6 +148,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				FullTemplateNameHint = "CME US Index Futures ETH";
 				LabelFontSize       = 11;
 				ShowPriceInLabel    = true;
+				ExtendBarsRight     = 10;
 
 				// RTH defaults: solid, saturated, thickness 2. Label = "{metric} RTH".
 				RHOY_Enabled = true;  RHOY_Label = "HOY RTH"; RHOY_Color = Brushes.IndianRed;      RHOY_Opacity = 100; RHOY_Style = LevelLineStyle.Solid; RHOY_Thickness = 2;
@@ -360,7 +361,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			float panelLeft = (float)ChartPanel.X;
 			int lastIdx = ChartBars.ToIndex;
 			if (lastIdx < 0) return;
-			float lineEndX = chartControl.GetXByBarIndex(ChartBars, lastIdx);
+			float lineEndX = chartControl.GetXByBarIndex(ChartBars, lastIdx + ExtendBarsRight);
 
 			var labels = new List<LabelInfo>();
 			foreach (LevelDef d in defs)
@@ -382,7 +383,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				labels.Add(new LabelInfo { y = y, trueY = y, text = text, brush = sdxBrush, col = d.col });
 			}
 
-			DrawLabels(labels, lineEndX + 6f);
+			if (_labelsVisible) DrawLabels(labels, lineEndX + 6f);
 
 			foreach (LabelInfo li in labels) li.brush.Dispose();
 		}
@@ -534,6 +535,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				btnEth.Click += (o, e) => { _ethVisible = !_ethVisible; SetBtn(btnEth, _ethVisible ? ColorOn : ColorOff); ChartControl.InvalidateVisual(); };
 
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount, btnRth, btnEth);
+
+				btnLabels = MakeBtn(s, "LABELS", "Toggle level labels / price text", _labelsVisible ? ColorOn : ColorOff);
+				btnLabels.Click += (o, e) => { _labelsVisible = !_labelsVisible; SetBtn(btnLabels, _labelsVisible ? ColorOn : ColorOff); ChartControl.InvalidateVisual(); };
+				AddFullRow(ctButtonsGrid, ctBaseRowCount + 1, btnLabels);
+
 				ctPanelActive = true;
 			}
 			catch (Exception ex) { Print("SessionSRLevelsV7 CreateWPFControls: " + ex.Message); }
@@ -549,7 +555,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					ctButtonsGrid.Children.RemoveAt(ctButtonsGrid.Children.Count - 1);
 				while (ctButtonsGrid.RowDefinitions.Count > baseRows)
 					ctButtonsGrid.RowDefinitions.RemoveAt(ctButtonsGrid.RowDefinitions.Count - 1);
-				btnRth = btnEth = null;
+				btnRth = btnEth = btnLabels = null;
 				ctPanelActive = false;
 			}
 			catch (Exception ex) { Print("SessionSRLevelsV7 DisposeWPFControls: " + ex.Message); }
@@ -580,6 +586,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			grid.Children.Add(g);
 		}
 
+		private void AddFullRow(Grid grid, int row, Button btn)
+		{
+			grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(36) });
+			Grid.SetRow(btn, row); Grid.SetColumn(btn, 0); Grid.SetColumnSpan(btn, 3);
+			grid.Children.Add(btn);
+		}
+
 		#region Properties
 
 		[Display(Name = "RTH template name", Order = 0, GroupName = "00 Session Templates",
@@ -597,6 +610,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name = "Show price in label", Order = 3, GroupName = "01 Display",
 			Description = "Off = just the label text (e.g. \"COY RTH\"), no price value appended.")]
 		public bool ShowPriceInLabel { get; set; }
+
+		[Range(0, 500)]
+		[Display(Name = "Extend lines right (bars)", Order = 4, GroupName = "01 Display",
+			Description = "How many bars past the current bar the lines/labels are drawn out to.")]
+		public int ExtendBarsRight { get; set; }
 
 		// ---- RTH HOY ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "02 RTH - HOY (prior RTH high)")] public bool RHOY_Enabled { get; set; }
