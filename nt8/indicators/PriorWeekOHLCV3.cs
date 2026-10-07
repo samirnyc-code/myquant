@@ -43,6 +43,15 @@ using SharpDX.Direct2D1;
 using SharpDX.DirectWrite;
 #endregion
 
+// Own enum, independent of SessionSRLevelsV7.cs — NT8's compiler produced duplicate
+// generated-code-region errors when this file referenced LevelLineStyle declared in a
+// DIFFERENT NinjaScript file; giving PriorWeekOHLCV3 its own type removes that cross-file
+// dependency entirely (this was the only cross-file type reference in the whole Custom folder).
+namespace NinjaTrader.NinjaScript
+{
+	public enum PWOLineStyle { Solid, Dash, Dot, DashDot }
+}
+
 //This namespace holds Indicators in this folder and is required. Do not change it.
 namespace NinjaTrader.NinjaScript.Indicators
 {
@@ -81,7 +90,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private struct LevelDef
 		{
 			public bool enabled; public string label; public double price;
-			public WMColor color; public int opacity; public LevelLineStyle style; public int thickness;
+			public WMColor color; public int opacity; public PWOLineStyle style; public int thickness;
 			public int startBarIdx;
 		}
 		private class LabelInfo { public float y; public float trueY; public string text; public D2DSolidColorBrush brush; }
@@ -110,10 +119,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowPriceInLabel			= false;
 				ExtendBarsRight				= 10;
 
-				OpenLabel  = "OoLW"; OpenColor  = Brushes.Gold;    OpenOpacity  = 100; OpenStyle  = LevelLineStyle.DashDot; OpenThickness  = 2;
-				HighLabel  = "HoLW"; HighColor  = Brushes.Magenta; HighOpacity  = 100; HighStyle  = LevelLineStyle.DashDot; HighThickness  = 2;
-				LowLabel   = "LoLW"; LowColor   = Brushes.Cyan;    LowOpacity   = 100; LowStyle   = LevelLineStyle.DashDot; LowThickness   = 2;
-				CloseLabel = "CoLW"; CloseColor = Brushes.Orange;  CloseOpacity = 100; CloseStyle = LevelLineStyle.DashDot; CloseThickness = 2;
+				OpenLabel  = "OoLW"; OpenColor  = Brushes.Gold;    OpenOpacity  = 100; OpenStyle  = PWOLineStyle.DashDot; OpenThickness  = 2;
+				HighLabel  = "HoLW"; HighColor  = Brushes.Magenta; HighOpacity  = 100; HighStyle  = PWOLineStyle.DashDot; HighThickness  = 2;
+				LowLabel   = "LoLW"; LowColor   = Brushes.Cyan;    LowOpacity   = 100; LowStyle   = PWOLineStyle.DashDot; LowThickness   = 2;
+				CloseLabel = "CoLW"; CloseColor = Brushes.Orange;  CloseOpacity = 100; CloseStyle = PWOLineStyle.DashDot; CloseThickness = 2;
 
 				// Transparent native plots: keeps PriorWeekOpen/High/Low/Close Series<double>
 				// + DisplayInDataBox working; actual visuals are drawn in OnRender below.
@@ -229,7 +238,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		private static void AddDef(List<LevelDef> list, bool enabled, string label, double price,
-			WMBrush brush, int opacity, LevelLineStyle style, int thickness, int startBarIdx)
+			WMBrush brush, int opacity, PWOLineStyle style, int thickness, int startBarIdx)
 		{
 			var scb = brush as WMSolidColorBrush;
 			list.Add(new LevelDef
@@ -241,15 +250,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		// Dependency-free dashing (no Direct2D1 StrokeStyle/Factory needed).
-		private void DrawStyledLine(float xL, float xR, float y, SharpDX.Direct2D1.Brush br, float thickness, LevelLineStyle style)
+		private void DrawStyledLine(float xL, float xR, float y, SharpDX.Direct2D1.Brush br, float thickness, PWOLineStyle style)
 		{
-			if (style == LevelLineStyle.Solid)
+			if (style == PWOLineStyle.Solid)
 			{
 				RenderTarget.DrawLine(new Vector2(xL, y), new Vector2(xR, y), br, thickness);
 				return;
 			}
-			float[] pattern = style == LevelLineStyle.Dot      ? new float[] { 2f, 4f }
-							: style == LevelLineStyle.DashDot   ? new float[] { 8f, 4f, 2f, 4f }
+			float[] pattern = style == PWOLineStyle.Dot      ? new float[] { 2f, 4f }
+							: style == PWOLineStyle.DashDot   ? new float[] { 8f, 4f, 2f, 4f }
 							:                                      new float[] { 8f, 5f };   // Dash
 			float x = xL;
 			int pi = 0;
@@ -406,7 +415,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "01 Open")]
 		public int OpenOpacity { get; set; }
 		[Display(Name = "Line style", Order = 4, GroupName = "01 Open")]
-		public LevelLineStyle OpenStyle { get; set; }
+		public PWOLineStyle OpenStyle { get; set; }
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "01 Open")]
 		public int OpenThickness { get; set; }
 
@@ -421,7 +430,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "02 High")]
 		public int HighOpacity { get; set; }
 		[Display(Name = "Line style", Order = 4, GroupName = "02 High")]
-		public LevelLineStyle HighStyle { get; set; }
+		public PWOLineStyle HighStyle { get; set; }
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "02 High")]
 		public int HighThickness { get; set; }
 
@@ -436,7 +445,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "03 Low")]
 		public int LowOpacity { get; set; }
 		[Display(Name = "Line style", Order = 4, GroupName = "03 Low")]
-		public LevelLineStyle LowStyle { get; set; }
+		public PWOLineStyle LowStyle { get; set; }
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "03 Low")]
 		public int LowThickness { get; set; }
 
@@ -451,7 +460,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "04 Close")]
 		public int CloseOpacity { get; set; }
 		[Display(Name = "Line style", Order = 4, GroupName = "04 Close")]
-		public LevelLineStyle CloseStyle { get; set; }
+		public PWOLineStyle CloseStyle { get; set; }
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "04 Close")]
 		public int CloseThickness { get; set; }
         #endregion
