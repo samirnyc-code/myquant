@@ -1,4 +1,4 @@
-// PriorWeekOHLCV2 — prior-week O/H/L/C reference lines.
+// PriorWeekOHLCV3 — prior-week O/H/L/C reference lines.
 //
 // V2 of PriorWeekOHLC.cs: dropped NT8's native HLine AddPlot rendering (which drew clear
 // across the whole panel, including far into the empty future space — see S130 screenshot)
@@ -48,7 +48,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	/// <summary>
 	/// Shows the OHLC of the previous week
 	/// </summary>
-	public class PriorWeekOHLCV2 : Indicator
+	public class PriorWeekOHLCV3 : Indicator
 	{
 		private double weeklyOpen 		= 0;
 		private double weeklyHigh 		= 0;
@@ -81,7 +81,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (State == State.SetDefaults)
 			{
 				Description					= @"Shows the OHLC of the previous week";
-				Name						= "PriorWeekOHLCV2";
+				Name						= "PriorWeekOHLCV3";
 				Calculate					= Calculate.OnBarClose;
 				IsOverlay					= true;
 				DisplayInDataBox			= true;
@@ -129,7 +129,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (!Bars.BarsType.IsIntraday && Bars.BarsPeriod.BarsPeriodType != BarsPeriodType.Day)
 			{
-				Draw.TextFixed(this, "error1", "PriorWeekOHLCV2 only works on intraday or daily data series", TextPosition.BottomRight);
+				Draw.TextFixed(this, "error1", "PriorWeekOHLCV3 only works on intraday or daily data series", TextPosition.BottomRight);
 				return;
 			}
 
@@ -371,19 +371,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private PriorWeekOHLCV2[] cachePriorWeekOHLCV2;
-		public PriorWeekOHLCV2 PriorWeekOHLCV2()
+		private PriorWeekOHLCV3[] cachePriorWeekOHLCV2;
+		public PriorWeekOHLCV3 PriorWeekOHLCV3()
 		{
-			return PriorWeekOHLCV2(Input);
+			return PriorWeekOHLCV3(Input);
 		}
 
-		public PriorWeekOHLCV2 PriorWeekOHLCV2(ISeries<double> input)
+		public PriorWeekOHLCV3 PriorWeekOHLCV3(ISeries<double> input)
 		{
 			if (cachePriorWeekOHLCV2 != null)
 				for (int idx = 0; idx < cachePriorWeekOHLCV2.Length; idx++)
 					if (cachePriorWeekOHLCV2[idx] != null &&  cachePriorWeekOHLCV2[idx].EqualsInput(input))
 						return cachePriorWeekOHLCV2[idx];
-			return CacheIndicator<PriorWeekOHLCV2>(new PriorWeekOHLCV2(), input, ref cachePriorWeekOHLCV2);
+			return CacheIndicator<PriorWeekOHLCV3>(new PriorWeekOHLCV3(), input, ref cachePriorWeekOHLCV2);
 		}
 	}
 }
@@ -392,14 +392,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.PriorWeekOHLCV2 PriorWeekOHLCV2()
+		public Indicators.PriorWeekOHLCV3 PriorWeekOHLCV3()
 		{
-			return indicator.PriorWeekOHLCV2(Input);
+			return indicator.PriorWeekOHLCV3(Input);
 		}
 
-		public Indicators.PriorWeekOHLCV2 PriorWeekOHLCV2(ISeries<double> input )
+		public Indicators.PriorWeekOHLCV3 PriorWeekOHLCV3(ISeries<double> input )
 		{
-			return indicator.PriorWeekOHLCV2(input);
+			return indicator.PriorWeekOHLCV3(input);
 		}
 	}
 }
@@ -408,14 +408,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.PriorWeekOHLCV2 PriorWeekOHLCV2()
+		public Indicators.PriorWeekOHLCV3 PriorWeekOHLCV3()
 		{
-			return indicator.PriorWeekOHLCV2(Input);
+			return indicator.PriorWeekOHLCV3(Input);
 		}
 
-		public Indicators.PriorWeekOHLCV2 PriorWeekOHLCV2(ISeries<double> input )
+		public Indicators.PriorWeekOHLCV3 PriorWeekOHLCV3(ISeries<double> input )
 		{
-			return indicator.PriorWeekOHLCV2(input);
+			return indicator.PriorWeekOHLCV3(input);
 		}
 	}
 }
