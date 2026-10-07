@@ -1,4 +1,4 @@
-// SessionSRLevelsV7 — RTH + ETH session S/R levels, drawn from NT8's OWN CME trading-hours
+// SessionSRLevelsV8 — RTH + ETH session S/R levels, drawn from NT8's OWN CME trading-hours
 // templates (not hardcoded clock times), so the lines land at the right spot on holidays
 // and half-days too.
 //
@@ -72,7 +72,7 @@ namespace NinjaTrader.NinjaScript
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-	public class SessionSRLevelsV7 : Indicator
+	public class SessionSRLevelsV8 : Indicator
 	{
 		// ── session plumbing ───────────────────────────────────────────────
 		private SessionIterator _dayIter;      // Bars-bound: full trading-day/week/month boundaries
@@ -135,7 +135,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (State == State.SetDefaults)
 			{
-				Name                     = "SessionSRLevelsV7";
+				Name                     = "SessionSRLevelsV8";
 				Description              = "RTH + ETH session S/R levels (HOY/LOY/COY/OoD/OoW/OoM) from NT8's own CME trading-hours templates.";
 				Calculate                = Calculate.OnBarClose;
 				IsOverlay                = true;
@@ -214,13 +214,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 				catch (Exception ex)
 				{
-					Print("SessionSRLevelsV7: WARNING - RTH template '" + RthTemplateName + "' did not resolve (" + ex.Message + "). RTH/ETH split disabled; every bar will be treated as ETH.");
+					Print("SessionSRLevelsV8: WARNING - RTH template '" + RthTemplateName + "' did not resolve (" + ex.Message + "). RTH/ETH split disabled; every bar will be treated as ETH.");
 					_rthOk = false;
 				}
 
 				if (Bars.TradingHours != null && !string.IsNullOrEmpty(FullTemplateNameHint)
 					&& Bars.TradingHours.Name != FullTemplateNameHint)
-					Print("SessionSRLevelsV7: NOTE - chart Trading Hours template is '" + Bars.TradingHours.Name
+					Print("SessionSRLevelsV8: NOTE - chart Trading Hours template is '" + Bars.TradingHours.Name
 						+ "', expected '" + FullTemplateNameHint + "' (the 23h Globex template). If this chart"
 						+ " is RTH-only, ETH levels will have nothing to draw.");
 			}
@@ -512,9 +512,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			try
 			{
 				var win = Window.GetWindow(ChartControl.Parent) as NinjaTrader.Gui.Chart.Chart;
-				if (win == null) { Print("SessionSRLevelsV7: chart window not found"); return; }
+				if (win == null) { Print("SessionSRLevelsV8: chart window not found"); return; }
 				var chartTrader = win.FindFirst("ChartWindowChartTraderControl") as NinjaTrader.Gui.Chart.ChartTrader;
-				if (chartTrader == null) { Print("SessionSRLevelsV7: ChartTrader not found (is Chart Trader shown?)"); return; }
+				if (chartTrader == null) { Print("SessionSRLevelsV8: ChartTrader not found (is Chart Trader shown?)"); return; }
 				var outerGrid = chartTrader.Content as Grid;
 				if (outerGrid == null) return;
 				foreach (UIElement child in outerGrid.Children)
@@ -522,7 +522,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					Grid g = child as Grid;
 					if (g != null) { ctButtonsGrid = g; break; }
 				}
-				if (ctButtonsGrid == null) { Print("SessionSRLevelsV7: button grid not found"); return; }
+				if (ctButtonsGrid == null) { Print("SessionSRLevelsV8: button grid not found"); return; }
 
 				ctBaseRowCount = ctButtonsGrid.RowDefinitions.Count;
 				Style s = Application.Current.TryFindResource("Button") as Style;
@@ -536,7 +536,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount, btnRth, btnEth);
 				ctPanelActive = true;
 			}
-			catch (Exception ex) { Print("SessionSRLevelsV7 CreateWPFControls: " + ex.Message); }
+			catch (Exception ex) { Print("SessionSRLevelsV8 CreateWPFControls: " + ex.Message); }
 		}
 
 		private void DisposeWPFControls()
@@ -552,7 +552,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				btnRth = btnEth = null;
 				ctPanelActive = false;
 			}
-			catch (Exception ex) { Print("SessionSRLevelsV7 DisposeWPFControls: " + ex.Message); }
+			catch (Exception ex) { Print("SessionSRLevelsV8 DisposeWPFControls: " + ex.Message); }
 		}
 
 		private Button MakeBtn(Style s, string label, string tip, WMColor bg)
@@ -805,19 +805,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private SessionSRLevelsV7[] cacheSessionSRLevelsV2;
-		public SessionSRLevelsV7 SessionSRLevelsV7()
+		private SessionSRLevelsV8[] cacheSessionSRLevelsV2;
+		public SessionSRLevelsV8 SessionSRLevelsV8()
 		{
-			return SessionSRLevelsV7(Input);
+			return SessionSRLevelsV8(Input);
 		}
 
-		public SessionSRLevelsV7 SessionSRLevelsV7(ISeries<double> input)
+		public SessionSRLevelsV8 SessionSRLevelsV8(ISeries<double> input)
 		{
 			if (cacheSessionSRLevelsV2 != null)
 				for (int idx = 0; idx < cacheSessionSRLevelsV2.Length; idx++)
 					if (cacheSessionSRLevelsV2[idx] != null &&  cacheSessionSRLevelsV2[idx].EqualsInput(input))
 						return cacheSessionSRLevelsV2[idx];
-			return CacheIndicator<SessionSRLevelsV7>(new SessionSRLevelsV7(), input, ref cacheSessionSRLevelsV2);
+			return CacheIndicator<SessionSRLevelsV8>(new SessionSRLevelsV8(), input, ref cacheSessionSRLevelsV2);
 		}
 	}
 }
@@ -826,14 +826,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.SessionSRLevelsV7 SessionSRLevelsV7()
+		public Indicators.SessionSRLevelsV8 SessionSRLevelsV8()
 		{
-			return indicator.SessionSRLevelsV7(Input);
+			return indicator.SessionSRLevelsV8(Input);
 		}
 
-		public Indicators.SessionSRLevelsV7 SessionSRLevelsV7(ISeries<double> input )
+		public Indicators.SessionSRLevelsV8 SessionSRLevelsV8(ISeries<double> input )
 		{
-			return indicator.SessionSRLevelsV7(input);
+			return indicator.SessionSRLevelsV8(input);
 		}
 	}
 }
@@ -842,14 +842,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.SessionSRLevelsV7 SessionSRLevelsV7()
+		public Indicators.SessionSRLevelsV8 SessionSRLevelsV8()
 		{
-			return indicator.SessionSRLevelsV7(Input);
+			return indicator.SessionSRLevelsV8(Input);
 		}
 
-		public Indicators.SessionSRLevelsV7 SessionSRLevelsV7(ISeries<double> input )
+		public Indicators.SessionSRLevelsV8 SessionSRLevelsV8(ISeries<double> input )
 		{
-			return indicator.SessionSRLevelsV7(input);
+			return indicator.SessionSRLevelsV8(input);
 		}
 	}
 }
