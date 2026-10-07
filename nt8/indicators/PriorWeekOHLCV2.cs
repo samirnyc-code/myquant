@@ -60,12 +60,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double prWeeklyLow 		= 0;
 		private double prWeeklyClose 	= 0;
 
+		// bar index of the running weekly high/low PRINT (updated only when a new extreme
+		// is actually made) + the open bar (fixed at week start) and the running "last bar"
+		// (close) — frozen into prWeekly*Bar at week-roll, same pattern as SessionSRLevelsV5.
+		private int weeklyOpenBar = -1, weeklyHighBar = -1, weeklyLowBar = -1, weeklyCloseBar = -1;
+		private int prWeeklyOpenBar = -1, prWeeklyHighBar = -1, prWeeklyLowBar = -1, prWeeklyCloseBar = -1;
+
 		private DateTime newWeek = DateTime.MinValue;
 
 		private struct LevelDef
 		{
 			public bool enabled; public string label; public double price;
 			public WMColor color; public int opacity; public LevelLineStyle style; public int thickness;
+			public int startBarIdx;
 		}
 		private class LabelInfo { public float y; public float trueY; public string text; public D2DSolidColorBrush brush; }
 
@@ -128,15 +135,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			if (newWeek < Time[0])
 			{
-				prWeeklyOpen 	= weeklyOpen;
-				prWeeklyHigh 	= weeklyHigh;
-				prWeeklyLow 	= weeklyLow;
-				prWeeklyClose 	= weeklyClose;
+				prWeeklyOpen 	= weeklyOpen;	prWeeklyOpenBar  = weeklyOpenBar;
+				prWeeklyHigh 	= weeklyHigh;	prWeeklyHighBar  = weeklyHighBar;
+				prWeeklyLow 	= weeklyLow;	prWeeklyLowBar   = weeklyLowBar;
+				prWeeklyClose 	= weeklyClose;	prWeeklyCloseBar = weeklyCloseBar;
 
-				weeklyOpen 		= Open[0];
-				weeklyHigh 		= High[0];
-				weeklyLow 		= Low[0];
-				weeklyClose 	= Close[0];
+				weeklyOpen 		= Open[0];  weeklyOpenBar = CurrentBar;
+				weeklyHigh 		= High[0];  weeklyHighBar = CurrentBar;
+				weeklyLow 		= Low[0];   weeklyLowBar  = CurrentBar;
+				weeklyClose 	= Close[0]; weeklyCloseBar = CurrentBar;
 
 				newWeek = Time[0].Date.AddDays(7 - (int)Time[0].DayOfWeek);
 			}
@@ -149,9 +156,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (ShowClose)	PriorWeekClose[0] 	= prWeeklyClose;
 			}
 
-			weeklyHigh 		= Math.Max(High[0], weeklyHigh);
-			weeklyLow 		= Math.Min(Low[0], weeklyLow);
+			if (High[0] > weeklyHigh) { weeklyHigh = High[0]; weeklyHighBar = CurrentBar; }
+			if (Low[0]  < weeklyLow)  { weeklyLow  = Low[0];  weeklyLowBar  = CurrentBar; }
 			weeklyClose 	= Close[0];
+			weeklyCloseBar 	= CurrentBar;
 		}
 
 		// ══════════════════════════ Rendering ════════════════════════════
@@ -166,19 +174,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 			float panelLeft = (float)ChartPanel.X;
 			int lastIdx = ChartBars.ToIndex;
 			if (lastIdx < 0) return;
-			float xStart  = Math.Max(panelLeft, chartControl.GetXByBarIndex(ChartBars, ChartBars.FromIndex));
 			float lineEndX = chartControl.GetXByBarIndex(ChartBars, lastIdx + 1);   // current bar + 1
 
 			var defs = new List<LevelDef>(4);
-			AddDef(defs, ShowOpen,  OpenLabel,  prWeeklyOpen,  OpenColor,  OpenOpacity,  OpenStyle,  OpenThickness);
-			AddDef(defs, ShowHigh,  HighLabel,  prWeeklyHigh,  HighColor,  HighOpacity,  HighStyle,  HighThickness);
-			AddDef(defs, ShowLow,   LowLabel,   prWeeklyLow,   LowColor,   LowOpacity,   LowStyle,   LowThickness);
-			AddDef(defs, ShowClose, CloseLabel, prWeeklyClose, CloseColor, CloseOpacity, CloseStyle, CloseThickness);
+			AddDef(defs, ShowOpen,  OpenLabel,  prWeeklyOpen,  OpenColor,  OpenOpacity,  OpenStyle,  OpenThickness,  prWeeklyOpenBar);
+			AddDef(defs, ShowHigh,  HighLabel,  prWeeklyHigh,  HighColor,  HighOpacity,  HighStyle,  HighThickness,  prWeeklyHighBar);
+			AddDef(defs, ShowLow,   LowLabel,   prWeeklyLow,   LowColor,   LowOpacity,   LowStyle,   LowThickness,   prWeeklyLowBar);
+			AddDef(defs, ShowClose, CloseLabel, prWeeklyClose, CloseColor, CloseOpacity, CloseStyle, CloseThickness, prWeeklyCloseBar);
 
 			var labels = new List<LabelInfo>();
 			foreach (LevelDef d in defs)
 			{
-				if (!d.enabled || d.price == 0) continue;
+				if (!d.enabled || d.price == 0 || d.startBarIdx < 0) continue;
+
+				int startIdx = Math.Max(d.startBarIdx, ChartBars.FromIndex);
+				float xStart = Math.Max(panelLeft, chartControl.GetXByBarIndex(ChartBars, startIdx));
+				if (xStart >= lineEndX) continue;
 
 				float a = Math.Max(0f, Math.Min(1f, d.opacity / 100f));
 				var sdxBrush = new D2DSolidColorBrush(RenderTarget,
@@ -197,14 +208,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		private static void AddDef(List<LevelDef> list, bool enabled, string label, double price,
-			WMBrush brush, int opacity, LevelLineStyle style, int thickness)
+			WMBrush brush, int opacity, LevelLineStyle style, int thickness, int startBarIdx)
 		{
 			var scb = brush as WMSolidColorBrush;
 			list.Add(new LevelDef
 			{
 				enabled = enabled, label = label, price = price,
 				color = scb != null ? scb.Color : Colors.Gray,
-				opacity = opacity, style = style, thickness = thickness
+				opacity = opacity, style = style, thickness = thickness, startBarIdx = startBarIdx
 			});
 		}
 
