@@ -464,7 +464,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private PriorWeekOHLCV3[] cachePriorWeekOHLCV2;
+		private PriorWeekOHLCV3[] cachePriorWeekOHLCV3;
 		public PriorWeekOHLCV3 PriorWeekOHLCV3()
 		{
 			return PriorWeekOHLCV3(Input);
@@ -472,11 +472,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		public PriorWeekOHLCV3 PriorWeekOHLCV3(ISeries<double> input)
 		{
-			if (cachePriorWeekOHLCV2 != null)
-				for (int idx = 0; idx < cachePriorWeekOHLCV2.Length; idx++)
-					if (cachePriorWeekOHLCV2[idx] != null &&  cachePriorWeekOHLCV2[idx].EqualsInput(input))
-						return cachePriorWeekOHLCV2[idx];
-			return CacheIndicator<PriorWeekOHLCV3>(new PriorWeekOHLCV3(), input, ref cachePriorWeekOHLCV2);
+			if (cachePriorWeekOHLCV3 != null)
+				for (int idx = 0; idx < cachePriorWeekOHLCV3.Length; idx++)
+					if (cachePriorWeekOHLCV3[idx] != null &&  cachePriorWeekOHLCV3[idx].EqualsInput(input))
+						return cachePriorWeekOHLCV3[idx];
+			return CacheIndicator<PriorWeekOHLCV3>(new PriorWeekOHLCV3(), input, ref cachePriorWeekOHLCV3);
 		}
 	}
 }
