@@ -166,8 +166,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// sentinel (= "not set" -> leftmost visible bar); pick a date via the
 				// calendar dropdown to anchor the ray there instead. Neutral gray/solid so
 				// they read as user-placed, not computed.
-				C1_Enabled = false; C1_Label = "Custom 1"; C1_Price = 0; C1_StartDate = Core.Globals.MinDate; C1_Color = Brushes.Silver; C1_Opacity = 100; C1_Style = LevelLineStyle.Solid; C1_Thickness = 2;
-				C2_Enabled = false; C2_Label = "Custom 2"; C2_Price = 0; C2_StartDate = Core.Globals.MinDate; C2_Color = Brushes.Silver; C2_Opacity = 100; C2_Style = LevelLineStyle.Solid; C2_Thickness = 2;
+				// C1/C2 restored from the "SR Daily" template saved under the old V5 name
+				// (templates\Indicator\SessionSRLevelsV5\SR Daily.xml) — these were real
+				// configured levels, wiped when the V5->V6 rename orphaned that template.
+				C1_Enabled = true;  C1_Label = "MM ATH";      C1_Price = 7946.75; C1_StartDate = Core.Globals.MinDate; C1_Color = Brushes.DeepPink; C1_Opacity = 100; C1_Style = LevelLineStyle.Solid; C1_Thickness = 2;
+				C2_Enabled = true;  C2_Label = "ATH 8/13/26"; C2_Price = 7906.25; C2_StartDate = Core.Globals.MinDate; C2_Color = Brushes.Magenta;  C2_Opacity = 100; C2_Style = LevelLineStyle.Dash;  C2_Thickness = 2;
 				C3_Enabled = false; C3_Label = "Custom 3"; C3_Price = 0; C3_StartDate = Core.Globals.MinDate; C3_Color = Brushes.Silver; C3_Opacity = 100; C3_Style = LevelLineStyle.Solid; C3_Thickness = 2;
 				C4_Enabled = false; C4_Label = "Custom 4"; C4_Price = 0; C4_StartDate = Core.Globals.MinDate; C4_Color = Brushes.Silver; C4_Opacity = 100; C4_Style = LevelLineStyle.Solid; C4_Thickness = 2;
 				C5_Enabled = false; C5_Label = "Custom 5"; C5_Price = 0; C5_StartDate = Core.Globals.MinDate; C5_Color = Brushes.Silver; C5_Opacity = 100; C5_Style = LevelLineStyle.Solid; C5_Thickness = 2;
