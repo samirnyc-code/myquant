@@ -124,6 +124,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private DateTime _ethCurWeekStart  = Core.Globals.MinDate;
 		private int      _ethCurMonthKey   = -1;
 
+		// Primary chart's current-session open bar = first bar of the current trading day on
+		// THIS chart (RTH open on an RTH chart, ETH/Globex 17:00 open on an ETH chart). The
+		// ETH H/L lines start here so they begin at the session open the user is looking at.
+		private int      _primaryDayOpenBar = -1;
+
 		// ── Chart Trader toggle buttons ───────────────────────────────────
 		private Grid   ctButtonsGrid;
 		private bool   ctPanelActive;
@@ -210,6 +215,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 				_ethDayIter = null;
 				_ethCurTradingDay = Core.Globals.MinDate; _ethCurWeekStart = Core.Globals.MinDate; _ethCurMonthKey = -1;
+				_primaryDayOpenBar = -1;
 
 				_dayIter = null; _rthHours = null; _rthIter = null; _rthOk = false;
 				_curTradingDay = Core.Globals.MinDate; _curWeekStart = Core.Globals.MinDate; _curMonthKey = -1;
@@ -287,6 +293,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_curTradingDay        = tradingDay;
 				_haveRth              = false;
 				_rthOpenCapturedToday = false;
+				_primaryDayOpenBar    = CurrentBar;   // first bar of this chart's trading day = its session open
 
 				DateTime wkStart = MondayOf(tradingDay);
 				if (wkStart != _curWeekStart)
@@ -447,11 +454,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			if (_ethVisible)
 			{
-				// ETH values come from the hidden ETH series — draw full visible width
-				// (the overnight extreme has no primary/RTH bar to anchor to).
-				int ethStart = ChartBars.FromIndex;
-				Add(list, EHOY_Enabled, EHOY_Label, _ethHigh,          EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 1, ethStart);
-				Add(list, ELOY_Enabled, ELOY_Label, _ethLow,           ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 1, ethStart);
+				// ETH values come from the hidden ETH series. H ETH / L ETH start at THIS
+				// chart's current-session open (RTH open on an RTH chart, ETH open on an ETH
+				// chart); the rest draw full visible width (no single primary anchor bar).
+				int ethStart    = ChartBars.FromIndex;
+				int ethHLStart  = _primaryDayOpenBar >= 0 ? _primaryDayOpenBar : ethStart;
+				Add(list, EHOY_Enabled, EHOY_Label, _ethHigh,          EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 1, ethHLStart);
+				Add(list, ELOY_Enabled, ELOY_Label, _ethLow,           ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 1, ethHLStart);
 				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,    ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 1, ethStart);
 				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,     EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 1, ethStart);
 				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek,  EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 1, ethStart);
