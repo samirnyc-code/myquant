@@ -166,6 +166,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowPriceInLabel    = true;
 				ExtendBarsRight     = 10;
 
+				// Current-day running High/Low (computed from the chart's own bars for today).
+				CDH_Enabled = true; CDH_Label = "HoD"; CDH_Color = Brushes.DarkCyan; CDH_Opacity = 100; CDH_Style = LevelLineStyle.Solid; CDH_Thickness = 1;
+				CDL_Enabled = true; CDL_Label = "LoD"; CDL_Color = Brushes.DarkCyan; CDL_Opacity = 100; CDL_Style = LevelLineStyle.Solid; CDL_Thickness = 1;
+
 				// RTH defaults: solid, saturated, thickness 2. Label = "{metric} RTH".
 				RHOY_Enabled = true;  RHOY_Label = "HOY RTH"; RHOY_Color = Brushes.IndianRed;      RHOY_Opacity = 100; RHOY_Style = LevelLineStyle.Solid; RHOY_Thickness = 2;
 				RLOY_Enabled = true;  RLOY_Label = "LOY RTH"; RLOY_Color = Brushes.RoyalBlue;      RLOY_Opacity = 100; RLOY_Style = LevelLineStyle.Solid; RLOY_Thickness = 2;
@@ -454,6 +458,28 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return to;
 		}
 
+		// Current day's running High/Low, straight from the chart's own bars for today —
+		// works on daily (today's bar H/L) and intraday (the session's running H/L). startBar
+		// is the first bar of the current day so the line begins where the day opened.
+		private void CurrentDayHighLow(out double hi, out double lo, out int startBar)
+		{
+			hi = double.NaN; lo = double.NaN; startBar = -1;
+			if (ChartBars == null) return;
+			var bars = ChartBars.Bars;
+			int to = ChartBars.ToIndex;
+			if (bars == null || to < 0) return;
+			int dayStart = FirstBarOfCurrentPeriod(0);
+			startBar = dayStart;
+			double h = double.MinValue, l = double.MaxValue;
+			for (int i = dayStart; i <= to; i++)
+			{
+				double bh = bars.GetHigh(i), bl = bars.GetLow(i);
+				if (bh > h) h = bh;
+				if (bl < l) l = bl;
+			}
+			if (h > double.MinValue) { hi = h; lo = l; }
+		}
+
 		// ══════════════════════════ Rendering ════════════════════════════
 		// Lines are RAYS: they start at the bar where that level's value was actually
 		// established and run right to the current bar — never the full panel width,
@@ -499,6 +525,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private List<LevelDef> BuildLevelDefs()
 		{
 			var list = new List<LevelDef>(12);
+
+			// Current-day running High/Low — from the chart's own bars, works on any period.
+			// Independent of the RTH/ETH toggles; gated only by their own Enabled.
+			if (CDH_Enabled || CDL_Enabled)
+			{
+				double cdHi, cdLo; int cdStart;
+				CurrentDayHighLow(out cdHi, out cdLo, out cdStart);
+				Add(list, CDH_Enabled, CDH_Label, cdHi, CDH_Color, CDH_Opacity, CDH_Style, CDH_Thickness, 0, cdStart);
+				Add(list, CDL_Enabled, CDL_Label, cdLo, CDL_Color, CDL_Opacity, CDL_Style, CDL_Thickness, 0, cdStart);
+			}
+
 			if (_rthVisible)
 			{
 				Add(list, RHOY_Enabled, RHOY_Label, _priorRthHigh,    RHOY_Color, RHOY_Opacity, RHOY_Style, RHOY_Thickness, 0, _priorRthHighStartBar);
@@ -739,6 +776,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name = "Extend lines right (bars)", Order = 4, GroupName = "01 Display",
 			Description = "How many bars past the current bar the lines/labels are drawn out to.")]
 		public int ExtendBarsRight { get; set; }
+
+		// ---- Current Day High ----
+		[Display(Name = "Enabled", Order = 0, GroupName = "01A Current Day - High")] public bool CDH_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "01A Current Day - High")] public string CDH_Label { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "01A Current Day - High")] public WMBrush CDH_Color { get; set; }
+		[Browsable(false)] public string CDH_ColorSerialize { get { return Serialize.BrushToString(CDH_Color); } set { CDH_Color = Serialize.StringToBrush(value); } }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "01A Current Day - High")] public int CDH_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "01A Current Day - High")] public LevelLineStyle CDH_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "01A Current Day - High")] public int CDH_Thickness { get; set; }
+
+		// ---- Current Day Low ----
+		[Display(Name = "Enabled", Order = 0, GroupName = "01B Current Day - Low")] public bool CDL_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "01B Current Day - Low")] public string CDL_Label { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "01B Current Day - Low")] public WMBrush CDL_Color { get; set; }
+		[Browsable(false)] public string CDL_ColorSerialize { get { return Serialize.BrushToString(CDL_Color); } set { CDL_Color = Serialize.StringToBrush(value); } }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "01B Current Day - Low")] public int CDL_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "01B Current Day - Low")] public LevelLineStyle CDL_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "01B Current Day - Low")] public int CDL_Thickness { get; set; }
 
 		// ---- RTH HOY ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "02 RTH - HOY (prior RTH high)")] public bool RHOY_Enabled { get; set; }
