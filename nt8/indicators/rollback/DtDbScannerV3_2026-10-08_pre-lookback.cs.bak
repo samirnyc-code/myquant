@@ -23,11 +23,6 @@ using NinjaTrader.NinjaScript.DrawingTools;
 //   time symmetry    15%    15%
 //   trend context    25%    50%
 //
-// 2026-10-08: (a) swing ties handled like NT8's built-in Swing (earlier of two
-// equal highs/lows is the pivot); (b) DT/DB pairing looks back through all
-// earlier pivots within MaxBarsBetween, not just the previous one. Rollback
-// copy of the pre-(b) file: rollback/DtDbScannerV3_2026-10-08_pre-lookback.cs.bak
-//
 // Note: the score gates only the "forming" alert (MinScoreToAlert); the
 // CONFIRMED alert still fires regardless of score, same as V1/V2.
 
@@ -252,58 +247,29 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (highs.Count < 2) return;
 
             Pivot p2 = highs[highs.Count - 1];
-            double tol      = PeakToleranceTicks * TickSize;
-            double minDepth = MinValleyDepthTicks * TickSize;
-
-            // V3 look-back: pair the new high with the MOST RECENT earlier high that
-            // passes every gate - not just the immediately preceding pivot (V1/V2),
-            // which missed a DT whenever a lower swing high sat between the peaks.
-            // An earlier high only qualifies if no pivot high between the two peaks
-            // is above both of them (the peaks must be the top of the structure).
-            double highestBetween = double.MinValue;
-            for (int j = highs.Count - 2; j >= 0; j--)
-            {
-                Pivot p1 = highs[j];
-                int barsBetween = p2.Bar - p1.Bar;
-                if (barsBetween > MaxBarsBetween) break;            // older pivots are only farther away
-                if (highestBetween > p2.Price + tol) break;         // a higher high cuts off every older candidate
-
-                if (TryDoubleTop(p1, p2, highestBetween, tol, minDepth, barsBetween)) return;
-
-                highestBetween = Math.Max(highestBetween, p1.Price);
-            }
-
-            if (ShowDebugPrints) Print(Time[0] + "  DT-none p2@" + p2.Bar + "=" + p2.Price + "  (no earlier high qualifies within MaxBarsBetween)");
-        }
-
-        // Tests one candidate pair; on pass sets pendingTop, draws, alerts and returns true.
-        private bool TryDoubleTop(Pivot p1, Pivot p2, double highestBetween, double tol, double minDepth, int barsBetween)
-        {
-            if (highestBetween > Math.Max(p1.Price, p2.Price))
-            {
-                if (ShowDebugPrints) Print(Time[0] + "  DT-reject p1@" + p1.Bar + " p2@" + p2.Bar + "  reason=HIGHER_HIGH_BETWEEN (" + highestBetween + ")");
-                return false;
-            }
+            Pivot p1 = highs[highs.Count - 2];
 
             Pivot valley = LowestLowBetween(p1.Bar, p2.Bar);
             if (valley == null)
             {
                 if (ShowDebugPrints) Print(Time[0] + "  DT-reject p1@" + p1.Bar + " p2@" + p2.Bar + "  reason=NO_VALLEY (no confirmed low between the two highs)");
-                return false;
+                return;
             }
 
+            double tol   = PeakToleranceTicks * TickSize;
             double peakDiff = Math.Abs(p1.Price - p2.Price);
             double valleyDepth = Math.Min(p1.Price, p2.Price) - valley.Price;
+            int barsBetween = p2.Bar - p1.Bar;
 
             if (ShowDebugPrints)
                 Print(Time[0] + "  DT-check p1@" + p1.Bar + "=" + p1.Price + " p2@" + p2.Bar + "=" + p2.Price
                     + "  peakDiff=" + Math.Round(peakDiff / TickSize) + "t(tol<=" + PeakToleranceTicks + "t " + (peakDiff <= tol ? "OK" : "FAIL") + ")"
-                    + "  valleyDepth=" + Math.Round(valleyDepth / TickSize) + "t(min>=" + MinValleyDepthTicks + "t " + (valleyDepth >= minDepth ? "OK" : "FAIL") + ")"
+                    + "  valleyDepth=" + Math.Round(valleyDepth / TickSize) + "t(min>=" + MinValleyDepthTicks + "t " + (valleyDepth >= MinValleyDepthTicks * TickSize ? "OK" : "FAIL") + ")"
                     + "  barsBetween=" + barsBetween + "(" + MinBarsBetween + "-" + MaxBarsBetween + " " + (barsBetween >= MinBarsBetween && barsBetween <= MaxBarsBetween ? "OK" : "FAIL") + ")");
 
-            if (peakDiff > tol) return false;
-            if (valleyDepth < minDepth) return false;
-            if (barsBetween < MinBarsBetween || barsBetween > MaxBarsBetween) return false;
+            if (peakDiff > tol) return;
+            if (valleyDepth < MinValleyDepthTicks * TickSize) return;
+            if (barsBetween < MinBarsBetween || barsBetween > MaxBarsBetween) return;
 
             double score = ScoreStructure(p1, valley, p2, peakDiff, tol, valleyDepth, barsBetween, isTop: true);
 
@@ -323,7 +289,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (score >= MinScoreToAlert)
                 FireAlert("DTform_" + p2.Bar, Priority.High,
                     Label() + " DT forming  score " + score.ToString("F0"), Brushes.Firebrick);
-            return true;
         }
 
         // --------------------------------------------------------------------
@@ -334,54 +299,29 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (lows.Count < 2) return;
 
             Pivot t2 = lows[lows.Count - 1];
-            double tol      = PeakToleranceTicks * TickSize;
-            double minDepth = MinValleyDepthTicks * TickSize;
-
-            // V3 look-back (mirror of CheckDoubleTop): most recent earlier low that
-            // passes every gate, with no pivot low between below both troughs.
-            double lowestBetween = double.MaxValue;
-            for (int j = lows.Count - 2; j >= 0; j--)
-            {
-                Pivot t1 = lows[j];
-                int barsBetween = t2.Bar - t1.Bar;
-                if (barsBetween > MaxBarsBetween) break;
-                if (lowestBetween < t2.Price - tol) break;
-
-                if (TryDoubleBottom(t1, t2, lowestBetween, tol, minDepth, barsBetween)) return;
-
-                lowestBetween = Math.Min(lowestBetween, t1.Price);
-            }
-
-            if (ShowDebugPrints) Print(Time[0] + "  DB-none t2@" + t2.Bar + "=" + t2.Price + "  (no earlier low qualifies within MaxBarsBetween)");
-        }
-
-        private bool TryDoubleBottom(Pivot t1, Pivot t2, double lowestBetween, double tol, double minDepth, int barsBetween)
-        {
-            if (lowestBetween < Math.Min(t1.Price, t2.Price))
-            {
-                if (ShowDebugPrints) Print(Time[0] + "  DB-reject t1@" + t1.Bar + " t2@" + t2.Bar + "  reason=LOWER_LOW_BETWEEN (" + lowestBetween + ")");
-                return false;
-            }
+            Pivot t1 = lows[lows.Count - 2];
 
             Pivot peak = HighestHighBetween(t1.Bar, t2.Bar);
             if (peak == null)
             {
                 if (ShowDebugPrints) Print(Time[0] + "  DB-reject t1@" + t1.Bar + " t2@" + t2.Bar + "  reason=NO_PEAK (no confirmed high between the two lows)");
-                return false;
+                return;
             }
 
+            double tol = PeakToleranceTicks * TickSize;
             double troughDiff = Math.Abs(t1.Price - t2.Price);
             double peakHeight = peak.Price - Math.Max(t1.Price, t2.Price);
+            int barsBetween = t2.Bar - t1.Bar;
 
             if (ShowDebugPrints)
                 Print(Time[0] + "  DB-check t1@" + t1.Bar + "=" + t1.Price + " t2@" + t2.Bar + "=" + t2.Price
                     + "  troughDiff=" + Math.Round(troughDiff / TickSize) + "t(tol<=" + PeakToleranceTicks + "t " + (troughDiff <= tol ? "OK" : "FAIL") + ")"
-                    + "  peakHeight=" + Math.Round(peakHeight / TickSize) + "t(min>=" + MinValleyDepthTicks + "t " + (peakHeight >= minDepth ? "OK" : "FAIL") + ")"
+                    + "  peakHeight=" + Math.Round(peakHeight / TickSize) + "t(min>=" + MinValleyDepthTicks + "t " + (peakHeight >= MinValleyDepthTicks * TickSize ? "OK" : "FAIL") + ")"
                     + "  barsBetween=" + barsBetween + "(" + MinBarsBetween + "-" + MaxBarsBetween + " " + (barsBetween >= MinBarsBetween && barsBetween <= MaxBarsBetween ? "OK" : "FAIL") + ")");
 
-            if (troughDiff > tol) return false;
-            if (peakHeight < minDepth) return false;
-            if (barsBetween < MinBarsBetween || barsBetween > MaxBarsBetween) return false;
+            if (troughDiff > tol) return;
+            if (peakHeight < MinValleyDepthTicks * TickSize) return;
+            if (barsBetween < MinBarsBetween || barsBetween > MaxBarsBetween) return;
 
             double score = ScoreStructure(t1, peak, t2, troughDiff, tol, peakHeight, barsBetween, isTop: false);
 
@@ -401,7 +341,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (score >= MinScoreToAlert)
                 FireAlert("DBform_" + t2.Bar, Priority.High,
                     Label() + " DB forming  score " + score.ToString("F0"), Brushes.SeaGreen);
-            return true;
         }
 
         // --------------------------------------------------------------------
