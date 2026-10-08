@@ -1,4 +1,4 @@
-// PriorWeekOHLCV3 — prior-week O/H/L/C reference lines.
+// PriorWeekOHLCV4 — prior-week O/H/L/C reference lines.
 //
 // V2 of PriorWeekOHLC.cs: dropped NT8's native HLine AddPlot rendering (which drew clear
 // across the whole panel, including far into the empty future space — see S130 screenshot)
@@ -45,7 +45,7 @@ using SharpDX.DirectWrite;
 
 // Own enum, independent of SessionSRLevelsV7.cs — NT8's compiler produced duplicate
 // generated-code-region errors when this file referenced LevelLineStyle declared in a
-// DIFFERENT NinjaScript file; giving PriorWeekOHLCV3 its own type removes that cross-file
+// DIFFERENT NinjaScript file; giving PriorWeekOHLCV4 its own type removes that cross-file
 // dependency entirely (this was the only cross-file type reference in the whole Custom folder).
 namespace NinjaTrader.NinjaScript
 {
@@ -58,7 +58,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	/// <summary>
 	/// Shows the OHLC of the previous week
 	/// </summary>
-	public class PriorWeekOHLCV3 : Indicator
+	public class PriorWeekOHLCV4 : Indicator
 	{
 		private double weeklyOpen 		= 0;
 		private double weeklyHigh 		= 0;
@@ -100,7 +100,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (State == State.SetDefaults)
 			{
 				Description					= @"Shows the OHLC of the previous week";
-				Name						= "PriorWeekOHLCV3";
+				Name						= "PriorWeekOHLCV4";
 				Calculate					= Calculate.OnBarClose;
 				IsOverlay					= true;
 				DisplayInDataBox			= true;
@@ -159,7 +159,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (!Bars.BarsType.IsIntraday && Bars.BarsPeriod.BarsPeriodType != BarsPeriodType.Day)
 			{
-				Draw.TextFixed(this, "error1", "PriorWeekOHLCV3 only works on intraday or daily data series", TextPosition.BottomRight);
+				Draw.TextFixed(this, "error1", "PriorWeekOHLCV4 only works on intraday or daily data series", TextPosition.BottomRight);
 				return;
 			}
 
@@ -302,9 +302,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			try
 			{
 				var win = Window.GetWindow(ChartControl.Parent) as NinjaTrader.Gui.Chart.Chart;
-				if (win == null) { Print("PriorWeekOHLCV3: chart window not found"); return; }
+				if (win == null) { Print("PriorWeekOHLCV4: chart window not found"); return; }
 				var chartTrader = win.FindFirst("ChartWindowChartTraderControl") as NinjaTrader.Gui.Chart.ChartTrader;
-				if (chartTrader == null) { Print("PriorWeekOHLCV3: ChartTrader not found (is Chart Trader shown?)"); return; }
+				if (chartTrader == null) { Print("PriorWeekOHLCV4: ChartTrader not found (is Chart Trader shown?)"); return; }
 				var outerGrid = chartTrader.Content as Grid;
 				if (outerGrid == null) return;
 				foreach (UIElement child in outerGrid.Children)
@@ -312,7 +312,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					Grid g = child as Grid;
 					if (g != null) { ctButtonsGrid = g; break; }
 				}
-				if (ctButtonsGrid == null) { Print("PriorWeekOHLCV3: button grid not found"); return; }
+				if (ctButtonsGrid == null) { Print("PriorWeekOHLCV4: button grid not found"); return; }
 
 				ctBaseRowCount = ctButtonsGrid.RowDefinitions.Count;
 				Style s = Application.Current.TryFindResource("Button") as Style;
@@ -323,7 +323,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				ctPanelActive = true;
 			}
-			catch (Exception ex) { Print("PriorWeekOHLCV3 CreateWPFControls: " + ex.Message); }
+			catch (Exception ex) { Print("PriorWeekOHLCV4 CreateWPFControls: " + ex.Message); }
 		}
 
 		private void DisposeWPFControls()
@@ -339,7 +339,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				btnLabels = null;
 				ctPanelActive = false;
 			}
-			catch (Exception ex) { Print("PriorWeekOHLCV3 DisposeWPFControls: " + ex.Message); }
+			catch (Exception ex) { Print("PriorWeekOHLCV4 DisposeWPFControls: " + ex.Message); }
 		}
 
 		private Button MakeBtn(Style s, string label, string tip, WMColor bg)
@@ -466,60 +466,3 @@ namespace NinjaTrader.NinjaScript.Indicators
         #endregion
 	}
 }
-
-#region NinjaScript generated code. Neither change nor remove.
-
-namespace NinjaTrader.NinjaScript.Indicators
-{
-	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
-	{
-		private PriorWeekOHLCV3[] cachePriorWeekOHLCV3;
-		public PriorWeekOHLCV3 PriorWeekOHLCV3()
-		{
-			return PriorWeekOHLCV3(Input);
-		}
-
-		public PriorWeekOHLCV3 PriorWeekOHLCV3(ISeries<double> input)
-		{
-			if (cachePriorWeekOHLCV3 != null)
-				for (int idx = 0; idx < cachePriorWeekOHLCV3.Length; idx++)
-					if (cachePriorWeekOHLCV3[idx] != null &&  cachePriorWeekOHLCV3[idx].EqualsInput(input))
-						return cachePriorWeekOHLCV3[idx];
-			return CacheIndicator<PriorWeekOHLCV3>(new PriorWeekOHLCV3(), input, ref cachePriorWeekOHLCV3);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
-{
-	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
-	{
-		public Indicators.PriorWeekOHLCV3 PriorWeekOHLCV3()
-		{
-			return indicator.PriorWeekOHLCV3(Input);
-		}
-
-		public Indicators.PriorWeekOHLCV3 PriorWeekOHLCV3(ISeries<double> input )
-		{
-			return indicator.PriorWeekOHLCV3(input);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.Strategies
-{
-	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
-	{
-		public Indicators.PriorWeekOHLCV3 PriorWeekOHLCV3()
-		{
-			return indicator.PriorWeekOHLCV3(Input);
-		}
-
-		public Indicators.PriorWeekOHLCV3 PriorWeekOHLCV3(ISeries<double> input )
-		{
-			return indicator.PriorWeekOHLCV3(input);
-		}
-	}
-}
-
-#endregion
