@@ -29,6 +29,7 @@ DEPTH_DIR = ROOT / "data" / "depth"
 L1_DIR = ROOT / "data" / "l1_tape"
 CATALOG = ROOT / "data" / "_catalog"
 NT8 = Path(os.environ["USERPROFILE"]) / "Documents" / "NinjaTrader 8"
+JOURNAL_STATE = Path.home() / "AppData" / "Local" / "TradePlaybookJournal" / "uploader_state.json"
 
 OK, WARN, BAD, IDLE = "ok", "warn", "bad", "idle"
 RANK = {OK: 0, IDLE: 1, WARN: 2, BAD: 3}
@@ -538,6 +539,39 @@ def _check_archive_uncached() -> dict:
         return _chk("Data archive", WARN, f"git check failed: {type(e).__name__}", n=n)
 
 
+def check_journal_uploader() -> dict:
+    """Trade Playbook journal uploader (Desktop/trade-playbook/scripts/journal_uploader.py) —
+    bridges ClaudeTrackerV2's NT8 trade CSVs to the online journal. Auto-started at login
+    (Startup folder shortcut, 2026-10-08). Evidence is the watcher process itself: it only
+    touches uploader_state.json when there is a new trade/image to send, so a quiet session
+    with no file activity is NORMAL, not proof the watcher died — file freshness alone can't
+    be the signal here the way it is for depth/L1 (those stream continuously; trades don't)."""
+    return _cached("journal_uploader", 30, _check_journal_uploader_uncached)
+
+
+def _check_journal_uploader_uncached() -> dict:
+    ps = ("(Get-CimInstance Win32_Process -Filter \"Name='python.exe' or Name='pythonw.exe'\" | "
+          "Where-Object { $_.CommandLine -like '*journal_uploader.py*' } | "
+          "Measure-Object).Count")
+    try:
+        out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive",
+                              "-WindowStyle", "Hidden", "-Command", ps],
+                             capture_output=True, text=True, timeout=15,
+                             creationflags=_NOWIN).stdout.strip()
+        running = out.isdigit() and int(out) > 0
+    except Exception:
+        running = False
+
+    mkt = market_state()
+    if not running:
+        return _chk("Journal uploader", BAD if mkt == "open" else IDLE,
+                    "not running" + ("" if mkt == "open" else f" (market {mkt})"))
+    detail = "watching for new trades"
+    if JOURNAL_STATE.exists():
+        detail += f", last activity {_fmt_age(_age(JOURNAL_STATE))} ago"
+    return _chk("Journal uploader", OK, detail)
+
+
 def check_chain() -> dict:
     """0DTE SPXW chain recorder — the intraday per-strike NBBO tape (cannot be re-collected).
     A fresh, growing chain_<today>.csv during the session is proof it's recording. Pages
@@ -562,7 +596,7 @@ def check_chain() -> dict:
 # check_depth (L2 DOM) is retired from the dashboard tiles: the L2 AddOn is disabled and the
 # desk moved to L1 capture (S120). The L1 tape tile REPLACES the old L2 depth tile here. The
 # function stays defined for any tool that still imports it directly (e.g. nt8_watchdog).
-CHECKS = [check_l1_tape, check_contract, check_nt8, check_tick_db,
+CHECKS = [check_l1_tape, check_contract, check_nt8, check_tick_db, check_journal_uploader,
           check_archive, check_ib_gateway, check_options_sim, check_dashboard, check_disk,
           check_chain, check_tasks]
 
