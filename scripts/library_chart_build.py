@@ -74,8 +74,19 @@ def build(date: str, size: int = 2000, warmup_days: int = 10) -> dict:
     ema_full = pd.Series(closes).ewm(span=20, adjust=False).mean().values
     ema = ema_full[-n:]
 
+    # Output timestamps are second-precision ("%Y-%m-%dT%H:%M:%S"), but two
+    # bars' true opens can be sub-second apart (e.g. 14:59:59.041 vs .578) and
+    # collide once truncated — dedupe MUST run at the same precision as the
+    # output, not full microsecond precision (that sees them as distinct and
+    # nudges nothing, leaving the truncated strings still equal). The chart's
+    # x-axis requires strictly increasing time. Display-only; OHLC untouched.
+    starts = b["start"].dt.floor("s")
+    for i in range(1, n):
+        if starts.iloc[i] <= starts.iloc[i - 1]:
+            starts.iloc[i] = starts.iloc[i - 1] + pd.Timedelta(seconds=1)
+
     bars_out = [
-        {"i": i, "t": pd.Timestamp(b["start"].values[i]).strftime("%Y-%m-%dT%H:%M:%S"),
+        {"i": i, "t": pd.Timestamp(starts.iloc[i]).strftime("%Y-%m-%dT%H:%M:%S"),
          "o": round(float(O[i]), 2), "h": round(float(H[i]), 2),
          "l": round(float(L[i]), 2), "c": round(float(C[i]), 2),
          "ema20": round(float(ema[i]), 2), "vol": int(b["vol"].values[i])}
