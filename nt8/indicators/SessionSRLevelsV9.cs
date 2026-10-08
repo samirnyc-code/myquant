@@ -426,33 +426,32 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return d <= Core.Globals.MinDate ? -1 : d.Year * 12 + d.Month;
 		}
 
-		// First PRIMARY bar of the current day(0)/week(1)/month(2), resolved from the primary
-		// chart's own bars at render time — period-agnostic, so it's correct on intraday
-		// (session-open bar) AND daily (the period's first daily bar). Walks back from the
-		// last bar while still inside the same period, clamped to the leftmost visible bar
-		// (if the period starts off-screen, the line just begins at the left edge).
+		// First VISIBLE primary bar of the current day(0)/week(1)/month(2), resolved straight
+		// from the chart bars' calendar dates — NO SessionIterator (which is unreliable here
+		// because the primary OnBarUpdate loop, which normally advances it, is skipped on a
+		// daily chart). Scans the visible bars forward from the left edge and returns the
+		// first one whose date falls in the same period as the last visible bar. Works on
+		// any chart period: intraday RTH -> that day's session-open bar (RTH charts have no
+		// overnight bars, so the day's first bar IS the RTH open); daily -> the period's
+		// first daily bar.
 		private int FirstBarOfCurrentPeriod(int period)
 		{
-			int limit = ChartBars != null ? ChartBars.FromIndex : 0;
-			if (_dayIter == null || BarsArray == null || BarsArray.Length == 0) return limit;
-			var b = BarsArray[0];
-			int last = b.Count - 1;
-			if (last < 0) return limit;
+			if (ChartBars == null) return 0;
+			var bars = ChartBars.Bars;
+			int from = Math.Max(0, ChartBars.FromIndex);
+			int to   = ChartBars.ToIndex;
+			if (bars == null || to < from) return from;
 
-			DateTime td = _dayIter.GetTradingDay(b.GetTime(last));
-			int key = PeriodKey(td, period);
-			int i = last;
-			while (i > limit && PeriodKey(_dayIter.GetTradingDay(b.GetTime(i - 1)), period) == key)
-				i--;
-			return i;
-		}
-
-		// A comparable key for a trading day within its day/week/month.
-		private static int PeriodKey(DateTime td, int period)
-		{
-			if (period == 2) return td.Year * 12 + td.Month;                       // month
-			if (period == 1) { DateTime m = MondayOf(td); return m.Year * 10000 + m.Month * 100 + m.Day; }  // week (Monday date)
-			return td.Year * 10000 + td.Month * 100 + td.Day;                       // day
+			DateTime refD = bars.GetTime(to).Date;
+			for (int i = from; i <= to; i++)
+			{
+				DateTime d = bars.GetTime(i).Date;
+				bool same = period == 2 ? (d.Year == refD.Year && d.Month == refD.Month)
+						  : period == 1 ? (MondayOf(d) == MondayOf(refD))
+						  :               (d == refD);
+				if (same) return i;
+			}
+			return to;
 		}
 
 		// ══════════════════════════ Rendering ════════════════════════════
