@@ -93,9 +93,26 @@ def build(date: str, size: int = 2000, warmup_days: int = 10) -> dict:
         for i in range(n)
     ]
 
+    # Prior session's RTH high/low/close — for the HOY/LOY/COY RTH reference
+    # lines (High/Low/Close Of Yesterday's regular session). RTH trove, not
+    # ETH: these are the levels traders actually reference, not the overnight
+    # extremes. "Yesterday" = the most recent RTH day strictly before `date`.
+    rth_days = [d for d in tickdata.available("rth") if d < date]
+    prior_rth = None
+    if rth_days:
+        prior_date = rth_days[-1]
+        rp = tickdata.load_rth(prior_date)
+        prior_rth = {
+            "date": prior_date,
+            "high": round(float(rp["Price"].max()), 2),
+            "low": round(float(rp["Price"].min()), 2),
+            "close": round(float(rp["Price"].iloc[-1]), 2),
+        }
+
     return {
         "date": date, "instrument": "ES", "barType": f"{size}t", "session": "ETH",
         "n_bars": n, "bars": bars_out, "regime": seg, "pivots": pivots,
+        "prior_rth": prior_rth,
         "source": "real-ticks", "built_from": "tickdata.load_eth + phase_transitions",
     }
 
