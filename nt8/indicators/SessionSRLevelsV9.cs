@@ -426,6 +426,35 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return d <= Core.Globals.MinDate ? -1 : d.Year * 12 + d.Month;
 		}
 
+		// First PRIMARY bar of the current day(0)/week(1)/month(2), resolved from the primary
+		// chart's own bars at render time — period-agnostic, so it's correct on intraday
+		// (session-open bar) AND daily (the period's first daily bar). Walks back from the
+		// last bar while still inside the same period, clamped to the leftmost visible bar
+		// (if the period starts off-screen, the line just begins at the left edge).
+		private int FirstBarOfCurrentPeriod(int period)
+		{
+			int limit = ChartBars != null ? ChartBars.FromIndex : 0;
+			if (_dayIter == null || BarsArray == null || BarsArray.Length == 0) return limit;
+			var b = BarsArray[0];
+			int last = b.Count - 1;
+			if (last < 0) return limit;
+
+			DateTime td = _dayIter.GetTradingDay(b.GetTime(last));
+			int key = PeriodKey(td, period);
+			int i = last;
+			while (i > limit && PeriodKey(_dayIter.GetTradingDay(b.GetTime(i - 1)), period) == key)
+				i--;
+			return i;
+		}
+
+		// A comparable key for a trading day within its day/week/month.
+		private static int PeriodKey(DateTime td, int period)
+		{
+			if (period == 2) return td.Year * 12 + td.Month;                       // month
+			if (period == 1) { DateTime m = MondayOf(td); return m.Year * 10000 + m.Month * 100 + m.Day; }  // week (Monday date)
+			return td.Year * 10000 + td.Month * 100 + td.Day;                       // day
+		}
+
 		// ══════════════════════════ Rendering ════════════════════════════
 		// Lines are RAYS: they start at the bar where that level's value was actually
 		// established and run right to the current bar — never the full panel width,
@@ -486,21 +515,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			if (_ethVisible)
 			{
-				// ETH values come from the hidden ETH series. H ETH / L ETH start at THIS
-				// chart's current-session open (RTH open on an RTH chart, ETH open on an ETH
-				// chart); the rest draw full visible width (no single primary anchor bar).
-				int ethStart    = ChartBars.FromIndex;
-				int ethHLStart  = _primaryDayOpenBar >= 0 ? _primaryDayOpenBar : ethStart;
-				Add(list, EHOY_Enabled, EHOY_Label, _ethHigh,          EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 1, ethHLStart);
-				Add(list, ELOY_Enabled, ELOY_Label, _ethLow,           ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 1, ethHLStart);
-				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,    ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 1, ethStart);
-				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,     EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 1, ethStart);
-				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek,  EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 1, ethStart);
+				// ETH values come from the hidden ETH series. Start bars are resolved from the
+				// PRIMARY chart's own bars by period (day/week/month) at render time, so this
+				// works on ANY chart period — intraday (session-open bar) AND daily (the
+				// day/week/month's first daily bar). No dependency on the intraday-only
+				// primary OnBarUpdate loop (which is skipped entirely on a daily chart).
+				int ethDayStart   = FirstBarOfCurrentPeriod(0);   // current trading day open
+				int ethWeekStart  = FirstBarOfCurrentPeriod(1);   // current week open
+				int ethMonthStart = FirstBarOfCurrentPeriod(2);   // current month open
+				Add(list, EHOY_Enabled, EHOY_Label, _ethHigh,          EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 1, ethDayStart);
+				Add(list, ELOY_Enabled, ELOY_Label, _ethLow,           ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 1, ethDayStart);
+				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,    ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 1, ethDayStart);
+				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,     EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 1, ethDayStart);
+				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek,  EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 1, ethWeekStart);
 				// ETH OoM: manual override wins when a price is set and its month == the current ETH month
 				double eOoM = _ethOpenThisMonth;
 				if (EOoM_ManualPrice != 0 && MonthKeyOf(EOoM_ManualMonth) == _ethCurMonthKey)
 					eOoM = EOoM_ManualPrice;
-				Add(list, EOoM_Enabled, EOoM_Label, eOoM, EOoM_Color, EOoM_Opacity, EOoM_Style, EOoM_Thickness, 1, ethStart);
+				Add(list, EOoM_Enabled, EOoM_Label, eOoM, EOoM_Color, EOoM_Opacity, EOoM_Style, EOoM_Thickness, 1, ethMonthStart);
 			}
 
 			// Custom/manual levels: no "session" origin bar to anchor to, so the start date
