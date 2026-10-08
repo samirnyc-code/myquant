@@ -70,7 +70,7 @@ def html() -> str:
     ds = dates()
     opts = "".join(f'<option value="{d}">{d[:4]}-{d[4:6]}-{d[6:]}</option>' for d in ds)
     return """<!doctype html><html><head><meta charset="utf-8">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>"><title>Daily Playbook</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏈</text></svg>"><title>Daily Playbook</title>
 <style>
 :root{--bg:#0d1117;--card:#161b22;--border:#30363d;--fg:#e6edf3;--muted:#8b949e;--acc:#58a6ff}
 *{box-sizing:border-box}
@@ -90,7 +90,7 @@ h2{font-size:14px;color:var(--muted);margin:22px 20px 8px;text-transform:upperca
 #big img{max-width:96vw;max-height:96vh}
 </style></head><body>
 <header>
-  <h1>📋 Daily Playbook</h1>
+  <h1>🏈 Daily Playbook</h1>
   <select id="day">__OPTS__</select>
   <a class="btn" href="/">← Mission Control</a>
   <a class="btn" href="/timeline">Timeline</a>

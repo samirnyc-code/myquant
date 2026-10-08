@@ -1181,7 +1181,7 @@ pre{background:var(--chip);border-radius:7px;padding:8px 10px;font-size:11px;ove
       <a href="/pats" target="_blank" title="PATs (Mack) transcript library — rules/nuggets from ~2.9k YouTube recaps, cross-checked against the manual">🎯 PATs Library</a>
       <a href="/flowlab" target="_blank" title="S75R — ES 1M order-flow reading, bar by bar">🕯 Flow Lab</a>
       <a href="/artifacts" target="_blank" title="Local backups of every Claude artifact - readable offline">🗂 Artifact Library</a>
-      <a href="/playbook" target="_blank" title="Every day's price-path slides, trade-idea charts and entry/exit trade cards - archived automatically">📋 Daily Playbook</a>
+      <a href="/playbook" target="_blank" title="Every day's price-path slides, trade-idea charts and entry/exit trade cards - archived automatically">🏈 Daily Playbook</a>
       <a href="/scorecard" target="_blank" title="Process × day history grid - see which processes failed on which day">📅 Daily Scorecard</a>
       <a href="/catalog" target="_blank" title="Data Catalog — every dataset, where it lives, how fresh it is">🗄 Data Catalog</a>
     </div>
