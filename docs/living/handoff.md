@@ -1,6 +1,43 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-06 (machine-time W. Europe) — **S130: new "NT Config" tab added to the Trade Playbook (separate repo `trade-playbook`) — shared chart framework (Main + Supporting/HTF charts, indicators, levels, exclusions). Built, deployed, and two real bugs found+fixed live (button-clipping CSS, missing Candle bar type).** S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push confirmed auto-applied via `vercel.json`'s build-time `prisma db push`, see note below), S127/S126/S125/S124 unaffected — see blocks below.
+**Last Updated:** 2026-10-08 (machine-time W. Europe) — **S131: browser-tab icons. Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S131-tab-icons (2026-10-08) — browser-tab favicons (Trade Playbook app + myquant desk Daily Playbook)
+
+**Trigger:** user said "the trade playbook needs an icon so i can identify it in my windows
+browser tab" (tab showed a blank/generic globe). First mis-targeted the myquant desk page
+titled **"Daily Playbook"** (`scripts/playbook_page.py`, served by `launcher.py` at `/playbook`);
+the user's actual tab was titled **"Trade Playbook"** = the separate Next.js app
+(`samirnyc-code/trade-playbook`, Desktop\trade-playbook, live at
+https://trade-playbook-ten.vercel.app). Lesson: match the exact `<title>` before editing.
+
+**Trade Playbook app (the real fix):** had NO favicon at all (no `public/`, no `icon.*`;
+`layout.tsx` set a title only). Added `src/app/icon.svg` (dark rounded square + green upward
+chart line) — Next.js App Router auto-serves `app/icon.svg` as the favicon, no metadata wiring
+needed. Committed (`98c26ed`) + pushed → Vercel auto-deployed. Verified live: `/icon.svg` → 200
+`image/svg+xml`, and the homepage `<head>` now has `<link rel="icon" href="/icon.svg?...">`.
+Favicons cache hard → user must close/reopen tab or Ctrl+Shift+R.
+
+**myquant desk "Daily Playbook" (incidental, unrequested but kept — it fixed a real collision):**
+`📋`→`🏈` for the favicon, the page H1, and the hub nav link in `launcher.py`. The old 📋
+collided with 📝 Mark Setups and 📚 Data Catalog at tiny tab size. Committed (`e704e230`) + pushed.
+User was offered a revert and chose to keep it.
+
+**Dashboard restarts (user: "I would like things to work"):** to make the `/playbook` favicon
+go live, restarted the Mission Control launcher **pair** (venv `pythonw` wrapper PID + system-python
+worker that owns port 8590) by killing each PID individually **without `/T`** (so the DETACHED
+sibling dashboards — which "survive closing this launcher" — were untouched), then relaunched
+detached via venv `pythonw`. Confirmed by `options_dashboard_live` (8600) surviving the cycle.
+Separately found 4 desk dashboards DOWN (command_center 8610, data_catalog 8620, mark_setups 8630,
+discord_intel 8640) — `launcher_pids.json` was stale from 2026-09-09 (one PID reused by chrome), so
+they had died over the prior month, NOT from this restart. Brought all 4 back up via the launcher's
+own local `POST /start?key=<key>` endpoint (proper detached+tracked launch). **All 6 dashboards now
+serve HTTP 200** (8590 Mission Control, 8600 Options, 8610 Command Center, 8620 Data Catalog,
+8630 Mark Setups, 8640 Discord Intel). `td_vs_ib` (8650) and `wfa_app` left down (not requested).
+
+**Status: DONE.** Both favicon changes committed+pushed+verified; dashboards up. No open items.
 
 ---
 
