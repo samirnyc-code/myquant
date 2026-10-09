@@ -144,7 +144,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			public bool enabled; public string label; public double price;
 			public WMColor color; public int opacity; public LevelLineStyle style; public int thickness;
-			public int col; public int startBarIdx;
+			public int col; public int startBarIdx; public int endBarIdx;   // endBarIdx -1 = extend to current+ExtendBarsRight
 		}
 
 		protected override void OnStateChange()
@@ -504,17 +504,27 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				int startIdx = Math.Max(d.startBarIdx, ChartBars.FromIndex);
 				float xStart = Math.Max(panelLeft, chartControl.GetXByBarIndex(ChartBars, startIdx));
-				if (xStart >= lineEndX) continue;
+
+				// Optional per-level right cap (e.g. OoD RTH stops at its RTH session end
+				// instead of spilling into the following ETH session).
+				float xEnd = lineEndX;
+				if (d.endBarIdx >= 0 && d.endBarIdx < lastIdx)
+				{
+					float xe = chartControl.GetXByBarIndex(ChartBars, d.endBarIdx);
+					if (xe < xEnd) xEnd = xe;
+				}
+				if (xStart >= xEnd) continue;
 
 				float a = Math.Max(0f, Math.Min(1f, d.opacity / 100f));
 				var sdxBrush = new D2DSolidColorBrush(RenderTarget,
 					new Color4(d.color.R / 255f, d.color.G / 255f, d.color.B / 255f, a));
 
 				float y = chartScale.GetYByValue(d.price);
-				DrawStyledLine(xStart, lineEndX, y, sdxBrush, d.thickness, d.style);
+				DrawStyledLine(xStart, xEnd, y, sdxBrush, d.thickness, d.style);
 
 				string text = ShowPriceInLabel ? d.label + " " + F(d.price) : d.label;
-				labels.Add(new LabelInfo { y = y, trueY = y, text = text, brush = sdxBrush, col = d.col });
+				bool capped = xEnd < lineEndX - 0.5f;   // line stops before the right edge -> label sits at the cap
+				labels.Add(new LabelInfo { y = y, trueY = y, text = text, brush = sdxBrush, col = d.col, inline = capped, xInline = xEnd + 6f });
 			}
 
 			if (_labelsVisible) DrawLabels(labels, lineEndX + 6f);
@@ -541,7 +551,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Add(list, RHOY_Enabled, RHOY_Label, _priorRthHigh,    RHOY_Color, RHOY_Opacity, RHOY_Style, RHOY_Thickness, 0, _priorRthHighStartBar);
 				Add(list, RLOY_Enabled, RLOY_Label, _priorRthLow,     RLOY_Color, RLOY_Opacity, RLOY_Style, RLOY_Thickness, 0, _priorRthLowStartBar);
 				Add(list, RCOY_Enabled, RCOY_Label, _priorRthClose,   RCOY_Color, RCOY_Opacity, RCOY_Style, RCOY_Thickness, 0, _priorRthCloseStartBar);
-				Add(list, ROoD_Enabled, ROoD_Label, _rthOpenToday,    ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, _rthOpenStartBar);
+				// OoD RTH stops at the end of its RTH session (_rthLastBar) — doesn't spill into the following ETH session.
+				Add(list, ROoD_Enabled, ROoD_Label, _rthOpenToday,    ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, _rthOpenStartBar, _rthLastBar);
 				Add(list, ROoW_Enabled, ROoW_Label, _rthOpenThisWeek, ROoW_Color, ROoW_Opacity, ROoW_Style, ROoW_Thickness, 0, _rthWeekStartBar);
 				// RTH OoM: manual override wins when a price is set and its month == the current month
 				double rOoM = _rthOpenThisMonth; int rOoMBar = _rthMonthStartBar;
@@ -599,14 +610,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		private static void Add(List<LevelDef> list, bool enabled, string label, double price,
-			WMBrush brush, int opacity, LevelLineStyle style, int thickness, int col, int startBarIdx)
+			WMBrush brush, int opacity, LevelLineStyle style, int thickness, int col, int startBarIdx, int endBarIdx = -1)
 		{
 			var scb = brush as WMSolidColorBrush;
 			list.Add(new LevelDef
 			{
 				enabled = enabled, label = label, price = price,
 				color = scb != null ? scb.Color : Colors.Gray,
-				opacity = opacity, style = style, thickness = thickness, col = col, startBarIdx = startBarIdx
+				opacity = opacity, style = style, thickness = thickness, col = col, startBarIdx = startBarIdx, endBarIdx = endBarIdx
 			});
 		}
 
@@ -633,7 +644,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
-		private class LabelInfo { public float y; public float trueY; public string text; public D2DSolidColorBrush brush; public int col; }
+		private class LabelInfo { public float y; public float trueY; public string text; public D2DSolidColorBrush brush; public int col; public bool inline; public float xInline; }
 
 		// Two columns (RTH / ETH), anchored just past where the lines end (the current
 		// bar), de-collided top-to-bottom with leader lines when a label had to be
@@ -643,17 +654,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (labels.Count == 0) return;
 			float colW = LabelFontSize * 6.5f;
 			float gap  = LabelFontSize + 4f;
+			float textH = LabelFontSize + 6f;
 			TextFormat tf = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Arial", LabelFontSize);
-			for (int c = 0; c <= 2; c++)   // 0=RTH, 1=ETH, 2=Custom
+
+			// Inline labels (capped lines, e.g. OoD RTH) sit at the line's end, centered on it.
+			foreach (LabelInfo li in labels)
+				if (li.inline)
+					RenderTarget.DrawText(li.text, tf, new RectangleF(li.xInline, li.trueY - textH / 2f, colW, textH), li.brush);
+
+			for (int c = 0; c <= 2; c++)   // 0=RTH, 1=ETH, 2=Custom (right-edge columns)
 			{
 				var col = new List<LabelInfo>();
-				foreach (LabelInfo li in labels) if (li.col == c) col.Add(li);
+				foreach (LabelInfo li in labels) if (!li.inline && li.col == c) col.Add(li);
 				if (col.Count == 0) continue;
 				col.Sort(delegate (LabelInfo a, LabelInfo b) { return a.y.CompareTo(b.y); });
 				for (int i = 1; i < col.Count; i++)
 					if (col[i].y < col[i - 1].y + gap) col[i].y = col[i - 1].y + gap;
 				float x = baseX + c * colW;
-				float textH = LabelFontSize + 6f;
 				foreach (LabelInfo li in col)
 				{
 					if (Math.Abs(li.y - li.trueY) > 1.5f)
