@@ -1,8 +1,54 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-08 (machine-time W. Europe) — **S131: browser-tab icons. Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+**Last Updated:** 2026-10-09 (machine-time W. Europe) — **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
 
 ---
+
+## S132-nt8-sr-levels (2026-10-09) — `SessionSRLevelsV9` feature build + NT8 duplicate-region bug root-caused
+
+**Files (both in `nt8/indicators/`, deployed to `Documents\NinjaTrader 8\bin\Custom\Indicators\`):**
+`SessionSRLevelsV9.cs` (canonical; renamed V1→V9 this session) and `PriorWeekOHLCV4.cs` (renamed V1→V4).
+
+**⚠️ THE BIG LESSON — NT8 duplicate-generated-region bug (burned most of the session):**
+Repeated `CS0102 / CS0111 / CS0121 / CS0229` "`Indicator` already contains a definition for
+`cache<Name>`" errors on every F5. Root cause (proven by reading the file NT8 wrote): **NT8
+APPENDS its own freshly-generated `#region NinjaScript generated code` to any file that already
+contains one, instead of replacing it** → two regions → duplicate cache field. It recurred after
+content fixes, class renames, deleting `NinjaTrader.Custom.dll`, AND a full NT8 restart. The two
+indicators the user runs daily (`WyckoffVPLevels`, `CumulativeDelta`) have **zero** generated
+region and never broke. **FIX: keep these files REGION-LESS in the repo** — strip the entire
+`#region NinjaScript generated code … #endregion` block before deploying; NT8 generates & owns a
+single correct region on first compile. **Never paste a generated region back in.** (The V1→V9
+rename spiral was all failed attempts before finding this. Renaming is NOT needed once region-less.)
+Offline compile-check that mirrors NT8: strip the region, run `csc.exe` on the class body only.
+
+**Features added to `SessionSRLevelsV9` (all shipped, F5 renders OK):**
+- Base: RTH+ETH HOY/LOY/COY + OoD/OoW/OoM, 12 stylable levels, RTH/ETH/LABELS/**PRICE** Chart Trader buttons.
+- **ETH levels from a hidden 1-min ETH-hours data series** (`AddDataSeries(..., "CME US Index Futures ETH")`)
+  so they work on RTH-only AND daily charts; **ETH H/L lock at the RTH open** (overnight range only).
+- Start bars resolved per period from the PRIMARY chart: intraday = session-open bar
+  (`_primaryDay/Week/MonthOpenBar`), daily = calendar-date walk (`FirstBarOfCurrentPeriod`). (The
+  SessionIterator is dead on daily — primary `OnBarUpdate` is skipped by the `!IsIntraday` guard.)
+- **Current-day HoD/LoD** (tracked per-bar in OnBarUpdate, locked to actual data not the visible window).
+- Manual OoM price+month override; custom-level calendar start-dates; extend-right offset; **OoD RTH
+  caps at its RTH session end** (+extend) so it doesn't spill into ETH; all labels in ONE column.
+- **NEW — dual 1-day expected-move bands, to compare for a few weeks then pick one:**
+  - **VIX method** = `priorRthClose ± priorRthClose*(VIX/100)/√252*sigma` (matches
+    `scripts/options_gameplan.py:em_halfwidth`). VIX auto-read from `data/vix_daily.csv` last close
+    (manual override field; sigma default 1.0).
+  - **GEX method** = `emUpper`/`emLower` read straight from the gexlog brief — current day's
+    `data/gexlog/raw/{date}_morning.json`, fallback `{date-1}_evening.json`, else newest. (Both target
+    the same session; keys are unique → simple string parse, no Newtonsoft.)
+  - Both files re-read on a 5s throttle in `OnRender` (same repo-file pattern as `WyckoffVPLevels`),
+    self-updating daily. 4 levels: 1D Max/Min VIX (Plum), 1D Max/Min GEX (Khaki).
+  - **Validation:** VIX method ≈ gexlog published (76.2 vs 75.0 on 10-09) → formula matches; but the
+    gexlog *band* is anchored on a different reference (~7765 vs prior-close ~7848) → the two sit apart.
+    **OPEN: observe both live a few weeks, then choose the method.**
+
+**Status: shipped & committed.** Open items: (1) EM method comparison (forward-observe). (2) `PriorWeekOHLCV4`
+F5 not yet confirmed by user. (3) RTH levels still off on daily charts by the `!IsIntraday` guard
+(deliberate; user didn't ask to enable). (4) Old quarantine dir `Documents\NinjaTrader 8\_quarantine_OUTSIDE_CUSTOM\`
+still holds a stale `SessionSRLevelsV7.cs` — harmless (outside the Custom tree), can delete.
 
 ## S131-tab-icons (2026-10-08) — browser-tab favicons (Trade Playbook app + myquant desk Daily Playbook)
 
