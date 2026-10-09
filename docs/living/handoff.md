@@ -1,6 +1,50 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-09 (machine-time W. Europe) — **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+**Last Updated:** 2026-10-09 (machine-time W. Europe) — **S133: NT8 `RegimeTrackerBox` — NEW multi-timeframe regime dashboard indicator. One box on the chart, rows = timeframes (editable: `2000t,5M,15M,60M,240M,D,W`), two columns RTH + ETH, each cell colored by Bull/Bear/Range. Flexible corner+X/Y offset and font size. Built, compile-checked, deployed, committed+pushed. GOTCHA fixed: the two trading-hours templates must be exact Trading Hours Manager names — `CME US Index Futures RTH` / `CME US Index Futures ETH` (NOT "CME RTH"/"CME ETH"; a bad name makes `AddDataSeries` throw in `OnStateChange` → indicator errors, draws nothing). See S133 block.** **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S133-nt8-regime-box (2026-10-09) — `RegimeTrackerBox`: new multi-timeframe regime dashboard
+
+**What:** new indicator `nt8/indicators/RegimeTrackerBox.cs` (committed `b179bbf`, fix
+`f6a5c757`, both pushed). A dashboard box on the price panel: rows = timeframes, columns
+**RTH** and **ETH**, each cell colored by the current Bull/Bear/Range regime (optional
+regime word in-cell). Editable timeframe list, flexible corner + X/Y offset + font size.
+
+**How it's built (design the user approved):**
+- Same Bull/Bear/Range state machine as `RegimeTrackerPanel`/`RegimeTrackerV2` (MyWedge
+  swings → BOS/ChoCh), lifted verbatim into a self-contained inner `RegimeEngine` class so
+  it can run many times in parallel.
+- For EACH timeframe it calls `AddDataSeries` **twice** — once on an RTH trading-hours
+  template, once on ETH — so the two columns are genuinely different reads (different bars
+  + different session-reset points), not the same series relabeled. 7 TFs × 2 = **14 series**,
+  one `RegimeEngine` each, each with its OWN `MyWedge(Closes[bip], …)` child (one level of
+  composition, the pattern `RegimeTrackerPanel` proved works).
+- `OnBarUpdate` routes each series' bar to its engine by `BarsInProgress`; `OnRender` paints
+  the table (SharpDX, same `TextFormat`/`FillRectangle` pattern as `SessionSRLevelsV9`),
+  anchored to a `ChartPanel` corner + pixel offset, auto-sized to the font.
+
+**Settings / defaults:** `Timeframes="2000t,5M,15M,60M,240M,D,W"` (suffix t/s/M/D/W),
+`Lag=0`, `CurrentSessionOnly=on` (intraday reset engines only — needed with 14 series;
+ignored for D/W and non-resetting engines, which need their history to form swings), intraday
+TFs session-reset per the toggle, **D/W never session-reset** (continuous regime). RTH/ETH
+template-name fields are editable.
+
+**Two gotchas hit and recorded:**
+1. `AddDataSeries(BarsPeriod, string)` overload does NOT exist in this NT8 build — must use
+   `AddDataSeries(string instrumentName, BarsPeriod, string tradingHoursName)` (verified by
+   reflecting `NinjaScriptBase`). Used `Instrument.FullName` (available in `State.Configure`).
+2. `Times[bip]` is `TimeSeries`, not `ISeries<DateTime>` — engine ctor takes `TimeSeries`.
+3. **Trading-hours names must be exact Trading Hours Manager names.** User said "CME RTH"/
+   "CME ETH"; neither exists → `AddDataSeries` threw in `OnStateChange`, indicator errored,
+   drew nothing (found in NT8 log). Correct ES templates = `CME US Index Futures RTH` /
+   `CME US Index Futures ETH` (verified against `templates/TradingHours/`). Defaults fixed.
+
+**Status: DONE + pushed.** Open item for the user: an instance already added to the chart
+saved the bad `"CME RTH"` string, so F5 alone won't fix it — **remove & re-add** the
+indicator (picks up corrected defaults) or point its RTH/ETH template fields at the correct
+names. Not yet visually confirmed on the user's chart (compile-checked only; F5 is the real
+gate and the user was flat-dependent).
 
 ---
 
