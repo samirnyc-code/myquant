@@ -135,6 +135,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int      _primaryWeekOpenBar  = -1;
 		private int      _primaryMonthOpenBar = -1;
 
+		// Current-day running High/Low, tracked from the ACTUAL bars (not the visible window)
+		// so it stays locked when you scroll/zoom. Intraday only; on daily OnBarUpdate is
+		// skipped and the current-day H/L is just the latest daily bar's own High/Low.
+		private double   _curDayHigh = double.NaN, _curDayLow = double.NaN;
+		private int      _curDayStartBar = -1;
+
 		// ── Chart Trader toggle buttons ───────────────────────────────────
 		private Grid   ctButtonsGrid;
 		private bool   ctPanelActive;
@@ -228,6 +234,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_ethDayIter = null; _rthMembershipIter = null; _ethLocked = false;
 				_ethCurTradingDay = Core.Globals.MinDate; _ethCurWeekStart = Core.Globals.MinDate; _ethCurMonthKey = -1;
 				_primaryDayOpenBar = _primaryWeekOpenBar = _primaryMonthOpenBar = -1;
+				_curDayHigh = _curDayLow = double.NaN; _curDayStartBar = -1;
 
 				_dayIter = null; _rthHours = null; _rthIter = null; _rthOk = false;
 				_curTradingDay = Core.Globals.MinDate; _curWeekStart = Core.Globals.MinDate; _curMonthKey = -1;
@@ -307,6 +314,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_haveRth              = false;
 				_rthOpenCapturedToday = false;
 				_primaryDayOpenBar    = CurrentBar;   // first bar of this chart's trading day = its session open
+				_curDayHigh = High[0]; _curDayLow = Low[0]; _curDayStartBar = CurrentBar;   // reset current-day H/L
 
 				DateTime wkStart = MondayOf(tradingDay);
 				if (wkStart != _curWeekStart)
@@ -332,6 +340,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 					_rthSessEnd   = _rthIter.ActualSessionEnd;
 				}
 			}
+
+			// Current-day H/L across every bar of the trading day (independent of RTH/ETH).
+			if (!double.IsNaN(_curDayHigh) && High[0] > _curDayHigh) _curDayHigh = High[0];
+			if (!double.IsNaN(_curDayLow)  && Low[0]  < _curDayLow)  _curDayLow  = Low[0];
 
 			bool isRth = false;
 			if (_rthOk && _rthSessBegin != Core.Globals.MinDate)
@@ -464,26 +476,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return to;
 		}
 
-		// Current day's running High/Low, straight from the chart's own bars for today —
-		// works on daily (today's bar H/L) and intraday (the session's running H/L). startBar
-		// is the first bar of the current day so the line begins where the day opened.
+		// Current day's High/Low from the ACTUAL bars (not the visible window) so it stays
+		// locked when you scroll/zoom. Intraday: the values tracked per-bar in OnBarUpdate.
+		// Daily (OnBarUpdate skipped): the latest daily bar's own High/Low (one bar = one day).
 		private void CurrentDayHighLow(out double hi, out double lo, out int startBar)
 		{
 			hi = double.NaN; lo = double.NaN; startBar = -1;
-			if (ChartBars == null) return;
-			var bars = ChartBars.Bars;
-			int to = ChartBars.ToIndex;
-			if (bars == null || to < 0) return;
-			int dayStart = FirstBarOfCurrentPeriod(0);
-			startBar = dayStart;
-			double h = double.MinValue, l = double.MaxValue;
-			for (int i = dayStart; i <= to; i++)
+			if (BarsArray == null || BarsArray.Length == 0) return;
+			var b = BarsArray[0];
+
+			if (b.BarsType.IsIntraday)
 			{
-				double bh = bars.GetHigh(i), bl = bars.GetLow(i);
-				if (bh > h) h = bh;
-				if (bl < l) l = bl;
+				hi = _curDayHigh; lo = _curDayLow; startBar = _curDayStartBar;
+				return;
 			}
-			if (h > double.MinValue) { hi = h; lo = l; }
+			int last = b.Count - 1;
+			if (last < 0) return;
+			hi = b.GetHigh(last); lo = b.GetLow(last); startBar = last;
 		}
 
 		// ══════════════════════════ Rendering ════════════════════════════
