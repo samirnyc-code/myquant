@@ -37,6 +37,7 @@
 #region Using declarations
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Windows;
@@ -141,6 +142,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double   _curDayHigh = double.NaN, _curDayLow = double.NaN;
 		private int      _curDayStartBar = -1;
 
+		// Expected-move 1-day bands — two methods compared side by side:
+		//   VIX  = prior RTH close ± close*(VIX/100)/sqrt(252)*sigma   (matches options_gameplan.em_halfwidth)
+		//   GEX  = emUpper/emLower read straight from the gexlog morning (or prior-evening) brief
+		// Both read repo files on a throttle; manual VIX override available.
+		private double   _emvMax = double.NaN, _emvMin = double.NaN;   // VIX-formula band
+		private double   _emgMax = double.NaN, _emgMin = double.NaN;   // gexlog published band
+		private double   _vixUsed = double.NaN;
+		private DateTime _emLastRead = DateTime.MinValue;
+		private const double SQRT252 = 15.874507866387544;
+
 		// ── Chart Trader toggle buttons ───────────────────────────────────
 		private Grid   ctButtonsGrid;
 		private bool   ctPanelActive;
@@ -180,6 +191,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// Current-day running High/Low (computed from the chart's own bars for today).
 				CDH_Enabled = true; CDH_Label = "HoD"; CDH_Color = Brushes.DarkCyan; CDH_Opacity = 100; CDH_Style = LevelLineStyle.Solid; CDH_Thickness = 1;
 				CDL_Enabled = true; CDL_Label = "LoD"; CDL_Color = Brushes.DarkCyan; CDL_Opacity = 100; CDL_Style = LevelLineStyle.Solid; CDL_Thickness = 1;
+
+				// Expected-move bands (two methods, for comparison).
+				VixCsvPath   = @"C:\Users\Admin\myquant\data\vix_daily.csv";
+				GexlogRawDir = @"C:\Users\Admin\myquant\data\gexlog\raw";
+				EmManualVix  = 0;     // 0 = auto (read last close from VixCsvPath)
+				EmSigma      = 1.0;
+				EMV_Max_Enabled = true; EMV_Max_Label = "1D Max VIX"; EMV_Max_Color = Brushes.Plum;     EMV_Max_Opacity = 90; EMV_Max_Style = LevelLineStyle.Dot; EMV_Max_Thickness = 1;
+				EMV_Min_Enabled = true; EMV_Min_Label = "1D Min VIX"; EMV_Min_Color = Brushes.Plum;     EMV_Min_Opacity = 90; EMV_Min_Style = LevelLineStyle.Dot; EMV_Min_Thickness = 1;
+				EMG_Max_Enabled = true; EMG_Max_Label = "1D Max GEX"; EMG_Max_Color = Brushes.Khaki;    EMG_Max_Opacity = 90; EMG_Max_Style = LevelLineStyle.Dot; EMG_Max_Thickness = 1;
+				EMG_Min_Enabled = true; EMG_Min_Label = "1D Min GEX"; EMG_Min_Color = Brushes.Khaki;    EMG_Min_Opacity = 90; EMG_Min_Style = LevelLineStyle.Dot; EMG_Min_Thickness = 1;
 
 				// RTH defaults: solid, saturated, thickness 2. Label = "{metric} RTH".
 				RHOY_Enabled = true;  RHOY_Label = "HOY RTH"; RHOY_Color = Brushes.IndianRed;      RHOY_Opacity = 100; RHOY_Style = LevelLineStyle.Solid; RHOY_Thickness = 2;
@@ -496,6 +517,108 @@ namespace NinjaTrader.NinjaScript.Indicators
 			hi = b.GetHigh(last); lo = b.GetLow(last); startBar = last;
 		}
 
+		// ══════════════════════ Expected-move bands ══════════════════════
+		// Throttled (≤ once/5s) re-read of the repo files + recompute of both bands.
+		private void ReloadEm()
+		{
+			DateTime now = DateTime.UtcNow;
+			if ((now - _emLastRead).TotalSeconds < 5) return;
+			_emLastRead = now;
+
+			// ---- VIX-formula band: prior RTH close ± close*(VIX/100)/sqrt(252)*sigma ----
+			double vix = EmManualVix > 0 ? EmManualVix : ReadLastVixClose();
+			_vixUsed = vix;
+			double rf = _priorRthClose;
+			if (!double.IsNaN(rf) && rf > 0 && !double.IsNaN(vix) && vix > 0)
+			{
+				double hw = rf * (vix / 100.0) / SQRT252 * Math.Max(0.0, EmSigma);
+				_emvMax = rf + hw; _emvMin = rf - hw;
+			}
+			else { _emvMax = _emvMin = double.NaN; }
+
+			// ---- gexlog published band (emUpper/emLower from today's morning / prior evening brief) ----
+			double up, lo2;
+			if (ReadGexlogBand(out up, out lo2)) { _emgMax = up; _emgMin = lo2; }
+			else { _emgMax = _emgMin = double.NaN; }
+		}
+
+		private double ReadLastVixClose()
+		{
+			try
+			{
+				if (!File.Exists(VixCsvPath)) return double.NaN;
+				string[] lines = File.ReadAllLines(VixCsvPath);
+				for (int i = lines.Length - 1; i >= 1; i--)   // skip header (row 0)
+				{
+					string ln = lines[i];
+					if (string.IsNullOrWhiteSpace(ln)) continue;
+					string[] p = ln.Split(',');
+					double v;
+					if (p.Length >= 1 && double.TryParse(p[p.Length - 1].Trim(),
+							System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out v))
+						return v;
+				}
+			}
+			catch { }
+			return double.NaN;
+		}
+
+		private bool ReadGexlogBand(out double up, out double lo)
+		{
+			up = double.NaN; lo = double.NaN;
+			try
+			{
+				if (string.IsNullOrWhiteSpace(GexlogRawDir) || !Directory.Exists(GexlogRawDir)) return false;
+
+				// Resolve the brief for the current trading day: {date}_morning, else {date-1}_evening,
+				// else the newest brief file in the dir.
+				DateTime refDate = _curTradingDay > Core.Globals.MinDate ? _curTradingDay : DateTime.Today;
+				string path = Path.Combine(GexlogRawDir, refDate.ToString("yyyy-MM-dd") + "_morning.json");
+				if (!File.Exists(path))
+					path = Path.Combine(GexlogRawDir, refDate.AddDays(-1).ToString("yyyy-MM-dd") + "_evening.json");
+				if (!File.Exists(path))
+				{
+					string newest = null; DateTime newestT = DateTime.MinValue;
+					foreach (string f in Directory.GetFiles(GexlogRawDir, "*.json"))
+					{
+						DateTime t = File.GetLastWriteTimeUtc(f);
+						if (t > newestT) { newestT = t; newest = f; }
+					}
+					path = newest;
+				}
+				if (path == null || !File.Exists(path)) return false;
+
+				string json = File.ReadAllText(path);
+				up = JsonNum(json, "emUpper");
+				lo = JsonNum(json, "emLower");
+				return !double.IsNaN(up) && !double.IsNaN(lo);
+			}
+			catch { return false; }
+		}
+
+		// Minimal JSON number extractor for a unique key (emUpper/emLower are unique in the brief).
+		private static double JsonNum(string json, string key)
+		{
+			int i = json.IndexOf("\"" + key + "\"");
+			if (i < 0) return double.NaN;
+			i = json.IndexOf(':', i);
+			if (i < 0) return double.NaN;
+			i++;
+			while (i < json.Length && char.IsWhiteSpace(json[i])) i++;
+			int j = i;
+			while (j < json.Length)
+			{
+				char c = json[j];
+				if (char.IsDigit(c) || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E') j++;
+				else break;
+			}
+			double v;
+			if (j > i && double.TryParse(json.Substring(i, j - i),
+					System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out v))
+				return v;
+			return double.NaN;
+		}
+
 		// ══════════════════════════ Rendering ════════════════════════════
 		// Lines are RAYS: they start at the bar where that level's value was actually
 		// established and run right to the current bar — never the full panel width,
@@ -504,6 +627,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
 		{
 			if (RenderTarget == null || ChartPanel == null || ChartBars == null) return;
+
+			ReloadEm();
 
 			var defs = BuildLevelDefs();
 			if (defs.Count == 0) return;
@@ -562,6 +687,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 				CurrentDayHighLow(out cdHi, out cdLo, out cdStart);
 				Add(list, CDH_Enabled, CDH_Label, cdHi, CDH_Color, CDH_Opacity, CDH_Style, CDH_Thickness, 0, cdStart);
 				Add(list, CDL_Enabled, CDL_Label, cdLo, CDL_Color, CDL_Opacity, CDL_Style, CDL_Thickness, 0, cdStart);
+			}
+
+			// Expected-move 1-day bands (two methods, anchored at the current day's open bar).
+			{
+				int fb = ChartBars != null ? ChartBars.FromIndex : 0;
+				int emStart;
+				if (BarsArray != null && BarsArray.Length > 0 && BarsArray[0].BarsType.IsIntraday)
+					emStart = _primaryDayOpenBar >= 0 ? _primaryDayOpenBar : fb;
+				else
+					emStart = FirstBarOfCurrentPeriod(0);
+				Add(list, EMV_Max_Enabled, EMV_Max_Label, _emvMax, EMV_Max_Color, EMV_Max_Opacity, EMV_Max_Style, EMV_Max_Thickness, 0, emStart);
+				Add(list, EMV_Min_Enabled, EMV_Min_Label, _emvMin, EMV_Min_Color, EMV_Min_Opacity, EMV_Min_Style, EMV_Min_Thickness, 0, emStart);
+				Add(list, EMG_Max_Enabled, EMG_Max_Label, _emgMax, EMG_Max_Color, EMG_Max_Opacity, EMG_Max_Style, EMG_Max_Thickness, 0, emStart);
+				Add(list, EMG_Min_Enabled, EMG_Min_Label, _emgMin, EMG_Min_Color, EMG_Min_Opacity, EMG_Min_Style, EMG_Min_Thickness, 0, emStart);
 			}
 
 			if (_rthVisible)
@@ -845,6 +984,48 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "01B Current Day - Low")] public int CDL_Opacity { get; set; }
 		[Display(Name = "Line style", Order = 4, GroupName = "01B Current Day - Low")] public LevelLineStyle CDL_Style { get; set; }
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "01B Current Day - Low")] public int CDL_Thickness { get; set; }
+
+		// ---- Expected Move (settings) ----
+		[Display(Name = "VIX CSV path", Order = 0, GroupName = "01C Expected Move (settings)", Description = "File the VIX-method reads the latest close from.")] public string VixCsvPath { get; set; }
+		[Display(Name = "gexlog raw dir", Order = 1, GroupName = "01C Expected Move (settings)", Description = "Folder with the dated gexlog brief JSON files (reads {date}_morning, else {date-1}_evening).")] public string GexlogRawDir { get; set; }
+		[Display(Name = "Manual VIX (0 = auto)", Order = 2, GroupName = "01C Expected Move (settings)", Description = "Override the VIX used by the VIX-method; 0 = read latest close from the CSV.")] public double EmManualVix { get; set; }
+		[Range(0.1, 5.0)] [Display(Name = "Sigma multiplier", Order = 3, GroupName = "01C Expected Move (settings)", Description = "1.0 = ~68% band; 2.0 = ~95%. Applies to the VIX method.")] public double EmSigma { get; set; }
+
+		// ---- 1D Max (VIX) ----
+		[Display(Name = "Enabled", Order = 0, GroupName = "01D 1D Max (VIX formula)")] public bool EMV_Max_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "01D 1D Max (VIX formula)")] public string EMV_Max_Label { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "01D 1D Max (VIX formula)")] public WMBrush EMV_Max_Color { get; set; }
+		[Browsable(false)] public string EMV_Max_ColorSerialize { get { return Serialize.BrushToString(EMV_Max_Color); } set { EMV_Max_Color = Serialize.StringToBrush(value); } }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "01D 1D Max (VIX formula)")] public int EMV_Max_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "01D 1D Max (VIX formula)")] public LevelLineStyle EMV_Max_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "01D 1D Max (VIX formula)")] public int EMV_Max_Thickness { get; set; }
+
+		// ---- 1D Min (VIX) ----
+		[Display(Name = "Enabled", Order = 0, GroupName = "01E 1D Min (VIX formula)")] public bool EMV_Min_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "01E 1D Min (VIX formula)")] public string EMV_Min_Label { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "01E 1D Min (VIX formula)")] public WMBrush EMV_Min_Color { get; set; }
+		[Browsable(false)] public string EMV_Min_ColorSerialize { get { return Serialize.BrushToString(EMV_Min_Color); } set { EMV_Min_Color = Serialize.StringToBrush(value); } }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "01E 1D Min (VIX formula)")] public int EMV_Min_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "01E 1D Min (VIX formula)")] public LevelLineStyle EMV_Min_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "01E 1D Min (VIX formula)")] public int EMV_Min_Thickness { get; set; }
+
+		// ---- 1D Max (gexlog) ----
+		[Display(Name = "Enabled", Order = 0, GroupName = "01F 1D Max (gexlog brief)")] public bool EMG_Max_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "01F 1D Max (gexlog brief)")] public string EMG_Max_Label { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "01F 1D Max (gexlog brief)")] public WMBrush EMG_Max_Color { get; set; }
+		[Browsable(false)] public string EMG_Max_ColorSerialize { get { return Serialize.BrushToString(EMG_Max_Color); } set { EMG_Max_Color = Serialize.StringToBrush(value); } }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "01F 1D Max (gexlog brief)")] public int EMG_Max_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "01F 1D Max (gexlog brief)")] public LevelLineStyle EMG_Max_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "01F 1D Max (gexlog brief)")] public int EMG_Max_Thickness { get; set; }
+
+		// ---- 1D Min (gexlog) ----
+		[Display(Name = "Enabled", Order = 0, GroupName = "01G 1D Min (gexlog brief)")] public bool EMG_Min_Enabled { get; set; }
+		[Display(Name = "Label", Order = 1, GroupName = "01G 1D Min (gexlog brief)")] public string EMG_Min_Label { get; set; }
+		[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "01G 1D Min (gexlog brief)")] public WMBrush EMG_Min_Color { get; set; }
+		[Browsable(false)] public string EMG_Min_ColorSerialize { get { return Serialize.BrushToString(EMG_Min_Color); } set { EMG_Min_Color = Serialize.StringToBrush(value); } }
+		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "01G 1D Min (gexlog brief)")] public int EMG_Min_Opacity { get; set; }
+		[Display(Name = "Line style", Order = 4, GroupName = "01G 1D Min (gexlog brief)")] public LevelLineStyle EMG_Min_Style { get; set; }
+		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "01G 1D Min (gexlog brief)")] public int EMG_Min_Thickness { get; set; }
 
 		// ---- RTH HOY ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "02 RTH - HOY (prior RTH high)")] public bool RHOY_Enabled { get; set; }
