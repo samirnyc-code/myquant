@@ -126,10 +126,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private DateTime _ethCurWeekStart  = Core.Globals.MinDate;
 		private int      _ethCurMonthKey   = -1;
 
-		// Primary chart's current-session open bar = first bar of the current trading day on
-		// THIS chart (RTH open on an RTH chart, ETH/Globex 17:00 open on an ETH chart). The
-		// ETH H/L lines start here so they begin at the session open the user is looking at.
-		private int      _primaryDayOpenBar = -1;
+		// Primary chart's current-session open bars = first bar of the current trading day /
+		// week / month on THIS chart (RTH open on an RTH chart, ETH/Globex 17:00 open on an
+		// ETH chart). ETH lines start here on intraday charts so they begin at the session
+		// open the user is looking at. (On daily charts these stay -1 — the primary loop that
+		// sets them is skipped — and rendering falls back to the calendar-date walk.)
+		private int      _primaryDayOpenBar   = -1;
+		private int      _primaryWeekOpenBar  = -1;
+		private int      _primaryMonthOpenBar = -1;
 
 		// ── Chart Trader toggle buttons ───────────────────────────────────
 		private Grid   ctButtonsGrid;
@@ -223,7 +227,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 				_ethDayIter = null; _rthMembershipIter = null; _ethLocked = false;
 				_ethCurTradingDay = Core.Globals.MinDate; _ethCurWeekStart = Core.Globals.MinDate; _ethCurMonthKey = -1;
-				_primaryDayOpenBar = -1;
+				_primaryDayOpenBar = _primaryWeekOpenBar = _primaryMonthOpenBar = -1;
 
 				_dayIter = null; _rthHours = null; _rthIter = null; _rthOk = false;
 				_curTradingDay = Core.Globals.MinDate; _curWeekStart = Core.Globals.MinDate; _curMonthKey = -1;
@@ -309,12 +313,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					_curWeekStart         = wkStart;
 					_weekAwaitingRthOpen  = true;
+					_primaryWeekOpenBar   = CurrentBar;   // first bar of this chart's week = its week's session open
 				}
 				int monthKey = tradingDay.Year * 12 + tradingDay.Month;
 				if (monthKey != _curMonthKey)
 				{
 					_curMonthKey           = monthKey;
 					_monthAwaitingRthOpen  = true;
+					_primaryMonthOpenBar   = CurrentBar;  // first bar of this chart's month
 				}
 
 				if (_rthOk)
@@ -562,24 +568,36 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			if (_ethVisible)
 			{
-				// ETH values come from the hidden ETH series. Start bars are resolved from the
-				// PRIMARY chart's own bars by period (day/week/month) at render time, so this
-				// works on ANY chart period — intraday (session-open bar) AND daily (the
-				// day/week/month's first daily bar). No dependency on the intraday-only
-				// primary OnBarUpdate loop (which is skipped entirely on a daily chart).
-				int ethDayStart   = FirstBarOfCurrentPeriod(0);   // current trading day open
-				int ethWeekStart  = FirstBarOfCurrentPeriod(1);   // current week open
-				int ethMonthStart = FirstBarOfCurrentPeriod(2);   // current month open
-				Add(list, EHOY_Enabled, EHOY_Label, _ethHigh,          EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 1, ethDayStart);
-				Add(list, ELOY_Enabled, ELOY_Label, _ethLow,           ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 1, ethDayStart);
-				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,    ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 1, ethDayStart);
-				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,     EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 1, ethDayStart);
-				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek,  EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 1, ethWeekStart);
+				// ETH start bars: on an INTRADAY chart use the primary chart's own session-open
+				// bars (RTH open on an RTH chart, ETH/Globex 17:00 open on an ETH chart) tracked
+				// in OnBarUpdate — so ETH lines begin at the session open, not calendar midnight.
+				// On a DAILY chart that primary loop is skipped, so fall back to the calendar
+				// date walk (the day/week/month's first daily bar).
+				int ethDayStart, ethWeekStart, ethMonthStart;
+				if (BarsArray != null && BarsArray.Length > 0 && BarsArray[0].BarsType.IsIntraday)
+				{
+					int fb = ChartBars != null ? ChartBars.FromIndex : 0;
+					ethDayStart   = _primaryDayOpenBar   >= 0 ? _primaryDayOpenBar   : fb;
+					ethWeekStart  = _primaryWeekOpenBar  >= 0 ? _primaryWeekOpenBar  : fb;
+					ethMonthStart = _primaryMonthOpenBar >= 0 ? _primaryMonthOpenBar : fb;
+				}
+				else
+				{
+					ethDayStart   = FirstBarOfCurrentPeriod(0);
+					ethWeekStart  = FirstBarOfCurrentPeriod(1);
+					ethMonthStart = FirstBarOfCurrentPeriod(2);
+				}
+				// col 0 = same label column as the RTH levels (de-collision merges them).
+				Add(list, EHOY_Enabled, EHOY_Label, _ethHigh,          EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 0, ethDayStart);
+				Add(list, ELOY_Enabled, ELOY_Label, _ethLow,           ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 0, ethDayStart);
+				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,    ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 0, ethDayStart);
+				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,     EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 0, ethDayStart);
+				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek,  EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 0, ethWeekStart);
 				// ETH OoM: manual override wins when a price is set and its month == the current ETH month
 				double eOoM = _ethOpenThisMonth;
 				if (EOoM_ManualPrice != 0 && MonthKeyOf(EOoM_ManualMonth) == _ethCurMonthKey)
 					eOoM = EOoM_ManualPrice;
-				Add(list, EOoM_Enabled, EOoM_Label, eOoM, EOoM_Color, EOoM_Opacity, EOoM_Style, EOoM_Thickness, 1, ethMonthStart);
+				Add(list, EOoM_Enabled, EOoM_Label, eOoM, EOoM_Color, EOoM_Opacity, EOoM_Style, EOoM_Thickness, 0, ethMonthStart);
 			}
 
 			// Custom/manual levels: no "session" origin bar to anchor to, so the start date
