@@ -145,8 +145,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private Grid   ctButtonsGrid;
 		private bool   ctPanelActive;
 		private int    ctBaseRowCount;
-		private Button btnRth, btnEth, btnLabels;
+		private Button btnRth, btnEth, btnLabels, btnPrice;
 		private bool   _rthVisible = true, _ethVisible = true, _labelsVisible = true;
+		private bool   _priceVisibleSet = false; private bool _priceVisible = true;  // CT price toggle; seeded from ShowPriceInLabel on first render
 		private WMColor ColorOn  = WMColor.FromRgb(0, 140, 0);
 		private WMColor ColorOff = WMColor.FromRgb(80, 80, 80);
 
@@ -537,7 +538,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				float y = chartScale.GetYByValue(d.price);
 				DrawStyledLine(xStart, xEnd, y, sdxBrush, d.thickness, d.style);
 
-				string text = ShowPriceInLabel ? d.label + " " + F(d.price) : d.label;
+				string text = (_priceVisibleSet ? _priceVisible : ShowPriceInLabel) ? d.label + " " + F(d.price) : d.label;
 				bool capped = xEnd < lineEndX - 0.5f;   // line stops before the right edge -> label sits at the cap
 				labels.Add(new LabelInfo { y = y, trueY = y, text = text, brush = sdxBrush, col = d.col, inline = capped, xInline = xEnd + 6f });
 			}
@@ -613,14 +614,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// is a user-picked calendar date (StartDate property -> a calendar dropdown in
 			// the Properties grid). Left unset (Core.Globals.MinDate sentinel) -> falls back
 			// to the leftmost visible bar, same as before.
-			Add(list, C1_Enabled && C1_Price != 0, C1_Label, C1_Price, C1_Color, C1_Opacity, C1_Style, C1_Thickness, 2, ResolveCustomStartBar(C1_StartDate));
-			Add(list, C2_Enabled && C2_Price != 0, C2_Label, C2_Price, C2_Color, C2_Opacity, C2_Style, C2_Thickness, 2, ResolveCustomStartBar(C2_StartDate));
-			Add(list, C3_Enabled && C3_Price != 0, C3_Label, C3_Price, C3_Color, C3_Opacity, C3_Style, C3_Thickness, 2, ResolveCustomStartBar(C3_StartDate));
-			Add(list, C4_Enabled && C4_Price != 0, C4_Label, C4_Price, C4_Color, C4_Opacity, C4_Style, C4_Thickness, 2, ResolveCustomStartBar(C4_StartDate));
-			Add(list, C5_Enabled && C5_Price != 0, C5_Label, C5_Price, C5_Color, C5_Opacity, C5_Style, C5_Thickness, 2, ResolveCustomStartBar(C5_StartDate));
-			Add(list, C6_Enabled && C6_Price != 0, C6_Label, C6_Price, C6_Color, C6_Opacity, C6_Style, C6_Thickness, 2, ResolveCustomStartBar(C6_StartDate));
-			Add(list, C7_Enabled && C7_Price != 0, C7_Label, C7_Price, C7_Color, C7_Opacity, C7_Style, C7_Thickness, 2, ResolveCustomStartBar(C7_StartDate));
-			Add(list, C8_Enabled && C8_Price != 0, C8_Label, C8_Price, C8_Color, C8_Opacity, C8_Style, C8_Thickness, 2, ResolveCustomStartBar(C8_StartDate));
+			Add(list, C1_Enabled && C1_Price != 0, C1_Label, C1_Price, C1_Color, C1_Opacity, C1_Style, C1_Thickness, 0, ResolveCustomStartBar(C1_StartDate));
+			Add(list, C2_Enabled && C2_Price != 0, C2_Label, C2_Price, C2_Color, C2_Opacity, C2_Style, C2_Thickness, 0, ResolveCustomStartBar(C2_StartDate));
+			Add(list, C3_Enabled && C3_Price != 0, C3_Label, C3_Price, C3_Color, C3_Opacity, C3_Style, C3_Thickness, 0, ResolveCustomStartBar(C3_StartDate));
+			Add(list, C4_Enabled && C4_Price != 0, C4_Label, C4_Price, C4_Color, C4_Opacity, C4_Style, C4_Thickness, 0, ResolveCustomStartBar(C4_StartDate));
+			Add(list, C5_Enabled && C5_Price != 0, C5_Label, C5_Price, C5_Color, C5_Opacity, C5_Style, C5_Thickness, 0, ResolveCustomStartBar(C5_StartDate));
+			Add(list, C6_Enabled && C6_Price != 0, C6_Label, C6_Price, C6_Color, C6_Opacity, C6_Style, C6_Thickness, 0, ResolveCustomStartBar(C6_StartDate));
+			Add(list, C7_Enabled && C7_Price != 0, C7_Label, C7_Price, C7_Color, C7_Opacity, C7_Style, C7_Thickness, 0, ResolveCustomStartBar(C7_StartDate));
+			Add(list, C8_Enabled && C8_Price != 0, C8_Label, C8_Price, C8_Color, C8_Opacity, C8_Style, C8_Thickness, 0, ResolveCustomStartBar(C8_StartDate));
 
 			return list;
 		}
@@ -741,9 +742,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount, btnRth, btnEth);
 
-				btnLabels = MakeBtn(s, "LABELS", "Toggle level labels / price text", _labelsVisible ? ColorOn : ColorOff);
+				btnLabels = MakeBtn(s, "LABELS", "Toggle level labels on/off", _labelsVisible ? ColorOn : ColorOff);
 				btnLabels.Click += (o, e) => { _labelsVisible = !_labelsVisible; SetBtn(btnLabels, _labelsVisible ? ColorOn : ColorOff); ChartControl.InvalidateVisual(); };
-				AddFullRow(ctButtonsGrid, ctBaseRowCount + 1, btnLabels);
+
+				if (!_priceVisibleSet) { _priceVisible = ShowPriceInLabel; _priceVisibleSet = true; }
+				btnPrice = MakeBtn(s, "PRICE", "Toggle the price value in the labels", _priceVisible ? ColorOn : ColorOff);
+				btnPrice.Click += (o, e) => { _priceVisible = !_priceVisible; SetBtn(btnPrice, _priceVisible ? ColorOn : ColorOff); ChartControl.InvalidateVisual(); };
+				AddHalfRow(ctButtonsGrid, ctBaseRowCount + 1, btnLabels, btnPrice);
 
 				ctPanelActive = true;
 			}
@@ -760,7 +765,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					ctButtonsGrid.Children.RemoveAt(ctButtonsGrid.Children.Count - 1);
 				while (ctButtonsGrid.RowDefinitions.Count > baseRows)
 					ctButtonsGrid.RowDefinitions.RemoveAt(ctButtonsGrid.RowDefinitions.Count - 1);
-				btnRth = btnEth = btnLabels = null;
+				btnRth = btnEth = btnLabels = btnPrice = null;
 				ctPanelActive = false;
 			}
 			catch (Exception ex) { Print("SessionSRLevelsV9 DisposeWPFControls: " + ex.Message); }
