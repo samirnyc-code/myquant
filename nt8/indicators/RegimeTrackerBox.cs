@@ -101,8 +101,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				DrawOnPricePanel = true;
 
 				Timeframes = "2000t,5M,15M,60M,240M,D,W";
-				RthTemplate = "CME RTH";
-				EthTemplate = "CME ETH";
+				RthTemplate = "CME US Index Futures RTH";
+				EthTemplate = "CME US Index Futures ETH";
 
 				// MyWedge (defaults = the validated Python run's params, as in RegimeTrackerPanel)
 				LookBack      = 12;
