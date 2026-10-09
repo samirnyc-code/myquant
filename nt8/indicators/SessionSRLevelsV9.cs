@@ -522,11 +522,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				float xStart = Math.Max(panelLeft, chartControl.GetXByBarIndex(ChartBars, startIdx));
 
 				// Optional per-level right cap (e.g. OoD RTH stops at its RTH session end
-				// instead of spilling into the following ETH session).
+				// instead of spilling into the following ETH session). The cap still honors
+				// ExtendBarsRight — the line runs ExtendBarsRight bars past the session end,
+				// never beyond the global right edge (lineEndX).
 				float xEnd = lineEndX;
-				if (d.endBarIdx >= 0 && d.endBarIdx < lastIdx)
+				if (d.endBarIdx >= 0)
 				{
-					float xe = chartControl.GetXByBarIndex(ChartBars, d.endBarIdx);
+					float xe = chartControl.GetXByBarIndex(ChartBars, d.endBarIdx + ExtendBarsRight);
 					if (xe < xEnd) xEnd = xe;
 				}
 				if (xStart >= xEnd) continue;
