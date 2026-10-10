@@ -613,7 +613,40 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// registered HH/LL (hasn't been registered as the new extreme yet);
 			// <0% means price has pulled back through the invalidation level before
 			// the regime flip has been detected/processed.
-			public double CurrentPct { get { return ComputePct(_close[0]); } }
+			private DateTime _lastLiveLog = DateTime.MinValue;
+
+			public double CurrentPct
+			{
+				get
+				{
+					double price = _close[0];
+					double pct = ComputePct(price);
+					// throttled live-read diagnostic: logs what OnRender actually
+					// sees as "current price" for this engine, distinct from the
+					// bar-close rows ProcessBar writes -- lets a suspected stale/
+					// misindexed Close[0] read be confirmed directly instead of
+					// inferred from the displayed %.
+					if (_debugSink != null && (DateTime.UtcNow - _lastLiveLog).TotalSeconds >= 3)
+					{
+						_lastLiveLog = DateTime.UtcNow;
+						_debugSink(string.Join(",", new[]
+						{
+							_label,
+							"LIVE-" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+							"",
+							"LiveRead",
+							_trend,
+							Fmt(price),
+							_legSet ? Fmt(_leg) : "",
+							_cntSet ? Fmt(_counter) : "",
+							_rangeSet ? Fmt(_rangeLow) : "",
+							_rangeSet ? Fmt(_rangeHigh) : "",
+							Fmt(pct)
+						}));
+					}
+					return pct;
+				}
+			}
 
 			private double ComputePct(double price)
 			{
