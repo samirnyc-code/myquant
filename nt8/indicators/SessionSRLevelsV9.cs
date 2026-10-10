@@ -127,6 +127,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private DateTime _ethCurWeekStart  = Core.Globals.MinDate;
 		private int      _ethCurMonthKey   = -1;
 
+		// ── Historical levels (Model A: each level confined to its own session) ──
+		// One record per COMPLETED RTH session, pushed at the day roll; bounded list.
+		private class HRSess { public double o, h, l, c; public int oBar, hBar, lBar, cBar, startBar, endBar; }
+		private readonly List<HRSess> _rthHist = new List<HRSess>();
+
 		// Primary chart's current-session open bars = first bar of the current trading day /
 		// week / month on THIS chart (RTH open on an RTH chart, ETH/Globex 17:00 open on an
 		// ETH chart). ETH lines start here on intraday charts so they begin at the session
@@ -187,6 +192,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				LabelFontSize       = 11;
 				ShowPriceInLabel    = true;
 				ExtendBarsRight     = 10;
+				HistSessions        = 5;
+				HistOpacity         = 45;
 
 				// Current-day running High/Low (computed from the chart's own bars for today).
 				CDH_Enabled = true; CDH_Label = "HoD"; CDH_Color = Brushes.DarkCyan; CDH_Opacity = 100; CDH_Style = LevelLineStyle.Solid; CDH_Thickness = 1;
@@ -257,6 +264,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_ethCurTradingDay = Core.Globals.MinDate; _ethCurWeekStart = Core.Globals.MinDate; _ethCurMonthKey = -1;
 				_primaryDayOpenBar = _primaryWeekOpenBar = _primaryMonthOpenBar = -1;
 				_curDayHigh = _curDayLow = double.NaN; _curDayStartBar = -1;
+				_rthHist.Clear();
 
 				_dayIter = null; _rthHours = null; _rthIter = null; _rthOk = false;
 				_curTradingDay = Core.Globals.MinDate; _curWeekStart = Core.Globals.MinDate; _curMonthKey = -1;
@@ -330,6 +338,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 					_priorRthHigh = _rthHigh; _priorRthHighStartBar = _rthHighBar;
 					_priorRthLow  = _rthLow;  _priorRthLowStartBar  = _rthLowBar;
 					_priorRthClose = _rthCloseLast; _priorRthCloseStartBar = _rthLastBar;
+
+					// Push the just-completed RTH session into history (Model A confined segment).
+					_rthHist.Add(new HRSess {
+						o = _rthOpenToday, oBar = _rthOpenStartBar,
+						h = _rthHigh, hBar = _rthHighBar, l = _rthLow, lBar = _rthLowBar,
+						c = _rthCloseLast, cBar = _rthLastBar,
+						startBar = _rthOpenStartBar >= 0 ? _rthOpenStartBar : _rthHighBar,
+						endBar = _rthLastBar });
+					if (_rthHist.Count > 70) _rthHist.RemoveAt(0);
 				}
 
 				_curTradingDay        = tradingDay;
@@ -677,6 +694,69 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (_labelsVisible) DrawLabels(labels, lineEndX + 6f);
 
 			foreach (LabelInfo li in labels) li.brush.Dispose();
+
+			DrawHistorical(chartControl, chartScale);
+		}
+
+		// Historical levels (Model A): each completed RTH session's O/H/L/C as a horizontal
+		// segment confined to that session (startBar→endBar), dimmed, with a centered label
+		// placed above the line (H/C/O) or below it (L) to stay off the candles.
+		private void DrawHistorical(ChartControl chartControl, ChartScale chartScale)
+		{
+			if (HistSessions <= 0 || _rthHist.Count == 0 || ChartBars == null) return;
+			int fromV = ChartBars.FromIndex, toV = ChartBars.ToIndex;
+			if (toV < 0) return;
+			float panelLeft = (float)ChartPanel.X, panelRight = (float)(ChartPanel.X + ChartPanel.W);
+			float dim = Math.Max(0.1f, Math.Min(1f, HistOpacity / 100f));
+			float textH = LabelFontSize + 6f;
+
+			TextFormat tf = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Arial", LabelFontSize);
+			tf.WordWrapping = WordWrapping.NoWrap;
+
+			int n = Math.Min(HistSessions, _rthHist.Count);
+			for (int k = _rthHist.Count - n; k < _rthHist.Count; k++)
+			{
+				HRSess s = _rthHist[k];
+				if (s.endBar < fromV || s.startBar > toV) continue;   // session fully off-screen
+				// O/H/L/C: price, enabled, label, color, style, thickness, above?(true)/below(false)
+				DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
+							ROoD_Enabled, s.o, ROoD_Label, ROoD_Color, ROoD_Style, ROoD_Thickness, true);
+				DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
+							RHOY_Enabled, s.h, RHOY_Label, RHOY_Color, RHOY_Style, RHOY_Thickness, true);
+				DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
+							RLOY_Enabled, s.l, RLOY_Label, RLOY_Color, RLOY_Style, RLOY_Thickness, false);
+				DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
+							RCOY_Enabled, s.c, RCOY_Label, RCOY_Color, RCOY_Style, RCOY_Thickness, true);
+			}
+			tf.Dispose();
+		}
+
+		private void DrawHistSeg(ChartControl cc, ChartScale cs, TextFormat tf, int startBar, int endBar,
+			float panelLeft, float panelRight, float dim, float textH,
+			bool enabled, double price, string label, WMBrush brush, LevelLineStyle style, int thickness, bool above)
+		{
+			if (!enabled || double.IsNaN(price) || startBar < 0 || endBar < startBar) return;
+			int sIdx = Math.Max(startBar, ChartBars.FromIndex);
+			int eIdx = Math.Min(endBar, ChartBars.ToIndex);
+			if (eIdx < sIdx) return;
+			float xL = Math.Max(panelLeft, cc.GetXByBarIndex(ChartBars, sIdx));
+			float xR = Math.Min(panelRight, cc.GetXByBarIndex(ChartBars, eIdx));
+			if (xR <= xL) return;
+
+			var scb = brush as WMSolidColorBrush;
+			WMColor wc = scb != null ? scb.Color : Colors.Gray;
+			var d2d = new D2DSolidColorBrush(RenderTarget, new Color4(wc.R / 255f, wc.G / 255f, wc.B / 255f, dim));
+			float y = cs.GetYByValue(price);
+			DrawStyledLine(xL, xR, y, d2d, thickness, style);
+
+			if (_labelsVisible && label != null && label.Length > 0)
+			{
+				string txt = ShowPriceInLabel ? label + " " + F(price) : label;
+				float cx = (xL + xR) / 2f - (txt.Length * LabelFontSize * 0.28f);   // roughly centered
+				float ty = above ? (y - textH - 1f) : (y + 1f);
+				RenderTarget.DrawText(txt, tf, new RectangleF(cx, ty, LabelFontSize * 18f, textH), d2d);
+			}
+			d2d.Dispose();
 		}
 
 		private List<LevelDef> BuildLevelDefs()
@@ -972,6 +1052,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name = "Extend lines right (bars)", Order = 4, GroupName = "01 Display",
 			Description = "How many bars past the current bar the lines/labels are drawn out to.")]
 		public int ExtendBarsRight { get; set; }
+
+		[Range(0, 60)]
+		[Display(Name = "Historical sessions (0 = off)", Order = 5, GroupName = "01 Display",
+			Description = "Draw the last N completed RTH sessions' O/H/L/C as confined segments (Model A). 0 = current only.")]
+		public int HistSessions { get; set; }
+
+		[Range(10, 100)]
+		[Display(Name = "Historical opacity %", Order = 6, GroupName = "01 Display",
+			Description = "Dim factor for historical level lines + labels so they read as faint reference.")]
+		public int HistOpacity { get; set; }
 
 		// ---- Current Day High ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "01A Current Day - High")] public bool CDH_Enabled { get; set; }
