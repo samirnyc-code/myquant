@@ -116,6 +116,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// concurrent read+write, so both sides must go through this lock.
 		private readonly object _debugLock = new object();
 
+		// Live last-trade price, captured ONLY via OnMarketData (the NinjaScript-
+		// correct per-tick hook, synchronized to its own data pipeline). Close[0]
+		// read directly from OnRender was CONFIRMED (via the LiveRead diagnostic)
+		// to return each series' absolute bar-0 (oldest loaded bar) instead of the
+		// live price -- Series indexers are not reliable outside OnBarUpdate/
+		// OnMarketData context, and OnRender runs on a separate UI-timer-driven
+		// callback. All 14 (now 12) cells share ONE live price (same instrument),
+		// so this is captured once at the indicator level, not per-engine.
+		private double _livePrice = double.NaN;
+
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -350,6 +360,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			c.Eng.OnBar(CurrentBar);   // CurrentBar is the current index of THIS series
 		}
 
+		// the ONLY safe place to capture the live price for OnRender/CurrentPct to
+		// read -- see _livePrice's comment.
+		protected override void OnMarketData(MarketDataEventArgs e)
+		{
+			if (e.MarketDataType == MarketDataType.Last) _livePrice = e.Price;
+		}
+
 		// ── table render ──────────────────────────────────────────────────────
 		protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
 		{
@@ -470,7 +487,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			string txt = ShowRegimeText ? (reg > 0 ? BULL : reg < 0 ? BEAR : RANGE) : "";
 			if (ShowPct && c != null && c.Eng != null)
 			{
-				double pct = c.Eng.CurrentPct;
+				double pct = c.Eng.CurrentPct(_livePrice);
 				if (!double.IsNaN(pct))
 					txt += (txt.Length > 0 ? " " : "") + Math.Round(pct).ToString("0") + "%";
 			}
@@ -598,10 +615,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			public double CurrentRegime { get { return _trend == BULL ? 1.0 : _trend == BEAR ? -1.0 : 0.0; } }
 
-			// Position-in-range-or-leg, as a percent, read against the LIVE price
-			// (_close[0] -- updates tick-by-tick even under Calculate.OnBarClose,
-			// independent of when the forming bar actually closes and registers a
-			// new extreme). NaN = not enough state yet (e.g. no counter pivot formed).
+			// Position-in-range-or-leg, as a percent, read against the LIVE price.
+			// price is passed in by the caller (RegimeTrackerBox.OnMarketData's
+			// cached _livePrice) -- NOT read via _close[0] here. CONFIRMED via the
+			// LiveRead diagnostic that a Series indexer accessed from OnRender
+			// returns each series' absolute bar-0 (oldest loaded bar) instead of
+			// the live price; indexers are only reliable inside OnBarUpdate/
+			// OnMarketData's own synchronized context. NaN = not enough state yet
+			// (e.g. no counter pivot formed) or no live price received yet.
 			//
 			// RANGE: 0% = running range low, 100% = running range high since the
 			// range began; CLAMPED to [0,100] (by definition of "where in the range").
@@ -615,37 +636,32 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// the regime flip has been detected/processed.
 			private DateTime _lastLiveLog = DateTime.MinValue;
 
-			public double CurrentPct
+			public double CurrentPct(double livePrice)
 			{
-				get
+				if (double.IsNaN(livePrice)) return double.NaN;
+				double pct = ComputePct(livePrice);
+				// throttled live-read diagnostic: logs what OnRender actually used
+				// as "current price" for this engine, distinct from the bar-close
+				// rows ProcessBar writes.
+				if (_debugSink != null && (DateTime.UtcNow - _lastLiveLog).TotalSeconds >= 3)
 				{
-					double price = _close[0];
-					double pct = ComputePct(price);
-					// throttled live-read diagnostic: logs what OnRender actually
-					// sees as "current price" for this engine, distinct from the
-					// bar-close rows ProcessBar writes -- lets a suspected stale/
-					// misindexed Close[0] read be confirmed directly instead of
-					// inferred from the displayed %.
-					if (_debugSink != null && (DateTime.UtcNow - _lastLiveLog).TotalSeconds >= 3)
+					_lastLiveLog = DateTime.UtcNow;
+					_debugSink(string.Join(",", new[]
 					{
-						_lastLiveLog = DateTime.UtcNow;
-						_debugSink(string.Join(",", new[]
-						{
-							_label,
-							"LIVE-" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-							"",
-							"LiveRead",
-							_trend,
-							Fmt(price),
-							_legSet ? Fmt(_leg) : "",
-							_cntSet ? Fmt(_counter) : "",
-							_rangeSet ? Fmt(_rangeLow) : "",
-							_rangeSet ? Fmt(_rangeHigh) : "",
-							Fmt(pct)
-						}));
-					}
-					return pct;
+						_label,
+						"LIVE-" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+						"",
+						"LiveRead",
+						_trend,
+						Fmt(livePrice),
+						_legSet ? Fmt(_leg) : "",
+						_cntSet ? Fmt(_counter) : "",
+						_rangeSet ? Fmt(_rangeLow) : "",
+						_rangeSet ? Fmt(_rangeHigh) : "",
+						Fmt(pct)
+					}));
 				}
+				return pct;
 			}
 
 			private double ComputePct(double price)
