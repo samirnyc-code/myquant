@@ -73,7 +73,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			public int Bip;         // BarsInProgress index of its data series
 			public int Row;         // timeframe row (0-based)
-			public int Col;         // 0 = RTH, 1 = ETH
+			public int Col;         // 0 = RTH, 1 = ETH (ignored when Merged)
+			public bool Merged;     // D/W: RTH and ETH are byte-identical on this
+			                        // NT8 install (verified), so D/W get ONE series,
+			                        // rendered spanning both columns instead of a
+			                        // misleading duplicate pair.
 			public RegimeEngine Eng;
 		}
 
@@ -216,14 +220,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 							: Math.Max(10, (int)Math.Ceiling(DaysToLoad * 260.0 / 365.0));
 						// isResetOnNewTradingDay passed as null (use NT8's own default)
 						// instead of an explicit false -- an explicit value here was
-						// suspected of changing how NT8 syncs this ADDED series'
-						// historical data (it was stuck one session behind the
-						// primary chart, surviving a full NT8 restart, so it wasn't a
-						// caching issue).
+						// suspected (not confirmed) of changing how NT8 syncs this
+						// ADDED series' historical data. Left as null since it's a
+						// reasonable default regardless.
+						//
+						// RTH and ETH templates produce BYTE-IDENTICAL Daily/Weekly
+						// bars on this NT8 install (verified: 0 of 259 Daily rows and
+						// 0 of 52 Weekly rows differed across the full lookback) --
+						// an NT8 platform behavior for Day/Week periods specifically,
+						// not something this code controls. Rather than add a second
+						// series that will only ever duplicate the first, add ONE
+						// and render it spanning both columns (Cell.Merged).
 						AddDataSeries(Instrument.FullName, MakePeriod(tf), bars, RthTemplate, null);
-						_cells.Add(new Cell { Bip = bip++, Row = r, Col = 0 });
-						AddDataSeries(Instrument.FullName, MakePeriod(tf), bars, EthTemplate, null);
-						_cells.Add(new Cell { Bip = bip++, Row = r, Col = 1 });
+						_cells.Add(new Cell { Bip = bip++, Row = r, Col = 0, Merged = true });
 					}
 				}
 
@@ -249,7 +258,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					TfDef tf = _tfs[c.Row];
 					bool resetSession = ResetOnNewSession && tf.Intraday;   // never for D/W
-					string label = tf.Label + (c.Col == 0 ? "-RTH" : "-ETH");
+					string label = c.Merged ? tf.Label : tf.Label + (c.Col == 0 ? "-RTH" : "-ETH");
 
 					My.MyWedge wedge = MyWedge(Closes[c.Bip], LookBack, ShowW2L, WedgeSymmetry,
 						OLSensitivity, CTSB_Ignore, IB_Ignore, ShowWedgeSB, SignalBarIBS,
@@ -410,17 +419,34 @@ namespace NinjaTrader.NinjaScript.Indicators
 						float ry = y0 + rowH * (r + 1);
 						RenderTarget.DrawText(_tfs[r].Label, tfBold, Rect(x0, ry, labelW, rowH), textDx);
 
-						DrawCell(r, 0, hx1, ry, dataW, rowH, tfCenter, textDx, bullDx, bearDx, rangeDx);
-						DrawCell(r, 1, hx2, ry, dataW, rowH, tfCenter, textDx, bullDx, bearDx, rangeDx);
+						if (_tfs[r].Intraday)
+						{
+							DrawCell(r, 0, hx1, ry, dataW, rowH, tfCenter, textDx, bullDx, bearDx, rangeDx);
+							DrawCell(r, 1, hx2, ry, dataW, rowH, tfCenter, textDx, bullDx, bearDx, rangeDx);
+						}
+						else
+						{
+							// D/W: RTH and ETH are byte-identical on this NT8 install
+							// (verified), so one merged cell spans both columns
+							// instead of a misleading duplicate pair.
+							DrawCell(r, 0, hx1, ry, dataW * 2, rowH, tfCenter, textDx, bullDx, bearDx, rangeDx);
+						}
 					}
 
 					if (ShowBorder)
 					{
-						// outer frame + column separators + header underline
+						// outer frame + header underline
 						RenderTarget.DrawRectangle(new RectangleF(x0, y0, totalW, totalH), borderDx, 1f);
-						RenderTarget.DrawLine(new Vector2(hx1, y0), new Vector2(hx1, y0 + totalH), borderDx, 1f);
-						RenderTarget.DrawLine(new Vector2(hx2, y0), new Vector2(hx2, y0 + totalH), borderDx, 1f);
 						RenderTarget.DrawLine(new Vector2(x0, y0 + rowH), new Vector2(x0 + totalW, y0 + rowH), borderDx, 1f);
+						// column separators: hx1 always; hx2 only through rows that
+						// actually have two distinct columns (skip merged D/W rows)
+						RenderTarget.DrawLine(new Vector2(hx1, y0), new Vector2(hx1, y0 + totalH), borderDx, 1f);
+						for (int r = 0; r < _tfs.Count; r++)
+						{
+							if (!_tfs[r].Intraday) continue;
+							float ry = y0 + rowH * (r + 1);
+							RenderTarget.DrawLine(new Vector2(hx2, ry), new Vector2(hx2, ry + rowH), borderDx, 1f);
+						}
 					}
 				}
 				finally
