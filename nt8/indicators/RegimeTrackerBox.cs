@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Windows.Media;
+using System.Windows.Threading;
 using System.Xml.Serialization;
 using NinjaTrader.Cbi;
 using NinjaTrader.Data;
@@ -89,6 +90,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// render brushes (opacity-adjusted); color pickers keep the raw opaque color
 		private WMBrush _bullShade, _bearShade, _rangeShade;
 
+		// forces a repaint between bar closes so the live-price-driven cell %s
+		// actually refresh (see State.Historical below)
+		private DispatcherTimer _renderTimer;
+
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -129,6 +134,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				FontSize     = 14;
 				CellPadding  = 6;
 				ShowRegimeText = true;
+				ShowPct        = true;
+				RenderIntervalMs = 500;
 				ShowBorder     = true;
 
 				// colors
@@ -186,6 +193,33 @@ namespace NinjaTrader.NinjaScript.Indicators
 					_byBip[c.Bip] = c;
 				}
 			}
+			else if (State == State.Historical)
+			{
+				// Regime-only cells change at bar close, which already redraws the
+				// chart naturally -- no extra cost needed. The % value reads LIVE
+				// price (Close[0]) between bar closes, so ONLY when % is shown do we
+				// pay for a forced-redraw timer (same InvalidateVisual pattern as
+				// RegimeTrackerV2's visibility-sync timer / DtDbScannerV2/V3), at a
+				// user-editable interval instead of a hardcoded fast one.
+				if (!ShowPct || ChartControl == null) return;
+				ChartControl.Dispatcher.InvokeAsync(() =>
+				{
+					_renderTimer = new DispatcherTimer(DispatcherPriority.Background, ChartControl.Dispatcher);
+					_renderTimer.Interval = TimeSpan.FromMilliseconds(Math.Max(100, RenderIntervalMs));
+					_renderTimer.Tick += (s, e) => { if (ChartControl != null) ChartControl.InvalidateVisual(); };
+					_renderTimer.Start();
+				});
+			}
+			else if (State == State.Terminated)
+			{
+				if (ChartControl != null)
+				{
+					ChartControl.Dispatcher.InvokeAsync(() =>
+					{
+						if (_renderTimer != null) { _renderTimer.Stop(); _renderTimer = null; }
+					});
+				}
+			}
 		}
 
 		protected override void OnBarUpdate()
@@ -221,11 +255,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				float dataW = Measure(factory, tfBold, "RTH");
 				dataW = Math.Max(dataW, Measure(factory, tfBold, "ETH"));
-				if (ShowRegimeText)
+				if (ShowRegimeText || ShowPct)
 				{
-					dataW = Math.Max(dataW, Measure(factory, tfCenter, BULL));
-					dataW = Math.Max(dataW, Measure(factory, tfCenter, BEAR));
-					dataW = Math.Max(dataW, Measure(factory, tfCenter, RANGE));
+					// worst-case strings: regime word alone, and regime + a 3-digit
+					// (possibly negative, possibly >100) pct -- leg pct is unclamped.
+					string[] samples = { BULL, BEAR, RANGE, BULL + " -100%", BEAR + " 150%", RANGE + " 100%" };
+					foreach (string s in samples)
+						dataW = Math.Max(dataW, Measure(factory, tfCenter, s));
 				}
 				dataW += 2 * pad;
 
@@ -293,11 +329,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 			double reg = (c != null && c.Eng != null) ? c.Eng.CurrentRegime : 0.0;
 			var fill = reg > 0 ? bullDx : reg < 0 ? bearDx : rangeDx;
 			RenderTarget.FillRectangle(new RectangleF(x, y, w, h), fill);
-			if (ShowRegimeText)
+
+			if (!ShowRegimeText && !ShowPct) return;
+			string txt = ShowRegimeText ? (reg > 0 ? BULL : reg < 0 ? BEAR : RANGE) : "";
+			if (ShowPct && c != null && c.Eng != null)
 			{
-				string txt = reg > 0 ? BULL : reg < 0 ? BEAR : RANGE;
-				RenderTarget.DrawText(txt, tf, Rect(x, y, w, h), textDx);
+				double pct = c.Eng.CurrentPct;
+				if (!double.IsNaN(pct))
+					txt += (txt.Length > 0 ? " " : "") + Math.Round(pct).ToString("0") + "%";
 			}
+			if (txt.Length > 0) RenderTarget.DrawText(txt, tf, Rect(x, y, w, h), textDx);
 		}
 
 		private static RectangleF Rect(float x, float y, float w, float h) { return new RectangleF(x, y, w, h); }
@@ -387,6 +428,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			private bool   _candSet; private double _cand;     private int _candI;
 			private int    _prevBarDir;
 			private int    _procBar;
+			// running range extremes, tracked only while _trend == RANGE (reset
+			// fresh every time trend transitions INTO range -- see SetTrend/
+			// ResetRegimeState). 0% = _rangeLow, 100% = _rangeHigh.
+			private bool   _rangeSet;  private double _rangeHigh, _rangeLow;
 			private Data.SessionIterator _sessionIt;
 			private DateTime _weekAnchor = DateTime.MinValue;
 			private int _cutoffBar = -1;
@@ -405,6 +450,44 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 
 			public double CurrentRegime { get { return _trend == BULL ? 1.0 : _trend == BEAR ? -1.0 : 0.0; } }
+
+			// Position-in-range-or-leg, as a percent, read against the LIVE price
+			// (_close[0] -- updates tick-by-tick even under Calculate.OnBarClose,
+			// independent of when the forming bar actually closes and registers a
+			// new extreme). NaN = not enough state yet (e.g. no counter pivot formed).
+			//
+			// RANGE: 0% = running range low, 100% = running range high since the
+			// range began; CLAMPED to [0,100] (by definition of "where in the range").
+			//
+			// BULL/BEAR: 0% = the leg's invalidation level (_counter -- the counter-
+			// trend swing that, if broken, flips back to RANGE), 100% = the leg's
+			// running extreme (_leg -- last HH in a bull, last LL in a bear).
+			// UNCLAMPED: >100% means price is live-trading beyond the last
+			// registered HH/LL (hasn't been registered as the new extreme yet);
+			// <0% means price has pulled back through the invalidation level before
+			// the regime flip has been detected/processed.
+			public double CurrentPct
+			{
+				get
+				{
+					double price = _close[0];
+					if (_trend == RANGE)
+					{
+						if (!_rangeSet || _rangeHigh <= _rangeLow) return double.NaN;
+						double p = (price - _rangeLow) / (_rangeHigh - _rangeLow) * 100.0;
+						return Math.Max(0.0, Math.Min(100.0, p));
+					}
+					if (!_legSet || !_cntSet) return double.NaN;
+					if (_trend == BULL)
+					{
+						if (_leg <= _counter) return double.NaN;
+						return (price - _counter) / (_leg - _counter) * 100.0;
+					}
+					// BEAR
+					if (_counter <= _leg) return double.NaN;
+					return (_counter - price) / (_counter - _leg) * 100.0;
+				}
+			}
 
 			public void OnBar(int currentBar)
 			{
@@ -484,7 +567,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 				}
 
-				if (_legSet && !_bosSet)
+				if (_trend == RANGE)
+				{
+					if (!_rangeSet) { _rangeHigh = hp; _rangeLow = lp; _rangeSet = true; }
+					else
+					{
+						if (hp > _rangeHigh) _rangeHigh = hp;
+						if (lp < _rangeLow)  _rangeLow  = lp;
+					}
+				}
+				else if (_legSet && !_bosSet)
 				{
 					if (_trend == BULL && hp > _leg) { _leg = hp; _legI = i; }
 					else if (_trend == BEAR && lp < _leg) { _leg = lp; _legI = i; }
@@ -626,7 +718,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_candSet = false;
 			}
 
-			private void SetTrend(string newTrend) { _trend = newTrend; }
+			private void SetTrend(string newTrend)
+			{
+				_trend = newTrend;
+				if (newTrend == RANGE) _rangeSet = false;   // fresh range envelope starts next ProcessBar
+			}
 
 			private void ResetRegimeState()
 			{
@@ -634,6 +730,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_zzIdx.Clear(); _zzKind.Clear(); _zzPrice.Clear();
 				_seqIdx.Clear(); _seqKind.Clear(); _seqPrice.Clear();
 				_bosSet = false; _legSet = false; _cntSet = false; _candSet = false;
+				_rangeSet = false;
 				_prevBarDir = 0;
 			}
 		}
@@ -676,6 +773,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty] [Range(6, 72)] [Display(Name = "Font size", GroupName = "4 Box", Order = 3)] public int FontSize { get; set; }
 		[NinjaScriptProperty] [Range(0, 40)] [Display(Name = "Cell padding (px)", GroupName = "4 Box", Order = 4)] public int CellPadding { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Show regime text in cells", GroupName = "4 Box", Order = 5)] public bool ShowRegimeText { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Show % in cells (range: 0%=low,100%=high; leg: 0%=invalidation,100%=last HH/LL, can exceed)", GroupName = "4 Box", Order = 8)] public bool ShowPct { get; set; }
+		[NinjaScriptProperty] [Range(100, 5000)] [Display(Name = "% refresh interval (ms, only runs while Show % is on)", GroupName = "4 Box", Order = 9)] public int RenderIntervalMs { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Show border", GroupName = "4 Box", Order = 6)] public bool ShowBorder { get; set; }
 		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Cell opacity %", GroupName = "4 Box", Order = 7)] public int CellOpacity { get; set; }
 
