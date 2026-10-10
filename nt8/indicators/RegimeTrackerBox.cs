@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -94,6 +96,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// actually refresh (see State.Historical below)
 		private DispatcherTimer _renderTimer;
 
+		// DebugLog diagnostic export -- one row per processed bar per engine,
+		// written once historical catch-up finishes (State.Realtime) so it's
+		// readable immediately without waiting for a live bar to close.
+		private List<string> _debugRows;
+		private string       _debugPath;
+
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -145,6 +153,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowPct        = true;
 				RenderIntervalMs = 500;
 				ShowBorder     = true;
+				DebugLog       = false;
 
 				// colors
 				BullBrush   = Brushes.SeaGreen;
@@ -214,10 +223,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 				foreach (Cell c in _cells) if (c.Bip > maxBip) maxBip = c.Bip;
 				_byBip = new Cell[maxBip + 1];
 
+				_debugRows = new List<string>();
+				_debugPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+					string.Format("regime_tracker_box_debug_{0}.csv", Instrument.MasterInstrument.Name));
+				if (DebugLog)
+					_debugRows.Add("Label,BarTime,BarIndex,Event,Trend,ClosePrice,Leg,Counter,RangeLow,RangeHigh,LegOrRangePct");
+
 				foreach (Cell c in _cells)
 				{
 					TfDef tf = _tfs[c.Row];
 					bool resetSession = ResetOnNewSession && tf.Intraday;   // never for D/W
+					string label = tf.Label + (c.Col == 0 ? "-RTH" : "-ETH");
 
 					My.MyWedge wedge = MyWedge(Closes[c.Bip], LookBack, ShowW2L, WedgeSymmetry,
 						OLSensitivity, CTSB_Ignore, IB_Ignore, ShowWedgeSB, SignalBarIBS,
@@ -227,12 +243,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 						wedge,
 						Opens[c.Bip], Highs[c.Bip], Lows[c.Bip], Closes[c.Bip], Times[c.Bip],
 						BarsArray[c.Bip], Lag, resetSession, WeeklyResetOnly,
-						CurrentSessionOnly && resetSession);
+						CurrentSessionOnly && resetSession,
+						label, DebugLog ? _debugRows : null);
 
 					_byBip[c.Bip] = c;
 				}
 			}
-			else if (State == State.Historical)
+			else if (State == State.Realtime || State == State.Terminated)
+			{
+				// written at Realtime (as soon as historical catch-up finishes, so
+				// it's readable without waiting for a live bar to close) and again
+				// at Terminated as a final flush.
+				if (DebugLog && _debugRows != null && _debugRows.Count > 1 && _debugPath != null)
+				{
+					try { File.WriteAllLines(_debugPath, _debugRows); } catch { }
+				}
+			}
+			if (State == State.Historical)
 			{
 				// Regime-only cells change at bar close, which already redraws the
 				// chart naturally -- no extra cost needed. The % value reads LIVE
@@ -475,13 +502,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 			private DateTime _weekAnchor = DateTime.MinValue;
 			private int _cutoffBar = -1;
 
+			// DebugLog diagnostic export -- null (off) unless the indicator's
+			// DebugLog property is on. _label identifies this engine's row+column
+			// (e.g. "D-RTH") in the shared CSV; _lastEvent records what ProcessBar
+			// just did (Enter/BOS/FlipRange/"") so each logged row shows WHY the
+			// state is what it is, not just a snapshot.
+			private readonly string _label;
+			private readonly List<string> _debugSink;
+			private string _lastEvent = "";
+
 			public RegimeEngine(My.MyWedge wedge, ISeries<double> open, ISeries<double> high,
 				ISeries<double> low, ISeries<double> close, TimeSeries time, Bars bars,
-				int lag, bool resetOnSession, bool weeklyResetOnly, bool sessionSkip)
+				int lag, bool resetOnSession, bool weeklyResetOnly, bool sessionSkip,
+				string label, List<string> debugSink)
 			{
 				_wedge = wedge; _open = open; _high = high; _low = low; _close = close; _time = time;
 				_bars = bars; _lag = lag; _resetOnSession = resetOnSession;
 				_weeklyResetOnly = weeklyResetOnly; _sessionSkip = sessionSkip;
+				_label = label; _debugSink = debugSink;
 
 				_zzIdx = new List<int>(); _zzKind = new List<char>(); _zzPrice = new List<double>();
 				_seqIdx = new List<int>(); _seqKind = new List<char>(); _seqPrice = new List<double>();
@@ -505,27 +543,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// registered HH/LL (hasn't been registered as the new extreme yet);
 			// <0% means price has pulled back through the invalidation level before
 			// the regime flip has been detected/processed.
-			public double CurrentPct
+			public double CurrentPct { get { return ComputePct(_close[0]); } }
+
+			private double ComputePct(double price)
 			{
-				get
+				if (_trend == RANGE)
 				{
-					double price = _close[0];
-					if (_trend == RANGE)
-					{
-						if (!_rangeSet || _rangeHigh <= _rangeLow) return double.NaN;
-						double p = (price - _rangeLow) / (_rangeHigh - _rangeLow) * 100.0;
-						return Math.Max(0.0, Math.Min(100.0, p));
-					}
-					if (!_legSet || !_cntSet) return double.NaN;
-					if (_trend == BULL)
-					{
-						if (_leg <= _counter) return double.NaN;
-						return (price - _counter) / (_leg - _counter) * 100.0;
-					}
-					// BEAR
-					if (_counter <= _leg) return double.NaN;
-					return (_counter - price) / (_counter - _leg) * 100.0;
+					if (!_rangeSet || _rangeHigh <= _rangeLow) return double.NaN;
+					double p = (price - _rangeLow) / (_rangeHigh - _rangeLow) * 100.0;
+					return Math.Max(0.0, Math.Min(100.0, p));
 				}
+				if (!_legSet || !_cntSet) return double.NaN;
+				if (_trend == BULL)
+				{
+					if (_leg <= _counter) return double.NaN;
+					return (price - _counter) / (_leg - _counter) * 100.0;
+				}
+				// BEAR
+				if (_counter <= _leg) return double.NaN;
+				return (_counter - price) / (_counter - _leg) * 100.0;
 			}
 
 			public void OnBar(int currentBar)
@@ -562,6 +598,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			private void ProcessBar(int i, int barsAgo)
 			{
+				_lastEvent = "";
 				if (i > 0 && (_resetOnSession || _sessionSkip))
 				{
 					DateTime t = _time[barsAgo];
@@ -596,12 +633,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 					else if (_trend == BULL)
 					{
-						if (side == 'L' && _cntSet && lp < _counter) { _bosSet = false; SetTrend(RANGE); }
+						if (side == 'L' && _cntSet && lp < _counter) { _bosSet = false; _lastEvent = "FlipRange(brokeCounter=" + Fmt(_counter) + ")"; SetTrend(RANGE); }
 						else if (side == 'H' && _bosSet && hp > _bosLevel) Bos(i, hp);
 					}
 					else // BEAR
 					{
-						if (side == 'H' && _cntSet && hp > _counter) { _bosSet = false; SetTrend(RANGE); }
+						if (side == 'H' && _cntSet && hp > _counter) { _bosSet = false; _lastEvent = "FlipRange(brokeCounter=" + Fmt(_counter) + ")"; SetTrend(RANGE); }
 						else if (side == 'L' && _bosSet && lp < _bosLevel) Bos(i, lp);
 					}
 				}
@@ -646,11 +683,36 @@ namespace NinjaTrader.NinjaScript.Indicators
 					{
 						if (_trend == BEAR)
 						{
-							if (!_bosSet && _legSet) { _bosSet = true; _bosLevel = _leg; }
+						if (!_bosSet && _legSet) { _bosSet = true; _bosLevel = _leg; }
 							if (!_candSet || price > _cand) { _cand = price; _candI = i; _candSet = true; }
 						}
 					}
 				}
+
+				if (_debugSink != null)
+				{
+					double closePx = _close[barsAgo];
+					string row = string.Join(",", new[]
+					{
+						_label,
+						_time[barsAgo].ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+						i.ToString(CultureInfo.InvariantCulture),
+						_lastEvent,
+						_trend,
+						Fmt(closePx),
+						_legSet ? Fmt(_leg) : "",
+						_cntSet ? Fmt(_counter) : "",
+						_rangeSet ? Fmt(_rangeLow) : "",
+						_rangeSet ? Fmt(_rangeHigh) : "",
+						Fmt(ComputePct(closePx))
+					});
+					_debugSink.Add(row);
+				}
+			}
+
+			private static string Fmt(double v)
+			{
+				return double.IsNaN(v) ? "" : v.ToString("0.####", CultureInfo.InvariantCulture);
 			}
 
 			private int ComputeBarDir(int barsAgo)
@@ -746,6 +808,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_bosSet = false;
 				_leg = level; _legI = i; _legSet = true;
 				_candSet = false;
+				_lastEvent = "Enter" + newTrend + "(level=" + Fmt(level) + ",counter=" + (t.Count > 0 ? Fmt(t[0].Value) : "none") + ")";
 				SetTrend(newTrend);
 			}
 
@@ -755,6 +818,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_bosSet = false;
 				_leg = level; _legI = i; _legSet = true;
 				_candSet = false;
+				_lastEvent = "BOS(level=" + Fmt(level) + ")";
 			}
 
 			private void SetTrend(string newTrend)
@@ -824,6 +888,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty] [Range(100, 5000)] [Display(Name = "% refresh interval (ms, only runs while Show % is on)", GroupName = "4 Box", Order = 9)] public int RenderIntervalMs { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Show border", GroupName = "4 Box", Order = 6)] public bool ShowBorder { get; set; }
 		[NinjaScriptProperty] [Range(0, 100)] [Display(Name = "Cell opacity %", GroupName = "4 Box", Order = 7)] public int CellOpacity { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Debug log (writes Documents\\regime_tracker_box_debug_<instrument>.csv -- one row per processed bar per cell: price, leg, counter, range, and what triggered each change)", GroupName = "6 Debug", Order = 0)]
+		public bool DebugLog { get; set; }
 
 		[XmlIgnore] [Display(Name = "Bull color", GroupName = "5 Colors", Order = 0)] public WMBrush BullBrush { get; set; }
 		[Browsable(false)] public string BullBrushSerialize { get { return Serialize.BrushToString(BullBrush); } set { BullBrush = Serialize.StringToBrush(value); } }
