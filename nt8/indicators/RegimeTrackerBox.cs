@@ -108,6 +108,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Timeframes = "2000t,5M,15M,60M,240M,D,W";
 				RthTemplate = "CME US Index Futures RTH";
 				EthTemplate = "CME US Index Futures ETH";
+				// generous cushion over a single session for ANY of the intraday
+				// periods (even 2000-tick on an active day), while being nowhere near
+				// the chart's full lookback -- see Configure. Ignored for Day/Week.
+				IntradayBarsToLoad = 1000;
 
 				// MyWedge (defaults = the validated Python run's params, as in RegimeTrackerPanel)
 				LookBack      = 12;
@@ -156,11 +160,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 				for (int r = 0; r < _tfs.Count; r++)
 				{
 					TfDef tf = _tfs[r];
-					// RTH column first (left), then ETH — fixed order = deterministic bip
-					AddDataSeries(Instrument.FullName, MakePeriod(tf), RthTemplate);
-					_cells.Add(new Cell { Bip = bip++, Row = r, Col = 0 });
-					AddDataSeries(Instrument.FullName, MakePeriod(tf), EthTemplate);
-					_cells.Add(new Cell { Bip = bip++, Row = r, Col = 1 });
+					// RTH column first (left), then ETH — fixed order = deterministic bip.
+					// Intraday (tick/second/minute) series reset their regime every
+					// session (ResetOnNewSession), so history before the current session
+					// is useless to the calc -- cap NT8's OWN historical load to
+					// IntradayBarsToLoad (not the chart's full lookback) and tell NT8's
+					// bar engine itself to reset on each new trading day. Daily/Weekly
+					// are intentionally NEVER session-reset (need real multi-month
+					// history for a persistent regime) and stay uncapped -- cheap anyway
+					// at a few hundred bars/year.
+					if (tf.Intraday)
+					{
+						bool resetSession = ResetOnNewSession;
+						AddDataSeries(Instrument.FullName, MakePeriod(tf), IntradayBarsToLoad, RthTemplate, resetSession);
+						_cells.Add(new Cell { Bip = bip++, Row = r, Col = 0 });
+						AddDataSeries(Instrument.FullName, MakePeriod(tf), IntradayBarsToLoad, EthTemplate, resetSession);
+						_cells.Add(new Cell { Bip = bip++, Row = r, Col = 1 });
+					}
+					else
+					{
+						AddDataSeries(Instrument.FullName, MakePeriod(tf), RthTemplate);
+						_cells.Add(new Cell { Bip = bip++, Row = r, Col = 0 });
+						AddDataSeries(Instrument.FullName, MakePeriod(tf), EthTemplate);
+						_cells.Add(new Cell { Bip = bip++, Row = r, Col = 1 });
+					}
 				}
 
 				FreezeIf(BullBrush); FreezeIf(BearBrush); FreezeIf(RangeBrush);
@@ -748,6 +771,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty]
 		[Display(Name = "ETH trading-hours template", GroupName = "1 Timeframes", Order = 2)]
 		public string EthTemplate { get; set; }
+
+		[NinjaScriptProperty] [Range(50, 10000)]
+		[Display(Name = "Intraday bars to load (tick/sec/min only; ignored for D/W)", GroupName = "1 Timeframes", Order = 3)]
+		public int IntradayBarsToLoad { get; set; }
 
 		[NinjaScriptProperty] [Range(0, 20)]
 		[Display(Name = "Lag (bars, pivot finality)", GroupName = "2 Regime", Order = 0)] public int Lag { get; set; }
