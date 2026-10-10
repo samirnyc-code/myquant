@@ -214,9 +214,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 						int bars = tf.Type == BarsPeriodType.Week
 							? Math.Max(10, (int)Math.Ceiling(DaysToLoad / 7.0))
 							: Math.Max(10, (int)Math.Ceiling(DaysToLoad * 260.0 / 365.0));
-						AddDataSeries(Instrument.FullName, MakePeriod(tf), bars, RthTemplate, false);
+						// isResetOnNewTradingDay passed as null (use NT8's own default)
+						// instead of an explicit false -- an explicit value here was
+						// suspected of changing how NT8 syncs this ADDED series'
+						// historical data (it was stuck one session behind the
+						// primary chart, surviving a full NT8 restart, so it wasn't a
+						// caching issue).
+						AddDataSeries(Instrument.FullName, MakePeriod(tf), bars, RthTemplate, null);
 						_cells.Add(new Cell { Bip = bip++, Row = r, Col = 0 });
-						AddDataSeries(Instrument.FullName, MakePeriod(tf), bars, EthTemplate, false);
+						AddDataSeries(Instrument.FullName, MakePeriod(tf), bars, EthTemplate, null);
 						_cells.Add(new Cell { Bip = bip++, Row = r, Col = 1 });
 					}
 				}
