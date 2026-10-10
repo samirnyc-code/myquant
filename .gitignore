@@ -15,6 +15,19 @@ data/_*.log
 data/_tmp_probe/
 data/massive_cache/
 data/wfa_store/
+
+# S134 (2026-10-10): live desk runtime state — logs, heartbeats, locks, daily
+# JSON/CSV snapshots the running desk rewrites constantly. Git-tracking these
+# let an unrelated git merge/checkout anywhere in the repo silently revert
+# uncommitted live trading data (wiped 5 real trading days, 2026-10-09
+# incident). These are operational state, not source — never meant to be
+# diffed/rolled-back via git. Backed up independently instead (see
+# scripts/backup_live_data.py + the MyQuant Live Data Backup task).
+data/_catalog/
+data/options_log/
+data/options_sim/
+data/gexlog/
+data/vix_daily.csv
 saved_signals/
 scripts/_commit_msg.txt
 streamlit.log

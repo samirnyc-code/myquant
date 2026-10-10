@@ -70,8 +70,12 @@ def main():
     ap.add_argument("--date", default="20260921")
     ap.add_argument("--entry-et", default="09:31")   # 08:31 CT open (not_before 08:30)
     ap.add_argument("--step-min", type=int, default=2)
+    ap.add_argument("--parity-k", type=float, default=PARITY_K,
+                    help="strike with both a C and P in that day's plan, for parity spot")
     a = ap.parse_args()
     exp = a.date
+    global PARITY_K
+    PARITY_K = a.parity_k
 
     cache = {}
     def leg(strike, right, et):

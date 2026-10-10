@@ -2,10 +2,15 @@
 per-day replay outputs, for the dashboard calendar's reconstructed-day overlay (the '*' days).
 
 A reconstructed day is a session the live desk MISSED (gateway/NT down at the open) that we
-rebuilt from ThetaData per-leg NBBO: entry at the open, live exit rules replayed
-(10-min level-accept + 14:45 CT stop), realistic worst-touch fills. It is shown on the
-calendar with an asterisk and is DELIBERATELY kept OUT of trades.parquet, so the real
-performance tiles (PF/win/expectancy/maxDD) are never polluted by reconstructed fills.
+rebuilt from real historical per-leg NBBO (ThetaData while we had it; IB historical bars
+from S134/2026-10 onward — ThetaData's paid tier is cancelled and not coming back): entry
+at the open, live exit rules replayed (10-min level-accept + 14:45 CT stop), realistic
+worst-touch fills. It is shown on the calendar with an asterisk (so it's never confused
+with a live booked fill) and is kept OUT of trades.parquet (that file is real executions
+only) — but it IS counted in the dashboard's stat tiles (win/PF/total/expectancy/maxDD,
+via options_dashboard.py's _recon_df()/load_stats()/analytics_payload()), by design
+(S134, 2026-10-10): a realistically-reconstructed day is real information about the
+system's performance and should not be thrown away.
 
 Reads (per date):  data/options_log/replay_<date>_exits.json      (per-trade + total)
                    data/options_log/replay_<date>_dd_breaker.json (intraday DD + breakers)

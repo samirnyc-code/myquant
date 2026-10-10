@@ -1724,7 +1724,9 @@ ANALYTICS_JS = r"""
     if($('#an-note'))$('#an-note').textContent=closed.length<20?'· only '+closed.length+' closed — small sample, read as noise':'';}
   const byDay={};T.forEach(t=>{if(!t.date)return;(byDay[t.date]=byDay[t.date]||{pnl:0,n:0,rows:[]});
     byDay[t.date].n++;if(t.pnl!=null)byDay[t.date].pnl+=t.pnl;byDay[t.date].rows.push(t);});
-  // reconstructed-day overlay: merge into the calendar (asterisk); NOT into stat tiles.
+  // reconstructed-day overlay: merge into the calendar (asterisk). Recon trades ARE
+  // counted in every stat tile (win/PF/total/expectancy/etc, via T/closed above) —
+  // the asterisk is a transparency marker (not a booked-live fill), not an exclusion.
   const RECON=window.__RECON||{};
   Object.keys(RECON).forEach(ds=>{const r=RECON[ds];const e=(byDay[ds]=byDay[ds]||{pnl:0,n:0,rows:[]});
     e.recon=true;e.reconData=r;if(!e.rows.length){e.pnl=r.pnl;e.n=r.n;}});
