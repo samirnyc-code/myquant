@@ -826,14 +826,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (labels.Count == 0) return;
 			float colW = LabelFontSize * 6.5f;
+			float drawW = LabelFontSize * 18f;   // wide draw rect so "label price" never wraps to a 2nd line
 			float gap  = LabelFontSize + 4f;
 			float textH = LabelFontSize + 6f;
 			TextFormat tf = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Arial", LabelFontSize);
+			tf.WordWrapping = WordWrapping.NoWrap;   // keep label + price on ONE line (right of the label, not below)
 
 			// Inline labels (capped lines, e.g. OoD RTH) sit at the line's end, centered on it.
 			foreach (LabelInfo li in labels)
 				if (li.inline)
-					RenderTarget.DrawText(li.text, tf, new RectangleF(li.xInline, li.trueY - textH / 2f, colW, textH), li.brush);
+					RenderTarget.DrawText(li.text, tf, new RectangleF(li.xInline, li.trueY - textH / 2f, drawW, textH), li.brush);
 
 			for (int c = 0; c <= 2; c++)   // 0=RTH, 1=ETH, 2=Custom (right-edge columns)
 			{
@@ -848,8 +850,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					if (Math.Abs(li.y - li.trueY) > 1.5f)
 						RenderTarget.DrawLine(new Vector2(x - 6f, li.trueY), new Vector2(x - 1f, li.y), li.brush, 0.6f);
-					// Vertically CENTER the text on the line's y, not top-aligned below it.
-					RenderTarget.DrawText(li.text, tf, new RectangleF(x, li.y - textH / 2f, colW, textH), li.brush);
+					// Vertically CENTER the text on the line's y; wide rect + NoWrap keeps the price on the same line.
+					RenderTarget.DrawText(li.text, tf, new RectangleF(x, li.y - textH / 2f, drawW, textH), li.brush);
 				}
 			}
 			tf.Dispose();
