@@ -112,11 +112,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// periods (even 2000-tick on an active day), while being nowhere near
 				// the chart's full lookback -- see Configure. Ignored for Day/Week.
 				IntradayBarsToLoad = 1000;
-				// generous on purpose: 500 Daily bars ~= 2 years of trading days,
-				// 500 Weekly bars ~= 9+ years -- plenty of swing history so the
-				// classifier can actually confirm a trend instead of sitting stuck
-				// in its initial RANGE state for lack of data.
-				DailyWeeklyBarsToLoad = 500;
+				// calendar days -- matches the "Days to load" field on a normal NT8
+				// Data Series dialog, converted to a bar count per period type (see
+				// Configure): ~260 Daily bars, ~52 Weekly bars for the default 365.
+				DaysToLoad = 365;
 
 				// MyWedge (defaults = the validated Python run's params, as in RegimeTrackerPanel)
 				LookBack      = 12;
@@ -189,10 +188,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 						// (non-primary) series, which can be short enough that the
 						// classifier never accumulates the 2+ opposite-side pivots
 						// EntrySetup() needs to ever leave its initial RANGE state.
-						// Pin it explicitly and generously instead.
-						AddDataSeries(Instrument.FullName, MakePeriod(tf), DailyWeeklyBarsToLoad, RthTemplate, false);
+						// Pin it explicitly, matching DaysToLoad calendar days --
+						// AddDataSeries only accepts a BAR count, so convert per period
+						// type (NOT the same bar count for both: 365 days is ~260
+						// trading-day Daily bars but only ~52 Weekly bars).
+						int bars = tf.Type == BarsPeriodType.Week
+							? Math.Max(10, (int)Math.Ceiling(DaysToLoad / 7.0))
+							: Math.Max(10, (int)Math.Ceiling(DaysToLoad * 260.0 / 365.0));
+						AddDataSeries(Instrument.FullName, MakePeriod(tf), bars, RthTemplate, false);
 						_cells.Add(new Cell { Bip = bip++, Row = r, Col = 0 });
-						AddDataSeries(Instrument.FullName, MakePeriod(tf), DailyWeeklyBarsToLoad, EthTemplate, false);
+						AddDataSeries(Instrument.FullName, MakePeriod(tf), bars, EthTemplate, false);
 						_cells.Add(new Cell { Bip = bip++, Row = r, Col = 1 });
 					}
 				}
@@ -787,9 +792,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name = "Intraday bars to load (tick/sec/min only; ignored for D/W)", GroupName = "1 Timeframes", Order = 3)]
 		public int IntradayBarsToLoad { get; set; }
 
-		[NinjaScriptProperty] [Range(20, 10000)]
-		[Display(Name = "Daily/Weekly bars to load (D/W only)", GroupName = "1 Timeframes", Order = 4)]
-		public int DailyWeeklyBarsToLoad { get; set; }
+		[NinjaScriptProperty] [Range(14, 7300)]
+		[Display(Name = "Daily/Weekly days to load (D/W only, calendar days)", GroupName = "1 Timeframes", Order = 4)]
+		public int DaysToLoad { get; set; }
 
 		[NinjaScriptProperty] [Range(0, 20)]
 		[Display(Name = "Lag (bars, pivot finality)", GroupName = "2 Regime", Order = 0)] public int Lag { get; set; }
