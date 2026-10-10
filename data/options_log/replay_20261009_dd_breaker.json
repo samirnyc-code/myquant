@@ -1,0 +1,24 @@
+{
+ "date": "20261009",
+ "entry_et": "09:31:00",
+ "grid_step_min": 2,
+ "final_pnl": 586.32,
+ "intraday_trough": -630.86,
+ "trough_at_et": "09:45:00",
+ "intraday_dd_peak_to_trough": 426.52,
+ "breaker_2k": {
+  "triggered": false,
+  "pnl": 586.32,
+  "note": "never reached -2,000 intraday"
+ },
+ "breaker_3k": {
+  "triggered": false,
+  "pnl": 586.32,
+  "note": "never reached -3,000 intraday"
+ },
+ "spot_open": 7787.5,
+ "spot_close": 7812.8,
+ "fill_model": "worst-touch (S113)",
+ "reconstructed": true,
+ "note": "READ-ONLY intraday-path DD + Stage-2 circuit-breaker replay vs IB historical BID/ASK 1-min bars (ThetaData value-tier lapsed to free 2026-10-10); NOT booked."
+}

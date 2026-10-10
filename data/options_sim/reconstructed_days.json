@@ -53,5 +53,92 @@
     "pnl": -442
    }
   ]
+ },
+ "2026-10-09": {
+  "pnl": 586,
+  "n": 9,
+  "dd": -631,
+  "dd_p2t": 427,
+  "breaker_2k": 586,
+  "breaker_2k_hit": false,
+  "breaker_3k": 586,
+  "breaker_3k_hit": false,
+  "spot_open": 7787.5,
+  "spot_close": 7812.8,
+  "note": "Reconstructed from IB historical BID/ASK 1-min bars (desk was down at the open; ThetaData's at_time/quote endpoint had lapsed to a free tier that no longer serves this). Entry at the 08:31 CT open; live exits replayed (10-min level-acceptance + 14:45 CT stop); realistic worst-touch fills. NOT a booked day \u2014 excluded from all stat tiles.",
+  "trades": [
+   {
+    "strategy": "eodic_p",
+    "structure": "P 7690/7665",
+    "entry_cr": 0.1,
+    "exit_et": "15:45:00",
+    "reason": "time_stop_1445CT",
+    "pnl": 3
+   },
+   {
+    "strategy": "eodic_c",
+    "structure": "C 7840/7865",
+    "entry_cr": 0.4,
+    "exit_et": "15:45:00",
+    "reason": "time_stop_1445CT",
+    "pnl": 33
+   },
+   {
+    "strategy": "eodfly_p",
+    "structure": "P 7765/7740",
+    "entry_cr": 2.8,
+    "exit_et": "15:45:00",
+    "reason": "time_stop_1445CT",
+    "pnl": 273
+   },
+   {
+    "strategy": "eodfly_c",
+    "structure": "C 7765/7790",
+    "entry_cr": 16.8,
+    "exit_et": "09:41:00",
+    "reason": "level_accepted",
+    "pnl": -177
+   },
+   {
+    "strategy": "openic_p",
+    "structure": "P 7710/7685",
+    "entry_cr": 0.25,
+    "exit_et": "15:45:00",
+    "reason": "time_stop_1445CT",
+    "pnl": 18
+   },
+   {
+    "strategy": "openfly_p",
+    "structure": "P 7785/7760",
+    "entry_cr": 6.5,
+    "exit_et": "15:45:00",
+    "reason": "time_stop_1445CT",
+    "pnl": 638
+   },
+   {
+    "strategy": "openfly_c",
+    "structure": "C 7785/7810",
+    "entry_cr": 10.0,
+    "exit_et": "09:41:00",
+    "reason": "level_accepted",
+    "pnl": -187
+   },
+   {
+    "strategy": "gx_bps",
+    "structure": "P 7750/7725",
+    "entry_cr": 1.5,
+    "exit_et": "15:45:00",
+    "reason": "time_stop_1445CT",
+    "pnl": 143
+   },
+   {
+    "strategy": "gx_bcs",
+    "structure": "C 7800/7825",
+    "entry_cr": 5.45,
+    "exit_et": "11:25:00",
+    "reason": "level_accepted",
+    "pnl": -162
+   }
+  ]
  }
 }
