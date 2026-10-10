@@ -536,9 +536,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else { _emvMax = _emvMin = double.NaN; }
 
-			// ---- gexlog published band (emUpper/emLower from today's morning / prior evening brief) ----
-			double up, lo2;
-			if (ReadGexlogBand(out up, out lo2)) { _emgMax = up; _emgMin = lo2; }
+			// ---- gexlog method: gexlog's published expectedMove, anchored on the SAME prior
+			// RTH close (NOT gexlog's own pivot `levels.current`, which sits ~55pt off the
+			// close — that mismatch was the whole VIX-vs-GEX gap). Compares move SIZE only.
+			double gexMove = ReadGexlogMove();
+			if (!double.IsNaN(rf) && rf > 0 && !double.IsNaN(gexMove) && gexMove > 0)
+			{
+				_emgMax = rf + gexMove; _emgMin = rf - gexMove;
+			}
 			else { _emgMax = _emgMin = double.NaN; }
 		}
 
@@ -563,12 +568,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return double.NaN;
 		}
 
-		private bool ReadGexlogBand(out double up, out double lo)
+		// gexlog's published 1-day expectedMove (half-width in points). We use THIS and anchor
+		// it ourselves on the prior RTH close, rather than gexlog's own emUpper/emLower (which
+		// are anchored on gexlog's pivot `levels.current`, ~55pt off the close).
+		private double ReadGexlogMove()
 		{
-			up = double.NaN; lo = double.NaN;
 			try
 			{
-				if (string.IsNullOrWhiteSpace(GexlogRawDir) || !Directory.Exists(GexlogRawDir)) return false;
+				if (string.IsNullOrWhiteSpace(GexlogRawDir) || !Directory.Exists(GexlogRawDir)) return double.NaN;
 
 				// Resolve the brief for the current trading day: {date}_morning, else {date-1}_evening,
 				// else the newest brief file in the dir.
@@ -586,17 +593,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 					path = newest;
 				}
-				if (path == null || !File.Exists(path)) return false;
+				if (path == null || !File.Exists(path)) return double.NaN;
 
-				string json = File.ReadAllText(path);
-				up = JsonNum(json, "emUpper");
-				lo = JsonNum(json, "emLower");
-				return !double.IsNaN(up) && !double.IsNaN(lo);
+				return JsonNum(File.ReadAllText(path), "expectedMove");
 			}
-			catch { return false; }
+			catch { return double.NaN; }
 		}
 
-		// Minimal JSON number extractor for a unique key (emUpper/emLower are unique in the brief).
+		// Minimal JSON number extractor for a unique key (expectedMove is unique in the brief).
 		private static double JsonNum(string json, string key)
 		{
 			int i = json.IndexOf("\"" + key + "\"");
