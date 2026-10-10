@@ -112,6 +112,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// periods (even 2000-tick on an active day), while being nowhere near
 				// the chart's full lookback -- see Configure. Ignored for Day/Week.
 				IntradayBarsToLoad = 1000;
+				// generous on purpose: 500 Daily bars ~= 2 years of trading days,
+				// 500 Weekly bars ~= 9+ years -- plenty of swing history so the
+				// classifier can actually confirm a trend instead of sitting stuck
+				// in its initial RANGE state for lack of data.
+				DailyWeeklyBarsToLoad = 500;
 
 				// MyWedge (defaults = the validated Python run's params, as in RegimeTrackerPanel)
 				LookBack      = 12;
@@ -179,9 +184,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 					else
 					{
-						AddDataSeries(Instrument.FullName, MakePeriod(tf), RthTemplate);
+						// Daily/Weekly never got an explicit bar count before -- they
+						// inherited whatever NT8's internal default is for an ADDED
+						// (non-primary) series, which can be short enough that the
+						// classifier never accumulates the 2+ opposite-side pivots
+						// EntrySetup() needs to ever leave its initial RANGE state.
+						// Pin it explicitly and generously instead.
+						AddDataSeries(Instrument.FullName, MakePeriod(tf), DailyWeeklyBarsToLoad, RthTemplate, false);
 						_cells.Add(new Cell { Bip = bip++, Row = r, Col = 0 });
-						AddDataSeries(Instrument.FullName, MakePeriod(tf), EthTemplate);
+						AddDataSeries(Instrument.FullName, MakePeriod(tf), DailyWeeklyBarsToLoad, EthTemplate, false);
 						_cells.Add(new Cell { Bip = bip++, Row = r, Col = 1 });
 					}
 				}
@@ -775,6 +786,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty] [Range(50, 10000)]
 		[Display(Name = "Intraday bars to load (tick/sec/min only; ignored for D/W)", GroupName = "1 Timeframes", Order = 3)]
 		public int IntradayBarsToLoad { get; set; }
+
+		[NinjaScriptProperty] [Range(20, 10000)]
+		[Display(Name = "Daily/Weekly bars to load (D/W only)", GroupName = "1 Timeframes", Order = 4)]
+		public int DailyWeeklyBarsToLoad { get; set; }
 
 		[NinjaScriptProperty] [Range(0, 20)]
 		[Display(Name = "Lag (bars, pivot finality)", GroupName = "2 Regime", Order = 0)] public int Lag { get; set; }
