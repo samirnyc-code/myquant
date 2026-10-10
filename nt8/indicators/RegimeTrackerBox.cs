@@ -96,11 +96,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// actually refresh (see State.Historical below)
 		private DispatcherTimer _renderTimer;
 
-		// DebugLog diagnostic export -- one row per processed bar per engine,
-		// written once historical catch-up finishes (State.Realtime) so it's
-		// readable immediately without waiting for a live bar to close.
+		// DebugLog diagnostic export -- one row per processed bar per engine.
+		// Written at State.Realtime (so it's readable immediately after load),
+		// then re-flushed periodically via _debugFlushTimer so NEW bar closes
+		// (e.g. today's Daily/Weekly bar) show up without needing a reload --
+		// independent of _renderTimer/ShowPct, since DebugLog may be on with
+		// Show % off.
 		private List<string> _debugRows;
 		private string       _debugPath;
+		private int          _debugFlushedCount;
+		private DispatcherTimer _debugFlushTimer;
+		// _debugRows is appended to from NT8's bar-processing thread (OnBarUpdate
+		// -> RegimeEngine.ProcessBar) while FlushDebugCsv reads it from the UI
+		// dispatcher thread (_debugFlushTimer) -- List<T> isn't thread-safe for
+		// concurrent read+write, so both sides must go through this lock.
+		private readonly object _debugLock = new object();
 
 		protected override void OnStateChange()
 		{
@@ -244,19 +254,40 @@ namespace NinjaTrader.NinjaScript.Indicators
 						Opens[c.Bip], Highs[c.Bip], Lows[c.Bip], Closes[c.Bip], Times[c.Bip],
 						BarsArray[c.Bip], Lag, resetSession, WeeklyResetOnly,
 						CurrentSessionOnly && resetSession,
-						label, DebugLog ? _debugRows : null);
+						label, DebugLog ? (Action<string>)(row => { lock (_debugLock) { _debugRows.Add(row); } }) : null);
 
 					_byBip[c.Bip] = c;
 				}
 			}
-			else if (State == State.Realtime || State == State.Terminated)
+			else if (State == State.Realtime)
 			{
-				// written at Realtime (as soon as historical catch-up finishes, so
-				// it's readable without waiting for a live bar to close) and again
-				// at Terminated as a final flush.
-				if (DebugLog && _debugRows != null && _debugRows.Count > 1 && _debugPath != null)
+				// initial write as soon as historical catch-up finishes, so the
+				// file is readable immediately without waiting for a live bar
+				FlushDebugCsv();
+				// then re-flush periodically (independent of ShowPct/_renderTimer --
+				// DebugLog may be on with Show % off) so TODAY's bar close shows up
+				// in the file without needing a reload.
+				if (DebugLog && ChartControl != null)
 				{
-					try { File.WriteAllLines(_debugPath, _debugRows); } catch { }
+					ChartControl.Dispatcher.InvokeAsync(() =>
+					{
+						_debugFlushTimer = new DispatcherTimer(DispatcherPriority.Background, ChartControl.Dispatcher);
+						_debugFlushTimer.Interval = TimeSpan.FromSeconds(5);
+						_debugFlushTimer.Tick += (s, e) => FlushDebugCsv();
+						_debugFlushTimer.Start();
+					});
+				}
+			}
+			else if (State == State.Terminated)
+			{
+				FlushDebugCsv();   // final flush
+				if (ChartControl != null)
+				{
+					ChartControl.Dispatcher.InvokeAsync(() =>
+					{
+						if (_renderTimer != null) { _renderTimer.Stop(); _renderTimer = null; }
+						if (_debugFlushTimer != null) { _debugFlushTimer.Stop(); _debugFlushTimer = null; }
+					});
 				}
 			}
 			if (State == State.Historical)
@@ -276,16 +307,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 					_renderTimer.Start();
 				});
 			}
-			else if (State == State.Terminated)
+		}
+
+		// only rewrites the file when new rows have actually been appended since
+		// the last flush -- avoids redundant disk I/O every 5s when nothing new
+		// has happened (e.g. overnight, or on a Daily/Weekly row between closes).
+		private void FlushDebugCsv()
+		{
+			if (!DebugLog || _debugRows == null || _debugPath == null) return;
+			List<string> snapshot;
+			lock (_debugLock)
 			{
-				if (ChartControl != null)
-				{
-					ChartControl.Dispatcher.InvokeAsync(() =>
-					{
-						if (_renderTimer != null) { _renderTimer.Stop(); _renderTimer = null; }
-					});
-				}
+				if (_debugRows.Count <= 1 || _debugRows.Count == _debugFlushedCount) return;
+				snapshot = new List<string>(_debugRows);
+				_debugFlushedCount = _debugRows.Count;
 			}
+			try { File.WriteAllLines(_debugPath, snapshot); }   // file I/O outside the lock
+			catch { }
 		}
 
 		protected override void OnBarUpdate()
@@ -508,13 +546,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// just did (Enter/BOS/FlipRange/"") so each logged row shows WHY the
 			// state is what it is, not just a snapshot.
 			private readonly string _label;
-			private readonly List<string> _debugSink;
+			private readonly Action<string> _debugSink;
 			private string _lastEvent = "";
 
 			public RegimeEngine(My.MyWedge wedge, ISeries<double> open, ISeries<double> high,
 				ISeries<double> low, ISeries<double> close, TimeSeries time, Bars bars,
 				int lag, bool resetOnSession, bool weeklyResetOnly, bool sessionSkip,
-				string label, List<string> debugSink)
+				string label, Action<string> debugSink)
 			{
 				_wedge = wedge; _open = open; _high = high; _low = low; _close = close; _time = time;
 				_bars = bars; _lag = lag; _resetOnSession = resetOnSession;
@@ -706,7 +744,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						_rangeSet ? Fmt(_rangeHigh) : "",
 						Fmt(ComputePct(closePx))
 					});
-					_debugSink.Add(row);
+					_debugSink(row);
 				}
 			}
 
