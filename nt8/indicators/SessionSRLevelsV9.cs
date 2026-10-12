@@ -131,6 +131,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool     _rthSeriesAdded;
 		private int      _ethBip = -1, _rthBip = -1;   // actual BarsInProgress index of each hidden series
 		private DateTime _rthSeriesLastDate = Core.Globals.MinDate;
+
+		// ── Settlement = close of the Daily ETH chart. Read it STRAIGHT from a hidden Daily
+		// ETH series (same template as the chart) rather than reconstructing it from 1-min bars,
+		// so it matches the Daily ETH bar close exactly. Keyed by trading day for live+historical.
+		private bool     _ethDaySeriesAdded;
+		private int      _ethDayBip = -1;
+		private SessionIterator _ethDaySessIter;
+		private double   _settleLiveClose = double.NaN;   // most recent COMPLETED Daily ETH close
+		private readonly Dictionary<DateTime, double> _settleByDay = new Dictionary<DateTime, double>();
 		private DateTime _rthSeriesWeek     = Core.Globals.MinDate;
 		private int      _rthSeriesMonthKey = -1;
 		private readonly Dictionary<DateTime, double> _rthOpenByDay   = new Dictionary<DateTime, double>(); // trading day -> RTH open
@@ -311,9 +320,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_rthSeriesLastDate = Core.Globals.MinDate; _rthSeriesWeek = Core.Globals.MinDate; _rthSeriesMonthKey = -1;
 				_rthOpenByDay.Clear(); _rthWeekOpenBy.Clear(); _rthMonthOpenBy.Clear();
 
+				// Hidden DAILY ETH series: the authoritative source for Settlement (the Daily ETH
+				// bar close). Same ETH template as the chart, Day period.
+				_ethDaySeriesAdded = false;
+				if (!string.IsNullOrEmpty(FullTemplateNameHint))
+				{
+					try
+					{
+						AddDataSeries(Instrument.FullName,
+							new BarsPeriod { BarsPeriodType = BarsPeriodType.Day, Value = 1 },
+							FullTemplateNameHint);
+						_ethDaySeriesAdded = true;
+					}
+					catch (Exception ex) { Print("SessionSRLevelsV9: could not add Daily ETH data series: " + ex.Message); }
+				}
+				_ethDaySessIter = null; _settleLiveClose = double.NaN; _settleByDay.Clear();
+
 				// Resolve each hidden series' BarsInProgress index in the order they were added
-				// (primary = 0, ETH added first, RTH second). Stays correct if either is skipped.
-				{ int bip = 1; _ethBip = _ethSeriesAdded ? bip++ : -1; _rthBip = _rthSeriesAdded ? bip++ : -1; }
+				// (primary = 0, ETH 1-min, RTH 1-min, Daily ETH). Stays correct if any is skipped.
+				{ int bip = 1; _ethBip = _ethSeriesAdded ? bip++ : -1; _rthBip = _rthSeriesAdded ? bip++ : -1; _ethDayBip = _ethDaySeriesAdded ? bip++ : -1; }
 
 				_ethDayIter = null; _rthMembershipIter = null; _ethLocked = false;
 				_ethCurTradingDay = Core.Globals.MinDate; _ethCurWeekStart = Core.Globals.MinDate; _ethCurMonthKey = -1;
@@ -344,6 +369,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				if (_ethSeriesAdded && _ethBip >= 0 && BarsArray.Length > _ethBip)
 					_ethDayIter = new SessionIterator(BarsArray[_ethBip]);
+
+				if (_ethDaySeriesAdded && _ethDayBip >= 0 && BarsArray.Length > _ethDayBip)
+					_ethDaySessIter = new SessionIterator(BarsArray[_ethDayBip]);
 
 				try
 				{
@@ -381,6 +409,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (_ethBip >= 0 && BarsInProgress == _ethBip) { HandleEthSeries(); return; }
 			if (_rthBip >= 0 && BarsInProgress == _rthBip) { HandleRthSeries(); return; }
+			if (_ethDayBip >= 0 && BarsInProgress == _ethDayBip) { HandleEthDailySeries(); return; }
 			if (BarsInProgress != 0) return;
 			if (CurrentBar < 0 || !Bars.BarsType.IsIntraday) return;
 
@@ -574,11 +603,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 			TrimOldestDate(_rthMonthOpenBy, 24);
 		}
 
-		// ETH session close (= Daily ETH bar close / Settlement) for a given ETH trading day.
+		// Settlement from the hidden Daily ETH series — the Daily ETH bar close, keyed by its
+		// trading day. Updates as the current day's bar forms; past days hold their final close.
+		private void HandleEthDailySeries()
+		{
+			if (!_ethDaySeriesAdded || _ethDayBip < 0 || CurrentBars[_ethDayBip] < 0) return;
+			DateTime dday = (_ethDaySessIter != null
+				? _ethDaySessIter.GetTradingDay(Times[_ethDayBip][0])
+				: Times[_ethDayBip][0]).Date;
+			_settleByDay[dday] = Closes[_ethDayBip][0];
+			if (CurrentBars[_ethDayBip] >= 1) _settleLiveClose = Closes[_ethDayBip][1];   // last COMPLETED daily bar
+			TrimOldestDate(_settleByDay, 120);
+		}
+
+		// Settlement (Daily ETH bar close) for a given trading day, or NaN if not recorded.
 		private double _ethCloseForDay(DateTime d)
 		{
-			double[] e;
-			if (_ethByDay.TryGetValue(d, out e) && e != null && e.Length >= 3) return e[2];
+			double v;
+			if (_settleByDay.TryGetValue(d.Date, out v)) return v;
 			return double.NaN;
 		}
 
@@ -1058,8 +1100,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Add(list, EHOY_Enabled, EHOY_Label, _ethHigh,          EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 0, ethDayStart);
 				Add(list, ELOY_Enabled, ELOY_Label, _ethLow,           ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 0, ethDayStart);
 				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,    ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 0, ethDayStart);
-				// Settlement = close of the Daily ETH chart = the prior ETH session's close.
-				Add(list, Settle_Enabled, Settle_Label, _priorEthClose, Settle_Color, Settle_Opacity, Settle_Style, Settle_Thickness, 0, ethDayStart);
+				// Settlement = close of the Daily ETH chart, read straight from the hidden Daily
+				// ETH series (the last COMPLETED daily bar = prior session's settlement).
+				Add(list, Settle_Enabled, Settle_Label, _settleLiveClose, Settle_Color, Settle_Opacity, Settle_Style, Settle_Thickness, 0, ethDayStart);
 				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,     EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 0, ethDayStart);
 				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek,  EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 0, ethWeekStart);
 				// ETH OoM: manual override wins when a price is set and its month == the current ETH month
