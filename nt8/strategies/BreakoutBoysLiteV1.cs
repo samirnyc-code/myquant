@@ -197,6 +197,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (execution.Order == null) return;
 			if (execution.Order.Name == "SE" && Position.MarketPosition != MarketPosition.Flat)
 			{
+				// A marketable "chase" limit can fill at a better price than the
+				// intended _entryPx (never worse — but never exactly on it either).
+				// Recompute target off the REAL fill price so it stays a true
+				// R-multiple of the ACTUAL risk, not the pre-fill estimate — stop
+				// stays anchored to the SB structure, unaffected by fill price.
+				double risk = Math.Abs(price - _stopPx);
+				_tgtPx = Position.MarketPosition == MarketPosition.Long ? price + risk * _rMult : price - risk * _rMult;
+				_tgtPx = Round(_tgtPx);
+
 				if (Position.MarketPosition == MarketPosition.Long)
 				{
 					ExitLongStopMarket(0, true, Position.Quantity, _stopPx, "SEstop", "SE");
@@ -207,7 +216,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 					ExitShortStopMarket(0, true, Position.Quantity, _stopPx, "SEstop", "SE");
 					ExitShortLimit     (0, true, Position.Quantity, _tgtPx,  "SEtgt",  "SE");
 				}
-				Print(DateTime.Now + "  SE FILLED " + Position.MarketPosition + " x" + quantity + " @ " + price.ToString("0.00"));
+				Print(DateTime.Now + "  SE FILLED " + Position.MarketPosition + " x" + quantity + " @ " + price.ToString("0.00")
+					+ " (intended " + _entryPx.ToString("0.00") + ") — stop@" + _stopPx.ToString("0.00")
+					+ " tgt@" + _tgtPx.ToString("0.00") + " [" + _rMult.ToString("0.0") + "R off real entry]");
 			}
 		}
 
