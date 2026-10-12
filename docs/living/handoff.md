@@ -260,6 +260,21 @@ Offline compile-check that mirrors NT8: strip the region, run `csc.exe` on the c
   historical 1D bands use a VIX date→close map off `vix_daily.csv` + per-date gexlog briefs (cached).
   All in `DrawHistorical`/`DrawHistSeg` in OnRender.
 - **Deferred "extend-until-touched" (naked levels / Model B)** as a future toggle — user chose A first.
+- **OoD/OoW/OoM opens fixed on tick/volume charts.** On an ETH 2000t chart the "first RTH bar"
+  is the one that CLOSES at/after 08:30, so its Open was a pre-open tick → wrong opens (RTH charts
+  were fine; they reset at the open). Fix: added a hidden **1-min RTH-hours series** (resets at
+  08:30 → bar[0] opens exactly on the RTH open); opens captured keyed by date
+  (`_rthOpenByDay/_rthWeekOpenBy/_rthMonthOpenBy`) so live + historical both read the right value;
+  primary chart now supplies only the start-bar anchor. Series indices resolved dynamically
+  (`_ethBip/_rthBip/_ethDayBip`) so dispatch survives a blanked template name.
+- **New "Settlement" level = PRIOR trading day's Daily ETH close** (Fri shows Thu, Mon shows Fri;
+  skips weekends/holidays). Read STRAIGHT from a hidden **Daily ETH series** (`BarsPeriodType.Day`,
+  ETH template) — NOT reconstructed from 1-min — via `SettlementBefore(day)` (= Daily ETH close of
+  the most recent recorded day strictly before it). Live = `SettlementBefore(_curTradingDay)`,
+  historical = `SettlementBefore(s.date)`. Own property group "10b Settlement" + "22 Historical"
+  checkbox. NOTE: coincides in value with ECOY ("COY ETH"). Semantics pinned in memory
+  `settlement-level-semantics` (flipped twice — do NOT make it same-session).
+- Indicator now loads **4 series**: primary + 1-min ETH + 1-min RTH + Daily ETH.
 
 **Status: shipped & committed + pushed.** Open items: (1) EM VIX-vs-GEX comparison (forward-observe
 a few weeks, then pick). (2) `PriorWeekOHLCV4` F5 not yet confirmed. (3) RTH levels still off on daily
