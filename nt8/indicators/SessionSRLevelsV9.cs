@@ -132,8 +132,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// dayStartBar = the trading-day/session-break boundary (where the vertical break line
 		// is); dayEndBar = last bar of that trading day. Prior-day H/L/C lines span the whole
 		// trading day from the session break; OoD starts at the RTH open (oBar).
-		private class HRSess { public double o, h, l, c; public int oBar, hBar, lBar, cBar, dayStartBar, dayEndBar; }
+		private class HRSess { public DateTime date; public double o, h, l, c, weekOpen, monthOpen; public int oBar, hBar, lBar, cBar, dayStartBar, dayEndBar; }
 		private readonly List<HRSess> _rthHist = new List<HRSess>();
+		// trading day -> {overnight ETH high, ETH low} (locked at RTH open), filled at the ETH roll.
+		private readonly Dictionary<DateTime, double[]> _ethByDay = new Dictionary<DateTime, double[]>();
+		// caches for historical expected-move: VIX close by date (whole CSV) + gexlog move by date.
+		private readonly Dictionary<DateTime, double> _vixByDate = new Dictionary<DateTime, double>();
+		private readonly Dictionary<DateTime, double> _gexMoveByDate = new Dictionary<DateTime, double>();
+		private DateTime _vixMapStamp = DateTime.MinValue;
 
 		// Primary chart's current-session open bars = first bar of the current trading day /
 		// week / month on THIS chart (RTH open on an RTH chart, ETH/Globex 17:00 open on an
@@ -197,6 +203,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ExtendBarsRight     = 10;
 				HistSessions        = 5;
 				HistOpacity         = 45;
+				Hist_HOY = true; Hist_LOY = true; Hist_COY = true; Hist_OoD = true; Hist_OoW = true; Hist_OoM = true;
+				Hist_EthH = true; Hist_EthL = true;
+				Hist_EMV_Max = true; Hist_EMV_Min = true; Hist_EMG_Max = true; Hist_EMG_Min = true;
 
 				// Current-day running High/Low (computed from the chart's own bars for today).
 				CDH_Enabled = true; CDH_Label = "HoD"; CDH_Color = Brushes.DarkCyan; CDH_Opacity = 100; CDH_Style = LevelLineStyle.Solid; CDH_Thickness = 1;
@@ -267,7 +276,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_ethCurTradingDay = Core.Globals.MinDate; _ethCurWeekStart = Core.Globals.MinDate; _ethCurMonthKey = -1;
 				_primaryDayOpenBar = _primaryWeekOpenBar = _primaryMonthOpenBar = -1;
 				_curDayHigh = _curDayLow = double.NaN; _curDayStartBar = -1;
-				_rthHist.Clear();
+				_rthHist.Clear(); _ethByDay.Clear(); _vixByDate.Clear(); _gexMoveByDate.Clear(); _vixMapStamp = DateTime.MinValue;
 
 				_dayIter = null; _rthHours = null; _rthIter = null; _rthOk = false;
 				_curTradingDay = Core.Globals.MinDate; _curWeekStart = Core.Globals.MinDate; _curMonthKey = -1;
@@ -347,9 +356,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 					// (it's updated to the new day's bar just below); CurrentBar-1 is this
 					// trading day's last bar.
 					_rthHist.Add(new HRSess {
+						date = _curTradingDay,
 						o = _rthOpenToday, oBar = _rthOpenStartBar,
 						h = _rthHigh, hBar = _rthHighBar, l = _rthLow, lBar = _rthLowBar,
 						c = _rthCloseLast, cBar = _rthLastBar,
+						weekOpen = _rthOpenThisWeek, monthOpen = _rthOpenThisMonth,
 						dayStartBar = _primaryDayOpenBar >= 0 ? _primaryDayOpenBar : _rthOpenStartBar,
 						dayEndBar = CurrentBar - 1 });
 					if (_rthHist.Count > 70) _rthHist.RemoveAt(0);
@@ -439,6 +450,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 					_priorEthHigh  = _ethHigh;
 					_priorEthLow   = _ethLow;
 					_priorEthClose = _ethCloseLast;
+					// record the completed ETH session's locked overnight H/L, keyed by its trading day
+					_ethByDay[_ethCurTradingDay] = new double[] { _ethHigh, _ethLow };
+					if (_ethByDay.Count > 90)
+					{
+						DateTime oldest = Core.Globals.MaxDate;
+						foreach (DateTime dk in _ethByDay.Keys) if (dk < oldest) oldest = dk;
+						_ethByDay.Remove(oldest);
+					}
 				}
 				_ethCurTradingDay = etd;
 				_haveEth          = false;
@@ -623,6 +642,58 @@ namespace NinjaTrader.NinjaScript.Indicators
 			catch { return double.NaN; }
 		}
 
+		// --- historical EM helpers: VIX close by date (whole CSV) + gexlog move per date ---
+		private void EnsureVixMap()
+		{
+			try
+			{
+				if (string.IsNullOrWhiteSpace(VixCsvPath) || !File.Exists(VixCsvPath)) return;
+				DateTime t = File.GetLastWriteTimeUtc(VixCsvPath);
+				if (t == _vixMapStamp && _vixByDate.Count > 0) return;
+				_vixMapStamp = t; _vixByDate.Clear();
+				foreach (string ln in File.ReadAllLines(VixCsvPath))
+				{
+					string[] p = ln.Split(',');
+					if (p.Length < 2) continue;
+					DateTime d; double c;
+					if (DateTime.TryParse(p[0].Trim(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d)
+						&& double.TryParse(p[p.Length - 1].Trim(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out c))
+						_vixByDate[d.Date] = c;
+				}
+			}
+			catch { }
+		}
+
+		// VIX close for the latest trading date strictly before `date`.
+		private double VixPriorTo(DateTime date)
+		{
+			double best = double.NaN; DateTime bestD = DateTime.MinValue;
+			foreach (var kv in _vixByDate)
+				if (kv.Key < date.Date && kv.Key > bestD) { bestD = kv.Key; best = kv.Value; }
+			return best;
+		}
+
+		// gexlog expectedMove for a specific trading date (cached; {date}_morning else {date-1}_evening).
+		private double GexMoveFor(DateTime date)
+		{
+			double v;
+			if (_gexMoveByDate.TryGetValue(date.Date, out v)) return v;
+			v = double.NaN;
+			try
+			{
+				if (!string.IsNullOrWhiteSpace(GexlogRawDir) && Directory.Exists(GexlogRawDir))
+				{
+					string path = Path.Combine(GexlogRawDir, date.ToString("yyyy-MM-dd") + "_morning.json");
+					if (!File.Exists(path))
+						path = Path.Combine(GexlogRawDir, date.AddDays(-1).ToString("yyyy-MM-dd") + "_evening.json");
+					if (File.Exists(path)) v = JsonNum(File.ReadAllText(path), "expectedMove");
+				}
+			}
+			catch { }
+			_gexMoveByDate[date.Date] = v;
+			return v;
+		}
+
 		// Minimal JSON number extractor for a unique key (expectedMove is unique in the brief).
 		private static double JsonNum(string json, string key)
 		{
@@ -719,29 +790,65 @@ namespace NinjaTrader.NinjaScript.Indicators
 			TextFormat tf = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Arial", LabelFontSize);
 			tf.WordWrapping = WordWrapping.NoWrap;
 
-			// Each session D shows its OWN open (OoD) but the PRIOR session (D-1)'s High/Low/
-			// Close (HOY/LOY/COY = "of yesterday") — same semantics as the live levels, where
-			// Friday shows Thursday's H/L/C. So the H/L/C for day k come from record k-1.
+			EnsureVixMap();
+
+			// Each day D shows its OWN open/week/month/ETH-range, plus the PRIOR session's
+			// High/Low/Close and prior-close-anchored 1D bands (HOY/LOY/COY = "of yesterday"),
+			// same semantics as the live levels. H/L/C and the EM anchor come from record k-1.
 			int n = Math.Min(HistSessions, _rthHist.Count);
 			for (int k = _rthHist.Count - n; k < _rthHist.Count; k++)
 			{
 				if (k < 0) continue;
 				HRSess s = _rthHist[k];
 				if (s.dayEndBar < fromV || s.dayStartBar > toV) continue;   // trading day fully off-screen
-				// OoD = this session's own open, from the RTH open bar to the day end.
-				DrawHistSeg(chartControl, chartScale, tf, s.oBar, s.dayEndBar, panelLeft, panelRight, dim, textH,
-							ROoD_Enabled, s.o, ROoD_Label, ROoD_Color, ROoD_Style, ROoD_Thickness, true);
-				// HOY/LOY/COY = the PRIOR session's High/Low/Close, spanning this whole trading
-				// day FROM the session-break boundary.
+				int ds = s.dayStartBar, de = s.dayEndBar;
+
+				// This day's own levels.
+				DrawHistSeg(chartControl, chartScale, tf, s.oBar, de, panelLeft, panelRight, dim, textH,
+							Hist_OoD, s.o, ROoD_Label, ROoD_Color, ROoD_Style, ROoD_Thickness, true);
+				DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
+							Hist_OoW, s.weekOpen, ROoW_Label, ROoW_Color, ROoW_Style, ROoW_Thickness, true);
+				DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
+							Hist_OoM, s.monthOpen, ROoM_Label, ROoM_Color, ROoM_Style, ROoM_Thickness, true);
+				double[] eth;
+				if (_ethByDay.TryGetValue(s.date, out eth) && eth != null && eth.Length == 2)
+				{
+					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
+								Hist_EthH, eth[0], EHOY_Label, EHOY_Color, EHOY_Style, EHOY_Thickness, true);
+					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
+								Hist_EthL, eth[1], ELOY_Label, ELOY_Color, ELOY_Style, ELOY_Thickness, false);
+				}
+
+				// Prior-session-derived levels (need record k-1).
 				if (k >= 1)
 				{
 					HRSess p = _rthHist[k - 1];
-					DrawHistSeg(chartControl, chartScale, tf, s.dayStartBar, s.dayEndBar, panelLeft, panelRight, dim, textH,
-								RHOY_Enabled, p.h, RHOY_Label, RHOY_Color, RHOY_Style, RHOY_Thickness, true);
-					DrawHistSeg(chartControl, chartScale, tf, s.dayStartBar, s.dayEndBar, panelLeft, panelRight, dim, textH,
-								RLOY_Enabled, p.l, RLOY_Label, RLOY_Color, RLOY_Style, RLOY_Thickness, false);
-					DrawHistSeg(chartControl, chartScale, tf, s.dayStartBar, s.dayEndBar, panelLeft, panelRight, dim, textH,
-								RCOY_Enabled, p.c, RCOY_Label, RCOY_Color, RCOY_Style, RCOY_Thickness, true);
+					double pc = p.c;   // prior RTH close — the EM anchor
+					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
+								Hist_HOY, p.h, RHOY_Label, RHOY_Color, RHOY_Style, RHOY_Thickness, true);
+					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
+								Hist_LOY, p.l, RLOY_Label, RLOY_Color, RLOY_Style, RLOY_Thickness, false);
+					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
+								Hist_COY, pc, RCOY_Label, RCOY_Color, RCOY_Style, RCOY_Thickness, true);
+
+					// 1D bands, both anchored on the prior RTH close (matches live).
+					double vix = VixPriorTo(s.date);
+					if (!double.IsNaN(pc) && pc > 0 && !double.IsNaN(vix) && vix > 0)
+					{
+						double m = pc * (vix / 100.0) / SQRT252 * Math.Max(0.0, EmSigma);
+						DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
+									Hist_EMV_Max, pc + m, EMV_Max_Label, EMV_Max_Color, EMV_Max_Style, EMV_Max_Thickness, true);
+						DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
+									Hist_EMV_Min, pc - m, EMV_Min_Label, EMV_Min_Color, EMV_Min_Style, EMV_Min_Thickness, false);
+					}
+					double gm = GexMoveFor(s.date);
+					if (!double.IsNaN(pc) && pc > 0 && !double.IsNaN(gm) && gm > 0)
+					{
+						DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
+									Hist_EMG_Max, pc + gm, EMG_Max_Label, EMG_Max_Color, EMG_Max_Style, EMG_Max_Thickness, true);
+						DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
+									Hist_EMG_Min, pc - gm, EMG_Min_Label, EMG_Min_Color, EMG_Min_Style, EMG_Min_Thickness, false);
+					}
 				}
 			}
 			tf.Dispose();
@@ -1069,15 +1176,27 @@ namespace NinjaTrader.NinjaScript.Indicators
 			Description = "How many bars past the current bar the lines/labels are drawn out to.")]
 		public int ExtendBarsRight { get; set; }
 
+		// ---- Historical levels (each level has its own show-historically checkbox) ----
 		[Range(0, 60)]
-		[Display(Name = "Historical sessions (0 = off)", Order = 5, GroupName = "01 Display",
-			Description = "Draw the last N completed RTH sessions' O/H/L/C as confined segments (Model A). 0 = current only.")]
+		[Display(Name = "Historical sessions (0 = off)", Order = 0, GroupName = "22 Historical",
+			Description = "Draw the last N completed sessions' levels as confined per-day segments (Model A). 0 = off.")]
 		public int HistSessions { get; set; }
-
 		[Range(10, 100)]
-		[Display(Name = "Historical opacity %", Order = 6, GroupName = "01 Display",
-			Description = "Dim factor for historical level lines + labels so they read as faint reference.")]
+		[Display(Name = "Opacity %", Order = 1, GroupName = "22 Historical",
+			Description = "Dim factor for historical level lines + labels.")]
 		public int HistOpacity { get; set; }
+		[Display(Name = "RTH HOY (prior high)", Order = 2, GroupName = "22 Historical")] public bool Hist_HOY { get; set; }
+		[Display(Name = "RTH LOY (prior low)", Order = 3, GroupName = "22 Historical")] public bool Hist_LOY { get; set; }
+		[Display(Name = "RTH COY (prior close)", Order = 4, GroupName = "22 Historical")] public bool Hist_COY { get; set; }
+		[Display(Name = "RTH OoD (open of day)", Order = 5, GroupName = "22 Historical")] public bool Hist_OoD { get; set; }
+		[Display(Name = "RTH OoW (open of week)", Order = 6, GroupName = "22 Historical")] public bool Hist_OoW { get; set; }
+		[Display(Name = "RTH OoM (open of month)", Order = 7, GroupName = "22 Historical")] public bool Hist_OoM { get; set; }
+		[Display(Name = "ETH H (overnight high)", Order = 8, GroupName = "22 Historical")] public bool Hist_EthH { get; set; }
+		[Display(Name = "ETH L (overnight low)", Order = 9, GroupName = "22 Historical")] public bool Hist_EthL { get; set; }
+		[Display(Name = "1D Max (VIX)", Order = 10, GroupName = "22 Historical")] public bool Hist_EMV_Max { get; set; }
+		[Display(Name = "1D Min (VIX)", Order = 11, GroupName = "22 Historical")] public bool Hist_EMV_Min { get; set; }
+		[Display(Name = "1D Max (GEX)", Order = 12, GroupName = "22 Historical")] public bool Hist_EMG_Max { get; set; }
+		[Display(Name = "1D Min (GEX)", Order = 13, GroupName = "22 Historical")] public bool Hist_EMG_Min { get; set; }
 
 		// ---- Current Day High ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "01A Current Day - High")] public bool CDH_Enabled { get; set; }
