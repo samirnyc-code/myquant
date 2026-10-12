@@ -1,6 +1,88 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-09 (machine-time W. Europe) — **S133: NT8 `RegimeTrackerBox` — NEW multi-timeframe regime dashboard indicator. One box on the chart, rows = timeframes (editable: `2000t,5M,15M,60M,240M,D,W`), two columns RTH + ETH, each cell colored by Bull/Bear/Range. Flexible corner+X/Y offset and font size. Built, compile-checked, deployed, committed+pushed. GOTCHA fixed: the two trading-hours templates must be exact Trading Hours Manager names — `CME US Index Futures RTH` / `CME US Index Futures ETH` (NOT "CME RTH"/"CME ETH"; a bad name makes `AddDataSeries` throw in `OnStateChange` → indicator errors, draws nothing). See S133 block.** **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+**Last Updated:** 2026-10-12 (machine-time W. Europe) — **S134: NT8 `RegimeTrackerBox` —
+root-caused and fixed the wrong-percentage bug from S133 (`Bull -541%`/`Bull -271%`):
+`Close[0]` read directly inside `OnRender` (via the render timer) is NOT reliable in
+NinjaScript — it returned each series' absolute bar-0 (oldest loaded bar, e.g. a 2025-10-09
+close of 7017.75) instead of the live price, every render, consistently, for minutes.
+Confirmed via a purpose-built `DebugLog` CSV diagnostic (`LiveRead` rows) before touching
+code. Fix: capture live price via `OnMarketData` (the correct per-tick hook) into one
+indicator-level `_livePrice` field, `OnRender` never touches a Series indexer directly.
+VERIFIED FIXED post-deploy: live price now reads correctly and moves tick-by-tick across
+Daily/Weekly/5M/60M. Also this session: capped intraday series' historical load
+(`IntradayBarsToLoad`, was inheriting the chart's full lookback — pure waste given
+`ResetOnNewSession` discards it anyway), fixed Daily/Weekly's lookback to actually mean
+"365 days" (`DaysToLoad`, converted per-period — a prior commit wrongly applied the same
+bar-COUNT to both, making Weekly ~9yr instead of ~365 days), and collapsed D/W to one
+merged column instead of a duplicate RTH/ETH pair (verified byte-identical on this NT8
+install for Day/Week periods specifically — a platform behavior, not a code bug). OPEN:
+D/W's last CLOSED bar is still dated 2026-10-08/10-02 even now (Monday) — live price is
+correct, but the bar-close event itself (leg/counter freshness) lags for these added
+Daily/Weekly series; a restart and two parameter changes didn't fix it, root cause
+undetermined, deprioritized as a minor staleness issue (the regime reading itself is
+accurate, just dated to the last bar NT8 delivered). See S134 block.** S133: NT8 `RegimeTrackerBox` — NEW multi-timeframe regime dashboard indicator. One box on the chart, rows = timeframes (editable: `2000t,5M,15M,60M,240M,D,W`), two columns RTH + ETH, each cell colored by Bull/Bear/Range. Flexible corner+X/Y offset and font size. Built, compile-checked, deployed, committed+pushed. GOTCHA fixed: the two trading-hours templates must be exact Trading Hours Manager names — `CME US Index Futures RTH` / `CME US Index Futures ETH` (NOT "CME RTH"/"CME ETH"; a bad name makes `AddDataSeries` throw in `OnStateChange` → indicator errors, draws nothing). See S133 block.** **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S134-nt8-regime-box-fixes (2026-10-12) — `RegimeTrackerBox`: root-caused the wrong-% bug + resource/lookback fixes
+
+**Trigger:** user reported the box showing `Bull -541%` on Daily and `Bull -271%` on
+Weekly, which didn't match reality. This turned into a multi-step diagnostic across one
+long session (commits `b179bbf`..`640cfe77`) — summarized here; see commit messages for
+full detail on each step.
+
+**Root cause, CONFIRMED (not guessed) and FIXED:** `CurrentPct` read `Close[0]` directly
+from inside `OnRender`, which runs on a UI-timer-driven callback (`_renderTimer`), not
+NinjaScript's own data-processing pipeline (`OnBarUpdate`/`OnMarketData`). Added a
+`DebugLog` diagnostic (writes `Documents\regime_tracker_box_debug_<instrument>.csv`) that
+logs every bar-close AND a throttled live-read snapshot per cell — confirmed via that file
+that `Close[0]` from `OnRender` consistently returned each series' **absolute bar index 0**
+(the OLDEST loaded historical bar, e.g. Daily's 2025-10-09 close of 7017.75) instead of the
+live price, every single render, for as long as observed. Backing the implied price out of
+the formula by hand (`-541% → price≈7017.73`) matched that oldest bar's close to 2 cents —
+not coincidence. **Fix:** added `OnMarketData` (the correct per-tick hook — same pattern
+already used in this repo, see `CumulativeDelta.cs`) to capture live last-trade price into
+one indicator-level `_livePrice` field; `CurrentPct` is now a method taking that price as a
+parameter, `OnRender` never touches a `Series` indexer directly. **Verified fixed** by
+re-checking the CSV post-deploy: live price now reads correctly (~7867, moving tick-by-tick)
+across Daily, Weekly, 5M, and 60M — the bug affected every row, not just D/W (D/W just made
+it obvious via the unclamped leg-pct formula; intraday rows mostly showed "Range 0%",
+silently clamping the same wrong price to the floor).
+
+**Other fixes made en route (all kept, all verified compile-clean + deployed):**
+- `IntradayBarsToLoad` property (default 1000): intraday series were inheriting the
+  chart's full historical lookback for no reason — `ResetOnNewSession` discards all of it
+  every session anyway. Capped via `AddDataSeries`'s explicit `barsToLoad` overload.
+- `DaysToLoad` property (default 365, converted to a per-period bar count — ~260 for
+  Daily, ~52 for Weekly): Daily/Weekly had NO explicit lookback at all originally, which
+  could be short enough that the classifier never accumulates the 2+ opposite-side pivots
+  `EntrySetup()` needs to ever leave its initial RANGE state ("stuck in Range" symptom, user
+  reported both D and W reading Range while their reference chart read Bull). **Caught an
+  overcorrection**: an intermediate commit applied the SAME bar count (500) to both D and
+  W — fine for Daily (~2yr) but ~10x too much for Weekly (~9.6yr) — user called this out
+  directly ("nonsense... need no more than 365d"); fixed by converting days→bars per period
+  type instead of one shared bar count.
+- Collapsed Daily/Weekly to a **single merged column** instead of a duplicate RTH/ETH pair
+  — verified via the debug CSV that RTH and ETH templates produce byte-identical bars for
+  Day/Week periods specifically on this NT8 install (0 of 259 Daily rows, 0 of 52 Weekly
+  rows differed; intraday rows correctly DO differ, confirmed by different row counts) — an
+  NT8 platform behavior, not fixable from NinjaScript, not a wiring bug (bip assignment
+  double-checked and correct).
+
+**OPEN, deprioritized:** Daily/Weekly's last CLOSED bar (the `Event`/`leg`/`counter`
+values, as opposed to the now-correct live price) is still dated 2026-10-08 / 2026-10-02
+even as of Monday 2026-10-12 — a full NT8 restart and an `isResetOnNewTradingDay: null`
+parameter change (vs. explicit `false`) both failed to move it. Original "wait for the next
+session's first tick" theory does not fully hold (Monday morning, well past Sunday
+evening's Globex reopen, still shows no advance). Root cause undetermined — likely an
+EOD-data delivery/sync mechanism specific to *added* (non-primary) Daily/Weekly series,
+separate from the live tick feed (which is confirmed working correctly via the
+`OnMarketData` fix above). Not pursued further: the regime reading itself is accurate, just
+dated to the last bar NT8's added series has delivered — a minor staleness issue, not a
+correctness bug.
+
+**Status: core bug FIXED and verified. One known minor staleness issue left open, by
+choice, not oversight.**
 
 ---
 
