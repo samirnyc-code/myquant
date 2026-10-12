@@ -472,7 +472,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			string txt = ShowRegimeText ? (reg > 0 ? BULL : reg < 0 ? BEAR : RANGE) : "";
 			if (ShowPct && c != null && c.Eng != null)
 			{
-				double pct = c.Eng.CurrentPct(_livePrice);
+				double pct = c.Eng.CurrentPct(_livePrice, DateTime.Now);
 				if (!double.IsNaN(pct))
 					txt += (txt.Length > 0 ? " " : "") + Math.Round(pct).ToString("0") + "%";
 			}
@@ -574,6 +574,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 			private DateTime _weekAnchor = DateTime.MinValue;
 			private int _cutoffBar = -1;
 
+			// SEPARATE SessionIterator instance from _sessionIt (which is driven by
+			// ProcessBar/OnBarUpdate's thread and tracks its own reset-detection
+			// state) -- this one is queried from OnRender's thread purely to check
+			// "is THIS cell's own session (RTH or ETH, whichever this engine's Bars
+			// was built with) open right now", so the two never interfere.
+			private readonly Data.SessionIterator _liveSessionIt;
+			// last bar-CLOSE price (set in ProcessBar, safe to read from OnRender --
+			// a plain field, not a Series indexer). Used to freeze CurrentPct's
+			// price input when this cell's own session is currently closed, instead
+			// of feeding in the live global tick price (which keeps moving on
+			// whichever OTHER session is actually open right now and should not
+			// move an out-of-session cell's %).
+			private double _lastClosePrice = double.NaN;
+
 			// DebugLog diagnostic export -- null (off) unless the indicator's
 			// DebugLog property is on. _label identifies this engine's row+column
 			// (e.g. "D-RTH") in the shared CSV; _lastEvent records what ProcessBar
@@ -596,6 +610,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_zzIdx = new List<int>(); _zzKind = new List<char>(); _zzPrice = new List<double>();
 				_seqIdx = new List<int>(); _seqKind = new List<char>(); _seqPrice = new List<double>();
 				_sessionIt = new Data.SessionIterator(bars);
+				_liveSessionIt = new Data.SessionIterator(bars);
+			}
+
+			public bool IsLiveInSession(DateTime nowLocal)
+			{
+				return _liveSessionIt.IsInSession(nowLocal, true, true);
 			}
 
 			public double CurrentRegime { get { return _trend == BULL ? 1.0 : _trend == BEAR ? -1.0 : 0.0; } }
@@ -621,10 +641,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// the regime flip has been detected/processed.
 			private DateTime _lastLiveLog = DateTime.MinValue;
 
-			public double CurrentPct(double livePrice)
+			// livePrice = the single shared global tick price (same for every cell,
+			// ANY session). nowLocal = wall clock, used to check whether THIS
+			// cell's own session (RTH or ETH -- whichever this engine's Bars was
+			// built with) is open right now. When it's NOT, the global live price
+			// is not this cell's own price -- it belongs to whichever OTHER
+			// session is actually trading -- so freeze on _lastClosePrice (this
+			// cell's own last bar close) instead of letting an out-of-session cell
+			// visibly move on a price that isn't really "its" price.
+			public double CurrentPct(double livePrice, DateTime nowLocal)
 			{
-				if (double.IsNaN(livePrice)) return double.NaN;
-				double pct = ComputePct(livePrice);
+				bool inSession = IsLiveInSession(nowLocal);
+				double price = inSession ? livePrice : _lastClosePrice;
+				if (double.IsNaN(price)) return double.NaN;
+				double pct = ComputePct(price);
 				// throttled live-read diagnostic: logs what OnRender actually used
 				// as "current price" for this engine, distinct from the bar-close
 				// rows ProcessBar writes.
@@ -636,9 +666,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 						_label,
 						"LIVE-" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
 						"",
-						"LiveRead",
+						inSession ? "LiveRead" : "LiveRead(frozen-outOfSession)",
 						_trend,
-						Fmt(livePrice),
+						Fmt(price),
 						_legSet ? Fmt(_leg) : "",
 						_cntSet ? Fmt(_counter) : "",
 						_rangeSet ? Fmt(_rangeLow) : "",
@@ -793,9 +823,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 				}
 
+				_lastClosePrice = _close[barsAgo];   // safe: read inside OnBarUpdate's own context, not OnRender
+
 				if (_debugSink != null)
 				{
-					double closePx = _close[barsAgo];
+					double closePx = _lastClosePrice;
 					string row = string.Join(",", new[]
 					{
 						_label,

@@ -1,6 +1,19 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-12 (machine-time W. Europe) — **S134: NT8 `RegimeTrackerBox` —
+**Last Updated:** 2026-10-12 (machine-time W. Europe) — **S135: Trade Playbook "Library"
+tab — multi-variant tick/time-bar charts (1000t/2000t/4000t/5m/15m) + a real shipped bug
+fix (delete-button on a selected drawing never fired — root-caused to a document-level
+capture-phase mousedown handler deselecting/unmounting the button before its own click
+could reach it; reproduced + fixed + reverified on an isolated Playwright repro). Schema:
+`LibraryChart` now keyed on `(date, barType)` instead of `date` alone (Prisma migration
+applied live via the existing `vercel.json` build-time `prisma db push`, temporarily
+flagged `--accept-data-loss` then reverted — same safe pattern as S128's DB-push
+discovery). `library_chart_build.py` takes `--bar-type` (tick count OR minutes); added a
+time-bar path (resample + bisect, ported from `chartsim_realtick_day.py`) alongside the
+existing exact-index tick-bar path. Backfilled all 5 variants for every ETH day on file
+(2026-10-01 through 2026-10-09). Frontend: new timeframe dropdown next to the date picker.
+DONE, deployed, verified Ready via `vercel inspect`. See S135 block.** S134: NT8
+`RegimeTrackerBox` —
 root-caused and fixed the wrong-percentage bug from S133 (`Bull -541%`/`Bull -271%`):
 `Close[0]` read directly inside `OnRender` (via the render timer) is NOT reliable in
 NinjaScript — it returned each series' absolute bar-0 (oldest loaded bar, e.g. a 2025-10-09
@@ -21,6 +34,65 @@ correct, but the bar-close event itself (leg/counter freshness) lags for these a
 Daily/Weekly series; a restart and two parameter changes didn't fix it, root cause
 undetermined, deprioritized as a minor staleness issue (the regime reading itself is
 accurate, just dated to the last bar NT8 delivered). See S134 block.** S133: NT8 `RegimeTrackerBox` — NEW multi-timeframe regime dashboard indicator. One box on the chart, rows = timeframes (editable: `2000t,5M,15M,60M,240M,D,W`), two columns RTH + ETH, each cell colored by Bull/Bear/Range. Flexible corner+X/Y offset and font size. Built, compile-checked, deployed, committed+pushed. GOTCHA fixed: the two trading-hours templates must be exact Trading Hours Manager names — `CME US Index Futures RTH` / `CME US Index Futures ETH` (NOT "CME RTH"/"CME ETH"; a bad name makes `AddDataSeries` throw in `OnStateChange` → indicator errors, draws nothing). See S133 block.** **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S135-library-chart-variants (2026-10-12) — Trade Playbook "Library" tab: tick/time bar-type variants + delete-button fix
+
+**What:** the Library tab (shared, real-tick-data chart + drawing annotations, separate
+private repo `Desktop\trade-playbook`) now supports 5 chart variants per day instead of a
+fixed 2000-tick chart: **1000t, 2000t, 4000t, 5m, 15m**. User asked for both tick-interval
+and time-based options; confirmed scope via `AskUserQuestion` — user selected all 5.
+
+**Schema:** `LibraryChart` changed from `date String @unique` to `@@unique([date,
+barType])` — one row per day per variant instead of one row per day. Migration applied
+live the same way every schema change lands here: `vercel.json`'s build-time `prisma db
+push` (no manual migration step, confirmed back in S128). Prisma's non-interactive `db
+push` refused the compound-key add on its own cautious "might be data loss" check even
+though no real duplicates existed (every existing row already had a unique `date` under
+the old constraint) — same situation as a prior `LibraryAnnotation` drop. Fixed the same
+way: temporarily added `--accept-data-loss` to the buildCommand, pushed, confirmed Ready
+via `vercel inspect`, then reverted the flag in a follow-up commit so future deploys stay
+safe-by-default.
+
+**Python (`myquant-regime`, branch `regime/indep`):** `library_chart_build.py` now takes
+`--bar-type` (parsed as tick-count `Nt` or minutes `Nm`) instead of a tick-only `--size`.
+Tick bars keep the existing exact `tbar = i // size` mapping; time bars got a new path —
+resample ticks into fixed-span OHLCV buckets, then map each tick to its bar via
+`(ts - bar0).total_seconds() // span_s`, clipped to the valid range (pattern ported from
+`chartsim_realtick_day.py`'s 5-min resample). Same regime-phase-machine
+(`phase_transitions`), EMA20 warmup, and prior-RTH H/L/C logic reused unchanged across
+both paths. `library_chart_post.py` updated to match (`--bar-type`, new filenames).
+Backfilled all 5 variants for every ETH day currently on file (2026-10-01 → 2026-10-09,
+35 files) — committed to the repo per the no-throwaway rule, not left as local output.
+
+**Frontend (`trade-playbook`):** added a timeframe `<select>` next to the date picker;
+switching dates auto-falls-back to a variant that date actually has (prefers 2000t).
+`/api/library/charts/[date]` now takes `?barType=`. `loadLibraryChartDates()` groups rows
+by date and returns each date's available `barTypes[]` for the picker.
+
+**Bug fixed, same session:** reported — "the x doesn't delete the drawings" (screenshot:
+a selected fib retracement, delete button visible, clicking it did nothing). Root cause:
+the drawing layer's document-level `mousedown` **capture**-phase listener
+(`LibraryDrawing.tsx`) runs before the delete button's own React `click` handler. The
+button floats ~30px above the drawing's top anchor point — outside the shape's hit-test
+radius — so that capture listener found no hit, fell through to `setSelectedId(null)`,
+and **unmounted the button mid-click**, before the browser could ever fire `click` on it.
+Fixed by checking `e.target` against a ref to the button and returning immediately (no
+hit-test, no deselect) when the mousedown originates on the button itself. **Verified**,
+not just reasoned about: built an isolated vanilla-JS repro
+(`scratchpad/libtest/delbtn.html` + `drive_delbtn.js`, Playwright) that reproduced
+`deletedCount=0` (bug) without the guard and `deletedCount=1` (fixed) with it, same page,
+same click, before shipping — consistent with how every other drawing-layer bug this
+feature has had was run to ground this cycle (see prior session's z-index and pan-vs-draw
+fixes).
+
+**Status: DONE, deployed, verified Ready via `vercel inspect` after every push.**
+https://trade-playbook-ten.vercel.app/library — timeframe picker + working delete button.
+No open items on this thread. Still NOT built (identified, not started): the
+color/line-type/opacity/thickness/label-font customization panel for drawings and
+reference levels, modeled on `scripts/book_review.py`'s `CFG.lv[k]` gear-icon-panel
+pattern — raised by the user, deferred, not forgotten.
 
 ---
 
