@@ -613,17 +613,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_liveSessionIt = new Data.SessionIterator(bars);
 			}
 
-			public bool IsLiveInSession(DateTime nowLocal)
+			public bool IsLiveInSession(DateTime nowLocal, out DateTime begin, out DateTime end)
 			{
-				// IsInSession alone (confirmed via testing) returns a stale/wrong
-				// answer -- _liveSessionIt is a fresh instance that's never advanced
-				// via GetNextSession the way ProcessBar's own _sessionIt is, so it
-				// has no calculated session boundaries to check against until primed.
-				// CalculateTradingDay computes/caches ActualSessionBegin/End for the
-				// trading day containing nowLocal; do that first, every call (cheap),
-				// so IsInSession always checks against TODAY's actual boundaries.
+				// IsInSession's own answer was confirmed wrong via testing (returned
+				// true with the user's own confirmation that RTH was actually
+				// closed) even after priming with CalculateTradingDay -- its
+				// isIntraday argument's exact semantics are unclear and may not mean
+				// what the name suggests. Bypassing it: CalculateTradingDay computes
+				// and caches ActualSessionBegin/End for the trading day containing
+				// nowLocal; compare nowLocal against those directly instead, which
+				// is unambiguous regardless of IsInSession's internal logic.
 				_liveSessionIt.CalculateTradingDay(nowLocal, true);
-				return _liveSessionIt.IsInSession(nowLocal, true, true);
+				begin = _liveSessionIt.ActualSessionBegin;
+				end = _liveSessionIt.ActualSessionEnd;
+				return nowLocal >= begin && nowLocal <= end;
 			}
 
 			public double CurrentRegime { get { return _trend == BULL ? 1.0 : _trend == BEAR ? -1.0 : 0.0; } }
@@ -659,22 +662,28 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// visibly move on a price that isn't really "its" price.
 			public double CurrentPct(double livePrice, DateTime nowLocal)
 			{
-				bool inSession = IsLiveInSession(nowLocal);
+				DateTime sessBegin, sessEnd;
+				bool inSession = IsLiveInSession(nowLocal, out sessBegin, out sessEnd);
 				double price = inSession ? livePrice : _lastClosePrice;
 				if (double.IsNaN(price)) return double.NaN;
 				double pct = ComputePct(price);
 				// throttled live-read diagnostic: logs what OnRender actually used
 				// as "current price" for this engine, distinct from the bar-close
-				// rows ProcessBar writes.
+				// rows ProcessBar writes. Event column carries the computed session
+				// boundaries so a wrong in/out-of-session call is directly
+				// verifiable from the CSV instead of inferred.
 				if (_debugSink != null && (DateTime.UtcNow - _lastLiveLog).TotalSeconds >= 3)
 				{
 					_lastLiveLog = DateTime.UtcNow;
+					string evt = (inSession ? "LiveRead" : "LiveRead(frozen-outOfSession)")
+						+ "[sess=" + sessBegin.ToString("HH:mm", CultureInfo.InvariantCulture)
+						+ "-" + sessEnd.ToString("HH:mm", CultureInfo.InvariantCulture) + "]";
 					_debugSink(string.Join(",", new[]
 					{
 						_label,
 						"LIVE-" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
 						"",
-						inSession ? "LiveRead" : "LiveRead(frozen-outOfSession)",
+						evt,
 						_trend,
 						Fmt(price),
 						_legSet ? Fmt(_leg) : "",
