@@ -713,20 +713,29 @@ namespace NinjaTrader.NinjaScript.Indicators
 			TextFormat tf = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Arial", LabelFontSize);
 			tf.WordWrapping = WordWrapping.NoWrap;
 
+			// Each session D shows its OWN open (OoD) but the PRIOR session (D-1)'s High/Low/
+			// Close (HOY/LOY/COY = "of yesterday") — same semantics as the live levels, where
+			// Friday shows Thursday's H/L/C. So the H/L/C for day k come from record k-1.
 			int n = Math.Min(HistSessions, _rthHist.Count);
 			for (int k = _rthHist.Count - n; k < _rthHist.Count; k++)
 			{
+				if (k < 0) continue;
 				HRSess s = _rthHist[k];
 				if (s.endBar < fromV || s.startBar > toV) continue;   // session fully off-screen
-				// O/H/L/C: price, enabled, label, color, style, thickness, above?(true)/below(false)
+				// OoD = this session's own open.
 				DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
 							ROoD_Enabled, s.o, ROoD_Label, ROoD_Color, ROoD_Style, ROoD_Thickness, true);
-				DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
-							RHOY_Enabled, s.h, RHOY_Label, RHOY_Color, RHOY_Style, RHOY_Thickness, true);
-				DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
-							RLOY_Enabled, s.l, RLOY_Label, RLOY_Color, RLOY_Style, RLOY_Thickness, false);
-				DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
-							RCOY_Enabled, s.c, RCOY_Label, RCOY_Color, RCOY_Style, RCOY_Thickness, true);
+				// HOY/LOY/COY = the PRIOR session's High/Low/Close, drawn across this session.
+				if (k >= 1)
+				{
+					HRSess p = _rthHist[k - 1];
+					DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
+								RHOY_Enabled, p.h, RHOY_Label, RHOY_Color, RHOY_Style, RHOY_Thickness, true);
+					DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
+								RLOY_Enabled, p.l, RLOY_Label, RLOY_Color, RLOY_Style, RLOY_Thickness, false);
+					DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
+								RCOY_Enabled, p.c, RCOY_Label, RCOY_Color, RCOY_Style, RCOY_Thickness, true);
+				}
 			}
 			tf.Dispose();
 		}
