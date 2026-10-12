@@ -171,10 +171,29 @@ Offline compile-check that mirrors NT8: strip the region, run `csc.exe` on the c
     gexlog *band* is anchored on a different reference (~7765 vs prior-close ~7848) → the two sit apart.
     **OPEN: observe both live a few weeks, then choose the method.**
 
-**Status: shipped & committed.** Open items: (1) EM method comparison (forward-observe). (2) `PriorWeekOHLCV4`
-F5 not yet confirmed by user. (3) RTH levels still off on daily charts by the `!IsIntraday` guard
-(deliberate; user didn't ask to enable). (4) Old quarantine dir `Documents\NinjaTrader 8\_quarantine_OUTSIDE_CUSTOM\`
-still holds a stale `SessionSRLevelsV7.cs` — harmless (outside the Custom tree), can delete.
+**Later in the session (all shipped + user-confirmed correct on chart):**
+- **EM bands: both anchored on the prior RTH close.** The 50pt VIX-vs-GEX gap was purely the
+  anchor — gexlog's `emUpper/emLower` are built on its pivot (`levels.current`, ~55pt off the
+  close). Now GEX uses gexlog's published `expectedMove` (size only) on the SAME prior RTH close
+  as VIX; the two bands differ only by move size (76 vs 75). ES settlement as the anchor = future option.
+- **Labels: price prints on the same line as the label** (was wrapping below — `WordWrapping=NoWrap` + wider rect).
+- **HISTORICAL LEVELS (Model A — confined per-day segments), user said "A".** New "22 Historical"
+  property section: `HistSessions` (default 5), `Opacity`, and a show-historically checkbox PER level
+  (RTH HOY/LOY/COY/OoD/OoW/OoM, ETH H/L, 1D Max/Min VIX, 1D Max/Min GEX; all on). Each prior day draws
+  its levels confined to its own trading day, STARTING AT THE SESSION-BREAK line, dimmed, labels
+  centered above (highs/opens) / below (lows). **HOY/LOY/COY = the PRIOR session's H/L/C** (off-by-one
+  fix: each day shows yesterday's H/L/C, like the live Friday-shows-Thursday behavior). **OoD/OoW/OoM,
+  ETH H/L, 1D bands = THAT session's own values.** Storage: `List<HRSess>` pushed at the RTH day roll
+  (with `date/weekOpen/monthOpen/dayStartBar/dayEndBar`); `_ethByDay` dict filled at the ETH roll;
+  historical 1D bands use a VIX date→close map off `vix_daily.csv` + per-date gexlog briefs (cached).
+  All in `DrawHistorical`/`DrawHistSeg` in OnRender.
+- **Deferred "extend-until-touched" (naked levels / Model B)** as a future toggle — user chose A first.
+
+**Status: shipped & committed + pushed.** Open items: (1) EM VIX-vs-GEX comparison (forward-observe
+a few weeks, then pick). (2) `PriorWeekOHLCV4` F5 not yet confirmed. (3) RTH levels still off on daily
+charts by the `!IsIntraday` guard (deliberate). (4) Possible next: Model-B naked-levels toggle; historical
+for custom/current-day levels if wanted. (5) Old quarantine dir `Documents\NinjaTrader 8\_quarantine_OUTSIDE_CUSTOM\`
+holds a stale `SessionSRLevelsV7.cs` — harmless, can delete.
 
 ## S131-tab-icons (2026-10-08) — browser-tab favicons (Trade Playbook app + myquant desk Daily Playbook)
 
