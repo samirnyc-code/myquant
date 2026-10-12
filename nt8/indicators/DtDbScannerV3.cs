@@ -3,11 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 using NinjaTrader.Cbi;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
+using NinjaTrader.Gui.Tools;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
@@ -27,6 +29,11 @@ using NinjaTrader.NinjaScript.DrawingTools;
 // equal highs/lows is the pivot); (b) DT/DB pairing looks back through all
 // earlier pivots within MaxBarsBetween, not just the previous one. Rollback
 // copy of the pre-(b) file: rollback/DtDbScannerV3_2026-10-08_pre-lookback.cs.bak
+//
+// 2026-10-12: optional ABR sizing (peak tolerance + min valley depth as a
+// multiple of the average High-Low of the last AbrBars bars); neckline-break
+// marker is a triangle (was an arrow; text glyph, size = ConfirmTriangleSize,
+// DB triangle SeaGreen); black width-4 line joins the two tops/bottoms.
 //
 // Note: the score gates only the "forming" alert (MinScoreToAlert); the
 // CONFIRMED alert still fires regardless of score, same as V1/V2.
@@ -51,6 +58,20 @@ namespace NinjaTrader.NinjaScript.Indicators
             public double Score;
             public bool   IsTop;           // true = double top, false = double bottom
         }
+
+        // Every structure drawn on the chart and not yet resolved. Separate from
+        // pendingTop/pendingBottom (which hold only the latest of each type, for
+        // alerts) so an older drawing that a newer pattern replaced is still
+        // watched and can be deleted when invalidated (DeleteInvalidated).
+        private class DrawnStructure
+        {
+            public string Tag;              // DrawStructure tag prefix
+            public bool   IsTop;
+            public double Neckline;
+            public double InvalidateBeyond;
+            public int    FormBar;
+        }
+        private readonly List<DrawnStructure> openDrawn = new List<DrawnStructure>();
 
         // ---- state ----------------------------------------------------------
         private readonly List<Pivot> highs = new List<Pivot>();
@@ -86,6 +107,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 SwingStrength     = 4;   // bars required on each side of a pivot to confirm it (bigger = fewer, stronger swings; adds this much lag)
                 PeakToleranceTicks = 6;  // max price difference between the two peaks/troughs, in ticks
                 MinValleyDepthTicks = 10;// the pullback between peaks must be at least this deep, in ticks (rejects flat tops)
+                UseAbrSizing      = false; // true: peak tolerance + min valley depth = multiple of the average bar range instead of fixed ticks
+                AbrBars           = 8;     // bars in the average bar range (High-Low), ending at the bar the pattern is evaluated on
+                PeakToleranceAbr  = 0.5;   // peak tolerance = this x ABR (when UseAbrSizing)
+                MinValleyDepthAbr = 0.5;   // min valley depth = this x ABR (when UseAbrSizing)
                 MinBarsBetween    = 6;   // peaks closer than this are noise
                 MaxBarsBetween    = 120; // peaks farther apart than this are unrelated
                 NecklineBufferTicks = 2; // close must break the neckline by this much to confirm
@@ -93,6 +118,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 MinScoreToAlert   = 50;  // suppress forming-alerts below this quality score
                 RearmSeconds      = 30;  // alert re-arm window
                 ShowDrawings      = true;
+                DeleteInvalidated = false; // true: remove a DT/DB's drawings when price invalidates it (new extreme beyond the peaks/troughs)
+                ConfirmTriangleSize = 30;  // font size of the neckline-break triangle (~3x NT8's built-in triangle marker)
                 ShowDebugPrints   = true; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
             }
             else if (State == State.Configure)
@@ -169,6 +196,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             // --- 3. manage any pending structure for neckline confirmation --
             ManagePending();
+
+            // --- 4. resolve every drawn structure (deletes invalidated ones) --
+            SweepDrawn();
         }
 
         // Confirms whether the bar at `offset` bars ago is a swing high/low.
@@ -252,8 +282,8 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (highs.Count < 2) return;
 
             Pivot p2 = highs[highs.Count - 1];
-            double tol      = PeakToleranceTicks * TickSize;
-            double minDepth = MinValleyDepthTicks * TickSize;
+            double tol, minDepth;
+            EffectiveSizes(out tol, out minDepth);
 
             // V3 look-back: pair the new high with the MOST RECENT earlier high that
             // passes every gate - not just the immediately preceding pivot (V1/V2),
@@ -297,8 +327,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             if (ShowDebugPrints)
                 Print(Time[0] + "  DT-check p1@" + p1.Bar + "=" + p1.Price + " p2@" + p2.Bar + "=" + p2.Price
-                    + "  peakDiff=" + Math.Round(peakDiff / TickSize) + "t(tol<=" + PeakToleranceTicks + "t " + (peakDiff <= tol ? "OK" : "FAIL") + ")"
-                    + "  valleyDepth=" + Math.Round(valleyDepth / TickSize) + "t(min>=" + MinValleyDepthTicks + "t " + (valleyDepth >= minDepth ? "OK" : "FAIL") + ")"
+                    + "  peakDiff=" + Math.Round(peakDiff / TickSize) + "t(tol<=" + Math.Round(tol / TickSize, 1) + "t " + (peakDiff <= tol ? "OK" : "FAIL") + ")"
+                    + "  valleyDepth=" + Math.Round(valleyDepth / TickSize) + "t(min>=" + Math.Round(minDepth / TickSize, 1) + "t " + (valleyDepth >= minDepth ? "OK" : "FAIL") + ")"
+                    + SizeModeNote()
                     + "  barsBetween=" + barsBetween + "(" + MinBarsBetween + "-" + MaxBarsBetween + " " + (barsBetween >= MinBarsBetween && barsBetween <= MaxBarsBetween ? "OK" : "FAIL") + ")");
 
             if (peakDiff > tol) return false;
@@ -318,7 +349,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             // RANKER: register score here, e.g. Registry[Instrument+tickInterval] = (score, "DT");
 
-            if (ShowDrawings) DrawStructure(p1, valley, p2, score, isTop: true);
+            if (ShowDrawings)
+            {
+                DrawStructure(p1, valley, p2, score, isTop: true);
+                TrackDrawn(pendingTop, "DT_" + p2.Bar);   // tag must match DrawStructure
+            }
 
             if (score >= MinScoreToAlert)
                 FireAlert("DTform_" + p2.Bar, Priority.High,
@@ -334,8 +369,8 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (lows.Count < 2) return;
 
             Pivot t2 = lows[lows.Count - 1];
-            double tol      = PeakToleranceTicks * TickSize;
-            double minDepth = MinValleyDepthTicks * TickSize;
+            double tol, minDepth;
+            EffectiveSizes(out tol, out minDepth);
 
             // V3 look-back (mirror of CheckDoubleTop): most recent earlier low that
             // passes every gate, with no pivot low between below both troughs.
@@ -375,8 +410,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             if (ShowDebugPrints)
                 Print(Time[0] + "  DB-check t1@" + t1.Bar + "=" + t1.Price + " t2@" + t2.Bar + "=" + t2.Price
-                    + "  troughDiff=" + Math.Round(troughDiff / TickSize) + "t(tol<=" + PeakToleranceTicks + "t " + (troughDiff <= tol ? "OK" : "FAIL") + ")"
-                    + "  peakHeight=" + Math.Round(peakHeight / TickSize) + "t(min>=" + MinValleyDepthTicks + "t " + (peakHeight >= minDepth ? "OK" : "FAIL") + ")"
+                    + "  troughDiff=" + Math.Round(troughDiff / TickSize) + "t(tol<=" + Math.Round(tol / TickSize, 1) + "t " + (troughDiff <= tol ? "OK" : "FAIL") + ")"
+                    + "  peakHeight=" + Math.Round(peakHeight / TickSize) + "t(min>=" + Math.Round(minDepth / TickSize, 1) + "t " + (peakHeight >= minDepth ? "OK" : "FAIL") + ")"
+                    + SizeModeNote()
                     + "  barsBetween=" + barsBetween + "(" + MinBarsBetween + "-" + MaxBarsBetween + " " + (barsBetween >= MinBarsBetween && barsBetween <= MaxBarsBetween ? "OK" : "FAIL") + ")");
 
             if (troughDiff > tol) return false;
@@ -396,7 +432,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             // RANKER: register score here.
 
-            if (ShowDrawings) DrawStructure(t1, peak, t2, score, isTop: false);
+            if (ShowDrawings)
+            {
+                DrawStructure(t1, peak, t2, score, isTop: false);
+                TrackDrawn(pendingBottom, "DB_" + t2.Bar); // tag must match DrawStructure
+            }
 
             if (score >= MinScoreToAlert)
                 FireAlert("DBform_" + t2.Bar, Priority.High,
@@ -413,7 +453,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             if (pendingTop != null)
             {
-                if (High[0] > pendingTop.InvalidateBeyond)                 pendingTop = null;          // new high -> void
+                if (High[0] > pendingTop.InvalidateBeyond)                                             // new high -> void
+                {
+                    pendingTop = null;                     // drawing deletion: SweepDrawn()
+                }
                 else if (CurrentBar - pendingTop.FormBar > ConfirmWithinBars) pendingTop = null;       // expired
                 else if (Close[0] < pendingTop.Neckline - buf)
                 {
@@ -422,8 +465,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         + "  neckline " + pendingTop.Neckline.ToString(), Brushes.Red);
                     if (ShowDrawings)
                     {
-                        DrawingTool arr = Draw.ArrowDown(this, "DTconfArr_" + pendingTop.FormBar, true, 0, High[0] + 4 * TickSize, Brushes.Red);
-                        TrackDrawObj(arr);
+                        TrackDrawObj(DrawConfirmTriangle("DTconfTri_" + pendingTop.FormBar, true, High[0] + 4 * TickSize, Brushes.Red));
                     }
                     pendingTop = null;
                 }
@@ -431,7 +473,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             if (pendingBottom != null)
             {
-                if (Low[0] < pendingBottom.InvalidateBeyond)                 pendingBottom = null;
+                if (Low[0] < pendingBottom.InvalidateBeyond)                                           // new low -> void
+                {
+                    pendingBottom = null;                  // drawing deletion: SweepDrawn()
+                }
                 else if (CurrentBar - pendingBottom.FormBar > ConfirmWithinBars) pendingBottom = null;
                 else if (Close[0] > pendingBottom.Neckline + buf)
                 {
@@ -440,8 +485,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         + "  neckline " + pendingBottom.Neckline.ToString(), Brushes.Lime);
                     if (ShowDrawings)
                     {
-                        DrawingTool arr = Draw.ArrowUp(this, "DBconfArr_" + pendingBottom.FormBar, true, 0, Low[0] - 4 * TickSize, Brushes.Lime);
-                        TrackDrawObj(arr);
+                        TrackDrawObj(DrawConfirmTriangle("DBconfTri_" + pendingBottom.FormBar, false, Low[0] - 4 * TickSize, Brushes.SeaGreen));
                     }
                     pendingBottom = null;
                 }
@@ -536,9 +580,71 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             TrackDrawObj(Draw.Line(this, tag + "_l1", false, aAgo, a.Price, midAgo, mid.Price, c, DashStyleHelper.Solid, 2));
             TrackDrawObj(Draw.Line(this, tag + "_l2", false, midAgo, mid.Price, bAgo, b.Price, c, DashStyleHelper.Solid, 2));
-            TrackDrawObj(Draw.Line(this, tag + "_neck", false, midAgo, mid.Price, 0, mid.Price, c, DashStyleHelper.Dash, 1));
+            TrackDrawObj(Draw.Line(this, tag + "_neck", false, midAgo, mid.Price, 0, mid.Price, c, DashStyleHelper.Dash, 2));
+            TrackDrawObj(Draw.Line(this, tag + "_peaks", false, aAgo, a.Price, bAgo, b.Price, Brushes.Black, DashStyleHelper.Solid, 4)); // joins the two tops/bottoms
             TrackDrawObj(Draw.Text(this, tag + "_txt", (isTop ? "DT " : "DB ") + score.ToString("F0"),
                       bAgo, isTop ? b.Price + 10 * TickSize : b.Price - 10 * TickSize, c));
+        }
+
+        private void TrackDrawn(Pending p, string tag)
+        {
+            if (p == null) return;
+            openDrawn.Add(new DrawnStructure
+            {
+                Tag              = tag,
+                IsTop            = p.IsTop,
+                Neckline         = p.Neckline,
+                InvalidateBeyond = p.InvalidateBeyond,
+                FormBar          = p.FormBar
+            });
+        }
+
+        // Same resolution rules/order as ManagePending, applied to EVERY drawn
+        // structure (incl. ones a newer pattern replaced as the pending one):
+        // invalidated -> delete drawings (if DeleteInvalidated) and stop watching;
+        // expired or neckline close-break -> keep drawings, stop watching.
+        private void SweepDrawn()
+        {
+            double buf = NecklineBufferTicks * TickSize;
+            for (int i = openDrawn.Count - 1; i >= 0; i--)
+            {
+                DrawnStructure d = openDrawn[i];
+                bool invalid   = d.IsTop ? High[0] > d.InvalidateBeyond : Low[0] < d.InvalidateBeyond;
+                bool expired   = CurrentBar - d.FormBar > ConfirmWithinBars;
+                bool confirmed = d.IsTop ? Close[0] < d.Neckline - buf : Close[0] > d.Neckline + buf;
+
+                if (invalid)
+                {
+                    if (DeleteInvalidated) RemoveStructure(d.Tag);
+                    openDrawn.RemoveAt(i);
+                }
+                else if (expired || confirmed)
+                {
+                    openDrawn.RemoveAt(i);
+                }
+            }
+        }
+
+        // Removes every drawing DrawStructure made for one structure (invalidated setups,
+        // when DeleteInvalidated is on). Suffixes must match DrawStructure.
+        private void RemoveStructure(string tag)
+        {
+            if (string.IsNullOrEmpty(tag)) return;
+            string[] parts = { "_l1", "_l2", "_neck", "_peaks", "_txt" };
+            foreach (string s in parts)
+                RemoveDrawObject(tag + s);
+        }
+
+        // Neckline-break marker. NT8's Draw.TriangleUp/Down have no size setting, so the
+        // triangle is a text glyph (U+25BC down / U+25B2 up) whose font size sets its size.
+        // Nudged half its height away from the bar so it doesn't overlap the candle.
+        private DrawingTool DrawConfirmTriangle(string tag, bool isTop, double y, Brush brush)
+        {
+            string glyph = isTop ? "▼" : "▲";
+            int nudge = isTop ? ConfirmTriangleSize / 2 : -ConfirmTriangleSize / 2;
+            return Draw.Text(this, tag, true, glyph, 0, y, nudge, brush,
+                             new SimpleFont("Arial", ConfirmTriangleSize), TextAlignment.Center,
+                             Brushes.Transparent, Brushes.Transparent, 0);
         }
 
         // records a freshly-created Draw.* object so SyncVisibility() can flip
@@ -560,6 +666,39 @@ namespace NinjaTrader.NinjaScript.Indicators
         private string Label()
         {
             return tickInterval > 0 ? tickInterval.ToString() : (BarsPeriod.Value + "" + BarsPeriod.BarsPeriodType);
+        }
+
+        // average bar range (High-Low) of the last AbrBars bars, ending at the current bar
+        private double AvgBarRange()
+        {
+            int n = Math.Min(AbrBars, CurrentBar + 1);
+            if (n <= 0) return 0;
+            double sum = 0;
+            for (int k = 0; k < n; k++) sum += High[k] - Low[k];
+            return sum / n;
+        }
+
+        // peak tolerance + min valley depth in price: fixed ticks, or multiples of ABR
+        private void EffectiveSizes(out double tol, out double minDepth)
+        {
+            if (UseAbrSizing)
+            {
+                double abr = AvgBarRange();
+                tol      = PeakToleranceAbr * abr;
+                minDepth = MinValleyDepthAbr * abr;
+            }
+            else
+            {
+                tol      = PeakToleranceTicks * TickSize;
+                minDepth = MinValleyDepthTicks * TickSize;
+            }
+        }
+
+        // debug-print suffix showing which sizing mode produced tol/min
+        private string SizeModeNote()
+        {
+            if (!UseAbrSizing) return "  [ticks]";
+            return "  [ABR" + AbrBars + "=" + Math.Round(AvgBarRange() / TickSize, 1) + "t x" + PeakToleranceAbr + "/x" + MinValleyDepthAbr + "]";
         }
 
         private static double Clamp(double v, double lo, double hi) { return v < lo ? lo : (v > hi ? hi : v); }
@@ -612,12 +751,36 @@ namespace NinjaTrader.NinjaScript.Indicators
         public int RearmSeconds { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Show drawings", Description = "Draw the structure, neckline, score and confirm arrows.", Order = 10, GroupName = "3. Alerts")]
+        [Display(Name = "Show drawings", Description = "Draw the structure, peak line, neckline, score and confirm triangles.", Order = 10, GroupName = "3. Alerts")]
         public bool ShowDrawings { get; set; }
 
         [NinjaScriptProperty]
         [Display(Name = "Show debug prints", Description = "Verbose: prints a pivot-test line every bar (pivot or, if blocked, which bar blocked it) plus every DT/DB gate pass/fail, to the NinjaScript Output tab.", Order = 11, GroupName = "4. Debug")]
         public bool ShowDebugPrints { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Size from avg bar range", Description = "On: peak tolerance and min valley depth = multiple x average bar range (ABR) of the last N bars, instead of the fixed tick settings above.", Order = 12, GroupName = "1. Structure")]
+        public bool UseAbrSizing { get; set; }
+
+        [NinjaScriptProperty, Range(1, int.MaxValue)]
+        [Display(Name = "ABR bars", Description = "Number of bars in the average bar range (High-Low), ending at the bar the pattern is evaluated on.", Order = 13, GroupName = "1. Structure")]
+        public int AbrBars { get; set; }
+
+        [NinjaScriptProperty, Range(0.0, double.MaxValue)]
+        [Display(Name = "Peak tolerance (x ABR)", Description = "Used when 'Size from avg bar range' is on: max peak/trough difference = this x ABR.", Order = 14, GroupName = "1. Structure")]
+        public double PeakToleranceAbr { get; set; }
+
+        [NinjaScriptProperty, Range(0.0, double.MaxValue)]
+        [Display(Name = "Min valley depth (x ABR)", Description = "Used when 'Size from avg bar range' is on: min pullback between the peaks = this x ABR.", Order = 15, GroupName = "1. Structure")]
+        public double MinValleyDepthAbr { get; set; }
+
+        [NinjaScriptProperty, Range(4, 200)]
+        [Display(Name = "Confirm triangle size", Description = "Font size of the neckline-break triangle.", Order = 16, GroupName = "3. Alerts")]
+        public int ConfirmTriangleSize { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Delete invalidated DT/DB", Description = "Remove a pattern's drawings (lines, peak line, neckline, score label) when price makes a new extreme beyond its peaks/troughs before confirming. Expired patterns are kept.", Order = 17, GroupName = "3. Alerts")]
+        public bool DeleteInvalidated { get; set; }
         #endregion
     }
 }
