@@ -52,9 +52,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private int    ctBaseRowCount;
 		private int    ctRowsAdded;
 
-		private Button btnSELIbs, btnSESIbs, btnSEL2, btnSES2, btnCancel, btnFlat, btnStpMode, btnRMult, btnOffset, btnIbs;
+		private Button btnSELIbs, btnSESIbs, btnSEL2, btnSES2, btnPickSB, btnCancel, btnFlat, btnStpMode, btnRMult, btnOffset, btnIbs;
+		private bool   _mouseHooked;
 
-		private Color  ColorOn, ColorOff, ColorArmed;
+		private Color  ColorOn, ColorOff, ColorArmed, ColorPick;
 
 		// ── runtime state ────────────────────────────────────────────────────
 		private BBLiteStopMode _stopMode = BBLiteStopMode.BarStop;
@@ -64,6 +65,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		private bool   _pendingLong, _pendingShort;   // armed, waiting for the SB (armed bar) to close
 		private bool   _pendingUseIbs;                 // whether the pending arm gates on IBS
+		private bool   _pickArmed;                     // next chart click selects the SB
+		private int    _sbPickedBar = -1;              // absolute bar index of a manually-picked SB (-1 = none)
 		private int    _dir;                           // +1 long / -1 short for the open trade, 0 flat
 		private bool   _activeUseIbs;                   // whether the OPEN trade's entry used the IBS gate
 		private double _entryPx, _stopPx, _tgtPx;
@@ -89,6 +92,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				ColorOn    = Color.FromRgb(0,   160, 0);
 				ColorOff   = Color.FromRgb(80,  80,  80);
 				ColorArmed = Color.FromRgb(200, 140, 0);   // amber = armed / waiting on SB close
+				ColorPick  = Color.FromRgb(0,   110, 200); // blue = pick mode
 			}
 			else if (State == State.DataLoaded)
 			{
@@ -110,23 +114,26 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			if (CurrentBar < BarsRequiredToTrade) return;
 
-			// The bar that just closed (bar 0) is the SB for whichever side is pending.
+			// SB = the manually-picked bar if one is set, else the bar that just closed.
 			if ((_pendingLong || _pendingShort) && Position.MarketPosition == MarketPosition.Flat)
 			{
 				bool isLong  = _pendingLong;
 				bool useIbs  = _pendingUseIbs;
+				int  sbAgo   = _sbPickedBar >= 0 ? Math.Max(0, CurrentBar - _sbPickedBar) : 0;
 				_pendingLong = _pendingShort = false;
-				TryPlaceStopEntry(isLong, useIbs);
+				_sbPickedBar = -1;
+				TryPlaceStopEntry(isLong, useIbs, sbAgo);
 				RefreshSEButtons();
 			}
 		}
 
 		// Gate on IBS (if requested), then compute entry/stop/target off the SB
-		// (bar 0 = the bar that just closed) and rest a limit entry.
-		private void TryPlaceStopEntry(bool isLong, bool useIbs)
+		// (sbAgo bars back — 0 = the bar that just closed, or a manually-picked bar)
+		// and rest a limit entry.
+		private void TryPlaceStopEntry(bool isLong, bool useIbs, int sbAgo)
 		{
-			double range = High[0] - Low[0];
-			double ibs = range > 0 ? (Close[0] - Low[0]) / range : 0.5;
+			double range = High[sbAgo] - Low[sbAgo];
+			double ibs = range > 0 ? (Close[sbAgo] - Low[sbAgo]) / range : 0.5;
 
 			if (useIbs)
 			{
@@ -145,10 +152,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			// STOP reference (BarStop): the SB's extreme, but if the SB is an inside
 			// bar, walk LEFT to the first non-inside bar and use that.
-			double stopRefHi = High[0], stopRefLo = Low[0];
+			double stopRefHi = High[sbAgo], stopRefLo = Low[sbAgo];
 			if (_stopMode == BBLiteStopMode.BarStop)
 			{
-				int a = 0;
+				int a = sbAgo;
 				while (a + 1 <= CurrentBar && High[a] <= High[a + 1] && Low[a] >= Low[a + 1])
 					a++;
 				stopRefHi = High[a]; stopRefLo = Low[a];
@@ -156,12 +163,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			if (isLong)
 			{
-				_entryPx = High[0] + _offsetTicks * tick;
+				_entryPx = High[sbAgo] + _offsetTicks * tick;
 				_stopPx  = (_stopMode == BBLiteStopMode.LastSwing ? _swing.SwingLow[0] : stopRefLo) - SE_StopOffsetTicks * tick;
 			}
 			else
 			{
-				_entryPx = Low[0] - _offsetTicks * tick;
+				_entryPx = Low[sbAgo] - _offsetTicks * tick;
 				_stopPx  = (_stopMode == BBLiteStopMode.LastSwing ? _swing.SwingHigh[0] : stopRefHi) + SE_StopOffsetTicks * tick;
 			}
 
@@ -275,12 +282,17 @@ namespace NinjaTrader.NinjaScript.Strategies
 				btnSES2.Click += (o, e) => TriggerCustomEvent(st => ArmSE(false, false), null);
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnSEL2, btnSES2);
 
-				// Row: CANCEL | FLATTEN ALL
+				// Row: PICK SB | CANCEL
+				btnPickSB = MakeBtn(s, "PICK SB", "Toggle, then click a bar to use it as the signal bar (overrides the default: the bar you armed in)", ColorOff);
+				btnPickSB.Click += (o, e) => { _pickArmed = !_pickArmed; SetBtn(btnPickSB, _pickArmed ? ColorPick : ColorOff); Print(DateTime.Now + " PICK SB " + (_pickArmed ? "ON — click a bar" : "OFF")); };
 				btnCancel = MakeBtn(s, "CANCEL", "Cancel working orders (entry + stop/target); leaves an open position", Color.FromRgb(120,90,20));
 				btnCancel.Click += (o, e) => TriggerCustomEvent(st => CancelSEOrders(), null);
+				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnPickSB, btnCancel);
+
+				// Row: FLATTEN ALL
 				btnFlat = MakeBtn(s, "FLATTEN ALL", "Close this strategy's position + cancel all its orders", Color.FromRgb(150,30,30));
 				btnFlat.Click += (o, e) => TriggerCustomEvent(st => FlattenSE(), null);
-				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnCancel, btnFlat);
+				AddFullRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnFlat);
 
 				// Row: STP mode | TGT R-multiple (cycle / left-right adjust)
 				btnStpMode = MakeBtn(s, "STP:" + _stopMode, "Cycle stop mode (BarStop / LastSwing)", Color.FromRgb(60,60,60));
@@ -299,6 +311,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				btnIbs.PreviewMouseRightButtonDown += (o, e) => { e.Handled = true; AdjustIbs(+1); };
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnOffset, btnIbs);
 
+				if (!_mouseHooked) { ChartControl.PreviewMouseDown += OnChartMouseDown; _mouseHooked = true; }
 				ctPanelActive = true;
 			}
 			catch (Exception ex) { Print("BBLite CreateWPFControls: " + ex.Message); }
@@ -324,7 +337,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 			_pendingLong = isLong; _pendingShort = !isLong; _pendingUseIbs = useIbs;
 			CancelWorkingEntries();
 			Print(DateTime.Now + " SE " + (isLong ? "LONG" : "SHORT") + (useIbs ? "" : " 2nd (no IBS gate)")
-				+ " armed — SB = the bar it closes on [" + _stopMode + "/" + _rMult.ToString("0.0") + "R]");
+				+ " armed — SB = " + (_sbPickedBar >= 0 ? "picked bar" : "the bar it closes on")
+				+ " [" + _stopMode + "/" + _rMult.ToString("0.0") + "R]");
 			RefreshSEButtons();
 		}
 
@@ -339,6 +353,24 @@ namespace NinjaTrader.NinjaScript.Strategies
 			SetBtn(btnSEL2,   longNo   ? ColorArmed : ColorOff);
 			SetBtn(btnSESIbs, shortIbs ? ColorArmed : ColorOff);
 			SetBtn(btnSES2,   shortNo  ? ColorArmed : ColorOff);
+		}
+
+		private void OnChartMouseDown(object sender, MouseButtonEventArgs e)
+		{
+			if (!_pickArmed || ChartControl == null || ChartBars == null) return;
+			try
+			{
+				// Coordinate must be relative to ChartControl (NOT ChartPanel) for
+				// GetBarIdxByX to resolve.
+				var pos = e.GetPosition(ChartControl);
+				int idx = ChartBars.GetBarIdxByX(ChartControl, (int)pos.X);
+				if (idx < 0 || idx > CurrentBar) { Print(DateTime.Now + " PICK SB: click off the bars (idx " + idx + ")"); return; }
+				_sbPickedBar = idx;
+				_pickArmed = false;
+				SetBtn(btnPickSB, ColorOff);
+				Print(DateTime.Now + " SB picked @ bar " + idx + " (" + Time.GetValueAt(Math.Min(idx, CurrentBar)) + ")");
+			}
+			catch (Exception ex) { Print("BBLite pick: " + ex.Message); }
 		}
 
 		// Live (still-cancelable) order states. A resting LIMIT entry sits in
@@ -418,13 +450,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			try
 			{
+				if (_mouseHooked && ChartControl != null) { ChartControl.PreviewMouseDown -= OnChartMouseDown; _mouseHooked = false; }
 				if (!ctPanelActive || ctButtonsGrid == null) return;
 				int baseRows = Math.Max(0, ctBaseRowCount);
 				while (ctButtonsGrid.Children.Count > baseRows)
 					ctButtonsGrid.Children.RemoveAt(ctButtonsGrid.Children.Count - 1);
 				while (ctButtonsGrid.RowDefinitions.Count > baseRows)
 					ctButtonsGrid.RowDefinitions.RemoveAt(ctButtonsGrid.RowDefinitions.Count - 1);
-				btnSELIbs = btnSESIbs = btnSEL2 = btnSES2 = btnCancel = btnFlat = btnStpMode = btnRMult = btnOffset = btnIbs = null;
+				btnSELIbs = btnSESIbs = btnSEL2 = btnSES2 = btnPickSB = btnCancel = btnFlat = btnStpMode = btnRMult = btnOffset = btnIbs = null;
 				ctPanelActive = false;
 			}
 			catch (Exception ex) { Print("BBLite DisposeWPFControls: " + ex.Message); }
