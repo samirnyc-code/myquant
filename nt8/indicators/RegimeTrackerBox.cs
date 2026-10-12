@@ -615,6 +615,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			public bool IsLiveInSession(DateTime nowLocal)
 			{
+				// IsInSession alone (confirmed via testing) returns a stale/wrong
+				// answer -- _liveSessionIt is a fresh instance that's never advanced
+				// via GetNextSession the way ProcessBar's own _sessionIt is, so it
+				// has no calculated session boundaries to check against until primed.
+				// CalculateTradingDay computes/caches ActualSessionBegin/End for the
+				// trading day containing nowLocal; do that first, every call (cheap),
+				// so IsInSession always checks against TODAY's actual boundaries.
+				_liveSessionIt.CalculateTradingDay(nowLocal, true);
 				return _liveSessionIt.IsInSession(nowLocal, true, true);
 			}
 
