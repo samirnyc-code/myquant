@@ -472,7 +472,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			string txt = ShowRegimeText ? (reg > 0 ? BULL : reg < 0 ? BEAR : RANGE) : "";
 			if (ShowPct && c != null && c.Eng != null)
 			{
-				double pct = c.Eng.CurrentPct(_livePrice, DateTime.Now);
+				double pct = c.Eng.CurrentPct(_livePrice, NinjaTrader.Core.Globals.Now);
 				if (!double.IsNaN(pct))
 					txt += (txt.Length > 0 ? " " : "") + Math.Round(pct).ToString("0") + "%";
 			}
@@ -653,13 +653,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 			private DateTime _lastLiveLog = DateTime.MinValue;
 
 			// livePrice = the single shared global tick price (same for every cell,
-			// ANY session). nowLocal = wall clock, used to check whether THIS
-			// cell's own session (RTH or ETH -- whichever this engine's Bars was
-			// built with) is open right now. When it's NOT, the global live price
-			// is not this cell's own price -- it belongs to whichever OTHER
-			// session is actually trading -- so freeze on _lastClosePrice (this
-			// cell's own last bar close) instead of letting an out-of-session cell
-			// visibly move on a price that isn't really "its" price.
+			// ANY session). nowLocal MUST be NinjaTrader.Core.Globals.Now, NOT
+			// System.DateTime.Now -- confirmed by testing that comparing raw
+			// DateTime.Now (this machine's own Windows clock, already known to run
+			// on a different timezone than the user's real time) against NT8's
+			// ActualSessionBegin/End (computed in NT8's own time context) silently
+			// produced a plausible-LOOKING but wrong in-session answer. Used to
+			// check whether THIS cell's own session (RTH or ETH -- whichever this
+			// engine's Bars was built with) is open right now. When it's NOT, the
+			// global live price is not this cell's own price -- it belongs to
+			// whichever OTHER session is actually trading -- so freeze on
+			// _lastClosePrice (this cell's own last bar close) instead of letting
+			// an out-of-session cell visibly move on a price that isn't really
+			// "its" price.
 			public double CurrentPct(double livePrice, DateTime nowLocal)
 			{
 				DateTime sessBegin, sessEnd;
