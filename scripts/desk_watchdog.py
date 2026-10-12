@@ -69,10 +69,13 @@ def now():
 
 
 def log(msg):
-    LOG.parent.mkdir(parents=True, exist_ok=True)
-    with open(LOG, "a", encoding="utf-8") as fh:
-        fh.write(f"{now():%Y-%m-%d %H:%M:%S} {msg}\n")
-    print(msg)
+    print(msg)  # first, so a log-file problem never hides the message entirely
+    try:
+        LOG.parent.mkdir(parents=True, exist_ok=True)
+        with open(LOG, "a", encoding="utf-8") as fh:
+            fh.write(f"{now():%Y-%m-%d %H:%M:%S} {msg}\n")
+    except OSError as e:
+        print(f"log() could not write {LOG}: {e}")
 
 
 def file_age_s(p):
@@ -105,8 +108,11 @@ def kill_pids(pids):
 
 
 def run_task(name):
-    subprocess.run(["schtasks", "/run", "/tn", name], capture_output=True, text=True,
-                   creationflags=0x08000000)
+    try:
+        subprocess.run(["schtasks", "/run", "/tn", name], capture_output=True, text=True,
+                       creationflags=0x08000000, timeout=30)
+    except subprocess.TimeoutExpired:
+        log(f"run_task({name}): schtasks /run did not return within 30s — skipping this cycle")
 
 
 def task_enabled(name):
