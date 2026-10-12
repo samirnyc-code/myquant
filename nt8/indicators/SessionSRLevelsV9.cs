@@ -612,7 +612,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				? _ethDaySessIter.GetTradingDay(Times[_ethDayBip][0])
 				: Times[_ethDayBip][0]).Date;
 			_settleByDay[dday] = Closes[_ethDayBip][0];
-			if (CurrentBars[_ethDayBip] >= 1) _settleLiveClose = Closes[_ethDayBip][1];   // last COMPLETED daily bar
+			_settleLiveClose = Closes[_ethDayBip][0];   // THIS day's own Daily ETH close (matches the chart's current bar)
 			TrimOldestDate(_settleByDay, 120);
 		}
 
@@ -968,13 +968,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 								Hist_EthL, eth[1], ELOY_Label, ELOY_Color, ELOY_Style, ELOY_Thickness, false);
 				}
 
+				// Settlement = THIS day's own Daily ETH close (keyed by its trading day).
+				double settle = _ethCloseForDay(s.date);
+				DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
+							Hist_Settle && !double.IsNaN(settle), settle, Settle_Label, Settle_Color, Settle_Style, Settle_Thickness, true);
+
 				// Prior-session-derived levels (need record k-1).
 				if (k >= 1)
 				{
 					HRSess p = _rthHist[k - 1];
 					double pc = p.c;   // prior RTH close — the EM anchor
-					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-								Hist_Settle && !double.IsNaN(_ethCloseForDay(p.date)), _ethCloseForDay(p.date), Settle_Label, Settle_Color, Settle_Style, Settle_Thickness, true);
 					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
 								Hist_HOY, p.h, RHOY_Label, RHOY_Color, RHOY_Style, RHOY_Thickness, true);
 					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
