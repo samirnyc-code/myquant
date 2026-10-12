@@ -121,6 +121,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// hours. This series has its own session timeline, tracked separately from RTH.
 		private SessionIterator _ethDayIter;
 		private SessionIterator _rthMembershipIter;   // separate RTH iterator used to lock the overnight H/L at RTH open
+
+		// ── RTH session OPENS (OoD/OoW/OoM) come from a dedicated hidden 1-min RTH-hours
+		// series (BarsArray[2]). On a tick/volume chart the primary's "first RTH bar" is the
+		// bar that CLOSES at/after 08:30, so its Open is a PRE-open tick — wrong. An RTH-hours
+		// time series RESETS at the session start, so the first bar of each RTH session opens
+		// exactly on the RTH open. We key the opens by date so both live and historical levels
+		// read the correct value regardless of the primary chart's type.
+		private bool     _rthSeriesAdded;
+		private int      _ethBip = -1, _rthBip = -1;   // actual BarsInProgress index of each hidden series
+		private DateTime _rthSeriesLastDate = Core.Globals.MinDate;
+		private DateTime _rthSeriesWeek     = Core.Globals.MinDate;
+		private int      _rthSeriesMonthKey = -1;
+		private readonly Dictionary<DateTime, double> _rthOpenByDay   = new Dictionary<DateTime, double>(); // trading day -> RTH open
+		private readonly Dictionary<DateTime, double> _rthWeekOpenBy  = new Dictionary<DateTime, double>(); // Monday     -> week's RTH open
+		private readonly Dictionary<DateTime, double> _rthMonthOpenBy = new Dictionary<DateTime, double>(); // 1st-of-mo  -> month's RTH open
 		private bool     _ethSeriesAdded;
 		private bool     _ethLocked;                  // true once RTH has opened for the current ETH session
 		private DateTime _ethCurTradingDay = Core.Globals.MinDate;
@@ -134,7 +149,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// trading day from the session break; OoD starts at the RTH open (oBar).
 		private class HRSess { public DateTime date; public double o, h, l, c, weekOpen, monthOpen; public int oBar, hBar, lBar, cBar, dayStartBar, dayEndBar; }
 		private readonly List<HRSess> _rthHist = new List<HRSess>();
-		// trading day -> {overnight ETH high, ETH low} (locked at RTH open), filled at the ETH roll.
+		// trading day -> {overnight ETH high, ETH low, ETH session close} (H/L locked at RTH
+		// open; close = the Daily ETH bar's close), filled at the ETH roll.
 		private readonly Dictionary<DateTime, double[]> _ethByDay = new Dictionary<DateTime, double[]>();
 		// caches for historical expected-move: VIX close by date (whole CSV) + gexlog move by date.
 		private readonly Dictionary<DateTime, double> _vixByDate = new Dictionary<DateTime, double>();
@@ -204,7 +220,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				HistSessions        = 5;
 				HistOpacity         = 45;
 				Hist_HOY = true; Hist_LOY = true; Hist_COY = true; Hist_OoD = true; Hist_OoW = true; Hist_OoM = true;
-				Hist_EthH = true; Hist_EthL = true;
+				Hist_EthH = true; Hist_EthL = true; Hist_Settle = true;
 				Hist_EMV_Max = true; Hist_EMV_Min = true; Hist_EMG_Max = true; Hist_EMG_Min = true;
 
 				// Current-day running High/Low (computed from the chart's own bars for today).
@@ -238,6 +254,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				EOoW_Enabled = true;  EOoW_Label = "OoW ETH"; EOoW_Color = Brushes.DarkOrange;     EOoW_Opacity = 70; EOoW_Style = LevelLineStyle.Dash; EOoW_Thickness = 1;
 				EOoM_Enabled = true;  EOoM_Label = "OoM ETH"; EOoM_Color = Brushes.MediumPurple;   EOoM_Opacity = 70; EOoM_Style = LevelLineStyle.Dash; EOoM_Thickness = 1;
 				EOoM_ManualPrice = 0; EOoM_ManualMonth = Core.Globals.MinDate;
+				// Settlement = close of the Daily ETH chart (prior ETH-session close). Distinct
+				// solid line so it stands apart from the dashed ETH family.
+				Settle_Enabled = true; Settle_Label = "Settlement"; Settle_Color = Brushes.White; Settle_Opacity = 85; Settle_Style = LevelLineStyle.Solid; Settle_Thickness = 1;
 
 				// Custom/manual levels: off and price=0 by default (nothing drawn until you
 				// type a price in and tick Enabled). StartDate defaults to the MinDate
@@ -272,6 +291,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 					catch (Exception ex) { Print("SessionSRLevelsV9: could not add ETH data series '" + FullTemplateNameHint + "': " + ex.Message); }
 				}
+
+				// Hidden 1-min RTH-hours series: the authoritative source for the RTH session
+				// OPENS (OoD/OoW/OoM). It resets at the session start, so bar[0] of each RTH
+				// session opens exactly on the RTH open — unlike a tick/volume chart whose
+				// straddle bar opens on a pre-08:30 tick.
+				_rthSeriesAdded = false;
+				if (!string.IsNullOrEmpty(RthTemplateName))
+				{
+					try
+					{
+						AddDataSeries(Instrument.FullName,
+							new BarsPeriod { BarsPeriodType = BarsPeriodType.Minute, Value = 1 },
+							RthTemplateName);
+						_rthSeriesAdded = true;
+					}
+					catch (Exception ex) { Print("SessionSRLevelsV9: could not add RTH data series '" + RthTemplateName + "': " + ex.Message); }
+				}
+				_rthSeriesLastDate = Core.Globals.MinDate; _rthSeriesWeek = Core.Globals.MinDate; _rthSeriesMonthKey = -1;
+				_rthOpenByDay.Clear(); _rthWeekOpenBy.Clear(); _rthMonthOpenBy.Clear();
+
+				// Resolve each hidden series' BarsInProgress index in the order they were added
+				// (primary = 0, ETH added first, RTH second). Stays correct if either is skipped.
+				{ int bip = 1; _ethBip = _ethSeriesAdded ? bip++ : -1; _rthBip = _rthSeriesAdded ? bip++ : -1; }
+
 				_ethDayIter = null; _rthMembershipIter = null; _ethLocked = false;
 				_ethCurTradingDay = Core.Globals.MinDate; _ethCurWeekStart = Core.Globals.MinDate; _ethCurMonthKey = -1;
 				_primaryDayOpenBar = _primaryWeekOpenBar = _primaryMonthOpenBar = -1;
@@ -299,8 +342,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_displayTz = NinjaTrader.Core.Globals.GeneralOptions.TimeZoneInfo;
 				_dayIter   = new SessionIterator(Bars);
 
-				if (_ethSeriesAdded && BarsArray.Length > 1)
-					_ethDayIter = new SessionIterator(BarsArray[1]);
+				if (_ethSeriesAdded && _ethBip >= 0 && BarsArray.Length > _ethBip)
+					_ethDayIter = new SessionIterator(BarsArray[_ethBip]);
 
 				try
 				{
@@ -336,7 +379,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		protected override void OnBarUpdate()
 		{
-			if (BarsInProgress == 1) { HandleEthSeries(); return; }
+			if (_ethBip >= 0 && BarsInProgress == _ethBip) { HandleEthSeries(); return; }
+			if (_rthBip >= 0 && BarsInProgress == _rthBip) { HandleRthSeries(); return; }
 			if (BarsInProgress != 0) return;
 			if (CurrentBar < 0 || !Bars.BarsType.IsIntraday) return;
 
@@ -421,11 +465,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				if (!_rthOpenCapturedToday)
 				{
-					_rthOpenToday         = Open[0];
+					// Only the START BAR (anchor) comes from the primary chart. The OPEN PRICE
+					// (OoD/OoW/OoM) comes from the RTH-hours series via HandleRthSeries — on a
+					// tick/volume chart this straddle bar's Open[0] is a pre-open tick.
 					_rthOpenStartBar      = CurrentBar;
 					_rthOpenCapturedToday = true;
-					if (_weekAwaitingRthOpen)  { _rthOpenThisWeek  = Open[0]; _rthWeekStartBar  = CurrentBar; _weekAwaitingRthOpen  = false; }
-					if (_monthAwaitingRthOpen) { _rthOpenThisMonth = Open[0]; _rthMonthStartBar = CurrentBar; _monthAwaitingRthOpen = false; }
+					if (_weekAwaitingRthOpen)  { _rthWeekStartBar  = CurrentBar; _weekAwaitingRthOpen  = false; }
+					if (_monthAwaitingRthOpen) { _rthMonthStartBar = CurrentBar; _monthAwaitingRthOpen = false; }
 				}
 			}
 		}
@@ -438,9 +484,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// visible width since an overnight extreme has no corresponding primary (RTH) bar.
 		private void HandleEthSeries()
 		{
-			if (!_ethSeriesAdded || _ethDayIter == null || CurrentBars[1] < 0) return;
+			if (!_ethSeriesAdded || _ethDayIter == null || _ethBip < 0 || CurrentBars[_ethBip] < 0) return;
 
-			DateTime et  = Times[1][0];
+			DateTime et  = Times[_ethBip][0];
 			DateTime etd = _ethDayIter.GetTradingDay(et);
 
 			if (etd != _ethCurTradingDay)
@@ -450,8 +496,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 					_priorEthHigh  = _ethHigh;
 					_priorEthLow   = _ethLow;
 					_priorEthClose = _ethCloseLast;
-					// record the completed ETH session's locked overnight H/L, keyed by its trading day
-					_ethByDay[_ethCurTradingDay] = new double[] { _ethHigh, _ethLow };
+					// record the completed ETH session's locked overnight H/L + its close (= the
+					// Daily ETH bar close / Settlement), keyed by its trading day
+					_ethByDay[_ethCurTradingDay] = new double[] { _ethHigh, _ethLow, _ethCloseLast };
 					if (_ethByDay.Count > 90)
 					{
 						DateTime oldest = Core.Globals.MaxDate;
@@ -462,12 +509,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_ethCurTradingDay = etd;
 				_haveEth          = false;
 				_ethLocked        = false;   // new overnight session — accumulate again until RTH open
-				_ethOpenToday     = Opens[1][0];
+				_ethOpenToday     = Opens[_ethBip][0];
 
 				DateTime wk = MondayOf(etd);
-				if (wk != _ethCurWeekStart) { _ethCurWeekStart = wk; _ethOpenThisWeek = Opens[1][0]; }
+				if (wk != _ethCurWeekStart) { _ethCurWeekStart = wk; _ethOpenThisWeek = Opens[_ethBip][0]; }
 				int mk = etd.Year * 12 + etd.Month;
-				if (mk != _ethCurMonthKey)  { _ethCurMonthKey = mk; _ethOpenThisMonth = Opens[1][0]; }
+				if (mk != _ethCurMonthKey)  { _ethCurMonthKey = mk; _ethOpenThisMonth = Opens[_ethBip][0]; }
 			}
 
 			// Once this ETH bar is inside the RTH window, lock the overnight H/L for the rest
@@ -483,14 +530,66 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			if (!_ethLocked)
 			{
-				if (!_haveEth) { _ethHigh = Highs[1][0]; _ethLow = Lows[1][0]; _haveEth = true; }
+				if (!_haveEth) { _ethHigh = Highs[_ethBip][0]; _ethLow = Lows[_ethBip][0]; _haveEth = true; }
 				else
 				{
-					if (Highs[1][0] > _ethHigh) _ethHigh = Highs[1][0];
-					if (Lows[1][0]  < _ethLow)  _ethLow  = Lows[1][0];
+					if (Highs[_ethBip][0] > _ethHigh) _ethHigh = Highs[_ethBip][0];
+					if (Lows[_ethBip][0]  < _ethLow)  _ethLow  = Lows[_ethBip][0];
 				}
 			}
-			_ethCloseLast = Closes[1][0];
+			_ethCloseLast = Closes[_ethBip][0];
+		}
+
+		// RTH session OPENS from the hidden 1-min RTH-hours series. Because that series RESETS
+		// at the session start, the first bar of each RTH session opens EXACTLY on the RTH open
+		// — so its Open is the true OoD (unlike the primary tick/volume chart's straddle bar).
+		// Opens are keyed by date so live AND historical OoD/OoW/OoM all read the right value.
+		private void HandleRthSeries()
+		{
+			if (!_rthSeriesAdded || _rthBip < 0 || CurrentBars[_rthBip] < 0) return;
+
+			// RTH bars live entirely within one calendar day (08:30–15:15), so a change of
+			// Times[rth].Date marks the first bar of a new RTH session = the RTH open.
+			DateTime d = Times[_rthBip][0].Date;
+			if (d == _rthSeriesLastDate) return;
+			_rthSeriesLastDate = d;
+
+			double op = Opens[_rthBip][0];                 // true RTH open for this session
+			_rthOpenByDay[d] = op;
+			_rthOpenToday    = op;                         // live current day
+
+			DateTime wk = MondayOf(d);
+			if (!_rthWeekOpenBy.ContainsKey(wk)) _rthWeekOpenBy[wk] = op;   // first RTH session of the week
+			if (wk != _rthSeriesWeek) { _rthSeriesWeek = wk; }
+			_rthOpenThisWeek = _rthWeekOpenBy[wk];
+
+			DateTime mo = new DateTime(d.Year, d.Month, 1);
+			if (!_rthMonthOpenBy.ContainsKey(mo)) _rthMonthOpenBy[mo] = op;  // first RTH session of the month
+			int mk = d.Year * 12 + d.Month;
+			if (mk != _rthSeriesMonthKey) { _rthSeriesMonthKey = mk; }
+			_rthOpenThisMonth = _rthMonthOpenBy[mo];
+
+			TrimOldestDate(_rthOpenByDay, 90);
+			TrimOldestDate(_rthWeekOpenBy, 30);
+			TrimOldestDate(_rthMonthOpenBy, 24);
+		}
+
+		// ETH session close (= Daily ETH bar close / Settlement) for a given ETH trading day.
+		private double _ethCloseForDay(DateTime d)
+		{
+			double[] e;
+			if (_ethByDay.TryGetValue(d, out e) && e != null && e.Length >= 3) return e[2];
+			return double.NaN;
+		}
+
+		private static void TrimOldestDate(Dictionary<DateTime, double> map, int keep)
+		{
+			while (map.Count > keep)
+			{
+				DateTime oldest = Core.Globals.MaxDate;
+				foreach (DateTime k in map.Keys) if (k < oldest) oldest = k;
+				map.Remove(oldest);
+			}
 		}
 
 		private DateTime ConvertToRthTz(DateTime t)
@@ -803,15 +902,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (s.dayEndBar < fromV || s.dayStartBar > toV) continue;   // trading day fully off-screen
 				int ds = s.dayStartBar, de = s.dayEndBar;
 
-				// This day's own levels.
+				// This day's own levels. Opens come from the RTH-hours series (keyed by date),
+				// NOT the primary chart — so they're correct on tick/volume charts too.
+				double oD, oW, oM;
+				bool hasOD = _rthOpenByDay.TryGetValue(s.date, out oD);
+				bool hasOW = _rthWeekOpenBy.TryGetValue(MondayOf(s.date), out oW);
+				bool hasOM = _rthMonthOpenBy.TryGetValue(new DateTime(s.date.Year, s.date.Month, 1), out oM);
+				if (!hasOD) { oD = s.o;        hasOD = !double.IsNaN(oD); }   // fallback to stored open
+				if (!hasOW) { oW = s.weekOpen;  hasOW = !double.IsNaN(oW); }
+				if (!hasOM) { oM = s.monthOpen; hasOM = !double.IsNaN(oM); }
 				DrawHistSeg(chartControl, chartScale, tf, s.oBar, de, panelLeft, panelRight, dim, textH,
-							Hist_OoD, s.o, ROoD_Label, ROoD_Color, ROoD_Style, ROoD_Thickness, true);
+							Hist_OoD && hasOD, oD, ROoD_Label, ROoD_Color, ROoD_Style, ROoD_Thickness, true);
 				DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-							Hist_OoW, s.weekOpen, ROoW_Label, ROoW_Color, ROoW_Style, ROoW_Thickness, true);
+							Hist_OoW && hasOW, oW, ROoW_Label, ROoW_Color, ROoW_Style, ROoW_Thickness, true);
 				DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-							Hist_OoM, s.monthOpen, ROoM_Label, ROoM_Color, ROoM_Style, ROoM_Thickness, true);
+							Hist_OoM && hasOM, oM, ROoM_Label, ROoM_Color, ROoM_Style, ROoM_Thickness, true);
 				double[] eth;
-				if (_ethByDay.TryGetValue(s.date, out eth) && eth != null && eth.Length == 2)
+				if (_ethByDay.TryGetValue(s.date, out eth) && eth != null && eth.Length >= 2)
 				{
 					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
 								Hist_EthH, eth[0], EHOY_Label, EHOY_Color, EHOY_Style, EHOY_Thickness, true);
@@ -824,6 +931,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					HRSess p = _rthHist[k - 1];
 					double pc = p.c;   // prior RTH close — the EM anchor
+					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
+								Hist_Settle && !double.IsNaN(_ethCloseForDay(p.date)), _ethCloseForDay(p.date), Settle_Label, Settle_Color, Settle_Style, Settle_Thickness, true);
 					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
 								Hist_HOY, p.h, RHOY_Label, RHOY_Color, RHOY_Style, RHOY_Thickness, true);
 					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
@@ -949,6 +1058,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Add(list, EHOY_Enabled, EHOY_Label, _ethHigh,          EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 0, ethDayStart);
 				Add(list, ELOY_Enabled, ELOY_Label, _ethLow,           ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 0, ethDayStart);
 				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,    ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 0, ethDayStart);
+				// Settlement = close of the Daily ETH chart = the prior ETH session's close.
+				Add(list, Settle_Enabled, Settle_Label, _priorEthClose, Settle_Color, Settle_Opacity, Settle_Style, Settle_Thickness, 0, ethDayStart);
 				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,     EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 0, ethDayStart);
 				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek,  EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 0, ethWeekStart);
 				// ETH OoM: manual override wins when a price is set and its month == the current ETH month
@@ -1193,6 +1304,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name = "RTH OoM (open of month)", Order = 7, GroupName = "22 Historical")] public bool Hist_OoM { get; set; }
 		[Display(Name = "ETH H (overnight high)", Order = 8, GroupName = "22 Historical")] public bool Hist_EthH { get; set; }
 		[Display(Name = "ETH L (overnight low)", Order = 9, GroupName = "22 Historical")] public bool Hist_EthL { get; set; }
+			[Display(Name = "Settlement (Daily ETH close)", Order = 14, GroupName = "22 Historical")] public bool Hist_Settle { get; set; }
 		[Display(Name = "1D Max (VIX)", Order = 10, GroupName = "22 Historical")] public bool Hist_EMV_Max { get; set; }
 		[Display(Name = "1D Min (VIX)", Order = 11, GroupName = "22 Historical")] public bool Hist_EMV_Min { get; set; }
 		[Display(Name = "1D Max (GEX)", Order = 12, GroupName = "22 Historical")] public bool Hist_EMG_Max { get; set; }
@@ -1340,6 +1452,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "10 ETH - COY (prior ETH-only close)")] public int ECOY_Opacity { get; set; }
 		[Display(Name = "Line style", Order = 4, GroupName = "10 ETH - COY (prior ETH-only close)")] public LevelLineStyle ECOY_Style { get; set; }
 		[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "10 ETH - COY (prior ETH-only close)")] public int ECOY_Thickness { get; set; }
+
+			// ---- Settlement (close of the Daily ETH chart = prior ETH-session close) ----
+			[Display(Name = "Enabled", Order = 0, GroupName = "10b Settlement (Daily ETH close)")] public bool Settle_Enabled { get; set; }
+			[Display(Name = "Label", Order = 1, GroupName = "10b Settlement (Daily ETH close)")] public string Settle_Label { get; set; }
+			[XmlIgnore] [Display(Name = "Color", Order = 2, GroupName = "10b Settlement (Daily ETH close)")] public WMBrush Settle_Color { get; set; }
+			[Browsable(false)] public string Settle_ColorSerialize { get { return Serialize.BrushToString(Settle_Color); } set { Settle_Color = Serialize.StringToBrush(value); } }
+			[Range(0, 100)] [Display(Name = "Opacity %", Order = 3, GroupName = "10b Settlement (Daily ETH close)")] public int Settle_Opacity { get; set; }
+			[Display(Name = "Line style", Order = 4, GroupName = "10b Settlement (Daily ETH close)")] public LevelLineStyle Settle_Style { get; set; }
+			[Range(1, 8)] [Display(Name = "Thickness", Order = 5, GroupName = "10b Settlement (Daily ETH close)")] public int Settle_Thickness { get; set; }
 
 		// ---- ETH OoD ----
 		[Display(Name = "Enabled", Order = 0, GroupName = "11 ETH - OoD (open of day / evening open)")] public bool EOoD_Enabled { get; set; }
