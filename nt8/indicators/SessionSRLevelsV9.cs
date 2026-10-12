@@ -129,7 +129,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		// ── Historical levels (Model A: each level confined to its own session) ──
 		// One record per COMPLETED RTH session, pushed at the day roll; bounded list.
-		private class HRSess { public double o, h, l, c; public int oBar, hBar, lBar, cBar, startBar, endBar; }
+		// dayStartBar = the trading-day/session-break boundary (where the vertical break line
+		// is); dayEndBar = last bar of that trading day. Prior-day H/L/C lines span the whole
+		// trading day from the session break; OoD starts at the RTH open (oBar).
+		private class HRSess { public double o, h, l, c; public int oBar, hBar, lBar, cBar, dayStartBar, dayEndBar; }
 		private readonly List<HRSess> _rthHist = new List<HRSess>();
 
 		// Primary chart's current-session open bars = first bar of the current trading day /
@@ -340,12 +343,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 					_priorRthClose = _rthCloseLast; _priorRthCloseStartBar = _rthLastBar;
 
 					// Push the just-completed RTH session into history (Model A confined segment).
+					// _primaryDayOpenBar still holds THIS (completed) day's session-break bar
+					// (it's updated to the new day's bar just below); CurrentBar-1 is this
+					// trading day's last bar.
 					_rthHist.Add(new HRSess {
 						o = _rthOpenToday, oBar = _rthOpenStartBar,
 						h = _rthHigh, hBar = _rthHighBar, l = _rthLow, lBar = _rthLowBar,
 						c = _rthCloseLast, cBar = _rthLastBar,
-						startBar = _rthOpenStartBar >= 0 ? _rthOpenStartBar : _rthHighBar,
-						endBar = _rthLastBar });
+						dayStartBar = _primaryDayOpenBar >= 0 ? _primaryDayOpenBar : _rthOpenStartBar,
+						dayEndBar = CurrentBar - 1 });
 					if (_rthHist.Count > 70) _rthHist.RemoveAt(0);
 				}
 
@@ -721,19 +727,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				if (k < 0) continue;
 				HRSess s = _rthHist[k];
-				if (s.endBar < fromV || s.startBar > toV) continue;   // session fully off-screen
-				// OoD = this session's own open.
-				DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
+				if (s.dayEndBar < fromV || s.dayStartBar > toV) continue;   // trading day fully off-screen
+				// OoD = this session's own open, from the RTH open bar to the day end.
+				DrawHistSeg(chartControl, chartScale, tf, s.oBar, s.dayEndBar, panelLeft, panelRight, dim, textH,
 							ROoD_Enabled, s.o, ROoD_Label, ROoD_Color, ROoD_Style, ROoD_Thickness, true);
-				// HOY/LOY/COY = the PRIOR session's High/Low/Close, drawn across this session.
+				// HOY/LOY/COY = the PRIOR session's High/Low/Close, spanning this whole trading
+				// day FROM the session-break boundary.
 				if (k >= 1)
 				{
 					HRSess p = _rthHist[k - 1];
-					DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
+					DrawHistSeg(chartControl, chartScale, tf, s.dayStartBar, s.dayEndBar, panelLeft, panelRight, dim, textH,
 								RHOY_Enabled, p.h, RHOY_Label, RHOY_Color, RHOY_Style, RHOY_Thickness, true);
-					DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
+					DrawHistSeg(chartControl, chartScale, tf, s.dayStartBar, s.dayEndBar, panelLeft, panelRight, dim, textH,
 								RLOY_Enabled, p.l, RLOY_Label, RLOY_Color, RLOY_Style, RLOY_Thickness, false);
-					DrawHistSeg(chartControl, chartScale, tf, s.startBar, s.endBar, panelLeft, panelRight, dim, textH,
+					DrawHistSeg(chartControl, chartScale, tf, s.dayStartBar, s.dayEndBar, panelLeft, panelRight, dim, textH,
 								RCOY_Enabled, p.c, RCOY_Label, RCOY_Color, RCOY_Style, RCOY_Thickness, true);
 				}
 			}
