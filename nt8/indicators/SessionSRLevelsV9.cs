@@ -138,7 +138,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool     _ethDaySeriesAdded;
 		private int      _ethDayBip = -1;
 		private SessionIterator _ethDaySessIter;
-		private double   _settleLiveClose = double.NaN;   // most recent COMPLETED Daily ETH close
 		private readonly Dictionary<DateTime, double> _settleByDay = new Dictionary<DateTime, double>();
 		private DateTime _rthSeriesWeek     = Core.Globals.MinDate;
 		private int      _rthSeriesMonthKey = -1;
@@ -334,7 +333,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 					catch (Exception ex) { Print("SessionSRLevelsV9: could not add Daily ETH data series: " + ex.Message); }
 				}
-				_ethDaySessIter = null; _settleLiveClose = double.NaN; _settleByDay.Clear();
+				_ethDaySessIter = null; _settleByDay.Clear();
 
 				// Resolve each hidden series' BarsInProgress index in the order they were added
 				// (primary = 0, ETH 1-min, RTH 1-min, Daily ETH). Stays correct if any is skipped.
@@ -612,16 +611,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 				? _ethDaySessIter.GetTradingDay(Times[_ethDayBip][0])
 				: Times[_ethDayBip][0]).Date;
 			_settleByDay[dday] = Closes[_ethDayBip][0];
-			_settleLiveClose = Closes[_ethDayBip][0];   // THIS day's own Daily ETH close (matches the chart's current bar)
 			TrimOldestDate(_settleByDay, 120);
 		}
 
-		// Settlement (Daily ETH bar close) for a given trading day, or NaN if not recorded.
-		private double _ethCloseForDay(DateTime d)
+		// Settlement reference for a chart day = the Daily ETH close of the most recent trading
+		// day STRICTLY BEFORE it (Friday shows Thursday's; Monday shows Friday's). Robust across
+		// weekends/holidays/gaps. NaN if none recorded yet.
+		private double SettlementBefore(DateTime day)
 		{
-			double v;
-			if (_settleByDay.TryGetValue(d.Date, out v)) return v;
-			return double.NaN;
+			DateTime d0 = day.Date;
+			DateTime best = Core.Globals.MinDate; double bestVal = double.NaN;
+			foreach (KeyValuePair<DateTime, double> kv in _settleByDay)
+				if (kv.Key < d0 && kv.Key > best) { best = kv.Key; bestVal = kv.Value; }
+			return bestVal;
 		}
 
 		private static void TrimOldestDate(Dictionary<DateTime, double> map, int keep)
@@ -968,8 +970,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 								Hist_EthL, eth[1], ELOY_Label, ELOY_Color, ELOY_Style, ELOY_Thickness, false);
 				}
 
-				// Settlement = THIS day's own Daily ETH close (keyed by its trading day).
-				double settle = _ethCloseForDay(s.date);
+				// Settlement = the PRIOR trading day's Daily ETH close (Friday shows Thursday's).
+				double settle = SettlementBefore(s.date);
 				DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
 							Hist_Settle && !double.IsNaN(settle), settle, Settle_Label, Settle_Color, Settle_Style, Settle_Thickness, true);
 
@@ -1103,9 +1105,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Add(list, EHOY_Enabled, EHOY_Label, _ethHigh,          EHOY_Color, EHOY_Opacity, EHOY_Style, EHOY_Thickness, 0, ethDayStart);
 				Add(list, ELOY_Enabled, ELOY_Label, _ethLow,           ELOY_Color, ELOY_Opacity, ELOY_Style, ELOY_Thickness, 0, ethDayStart);
 				Add(list, ECOY_Enabled, ECOY_Label, _priorEthClose,    ECOY_Color, ECOY_Opacity, ECOY_Style, ECOY_Thickness, 0, ethDayStart);
-				// Settlement = close of the Daily ETH chart, read straight from the hidden Daily
-				// ETH series (the last COMPLETED daily bar = prior session's settlement).
-				Add(list, Settle_Enabled, Settle_Label, _settleLiveClose, Settle_Color, Settle_Opacity, Settle_Style, Settle_Thickness, 0, ethDayStart);
+				// Settlement = the PRIOR trading day's Daily ETH close (today's reference), read
+				// straight from the hidden Daily ETH series.
+				Add(list, Settle_Enabled, Settle_Label, SettlementBefore(_curTradingDay), Settle_Color, Settle_Opacity, Settle_Style, Settle_Thickness, 0, ethDayStart);
 				Add(list, EOoD_Enabled, EOoD_Label, _ethOpenToday,     EOoD_Color, EOoD_Opacity, EOoD_Style, EOoD_Thickness, 0, ethDayStart);
 				Add(list, EOoW_Enabled, EOoW_Label, _ethOpenThisWeek,  EOoW_Color, EOoW_Opacity, EOoW_Style, EOoW_Thickness, 0, ethWeekStart);
 				// ETH OoM: manual override wins when a price is set and its month == the current ETH month
