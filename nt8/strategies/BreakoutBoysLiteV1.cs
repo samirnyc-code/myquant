@@ -27,9 +27,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 	//
 	//   SE LONG / SE SHORT        : arm -> on the bar you armed in (the SB) CLOSING,
 	//                               gate on IBS, then rest a LIMIT entry offset N
-	//                               ticks beyond that close (chase — a marketable-
-	//                               limit with a capped max-slippage, not a resting
-	//                               pullback order). IBS fails -> no order, popup.
+	//                               ticks beyond the SB's High (long) / Low (short)
+	//                               — a chase marketable-limit with a capped max-
+	//                               slippage, not a resting pullback order. IBS
+	//                               fails -> no order, popup.
 	//   SE LONG 2nd / SE SHORT 2nd: identical entry, but skips the IBS gate — for
 	//                               failed-first-attempt second entries.
 	//
@@ -58,7 +59,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		// ── runtime state ────────────────────────────────────────────────────
 		private BBLiteStopMode _stopMode = BBLiteStopMode.BarStop;
 		private double _rMult   = 1.0;   // target = risk * _rMult
-		private int    _offsetTicks = 1; // entry = Close +/- this many ticks
+		private int    _offsetTicks = 1; // entry = SB High/Low +/- this many ticks
 		private double _ibsThreshold = 0.50;
 
 		private bool   _pendingLong, _pendingShort;   // armed, waiting for the SB (armed bar) to close
@@ -73,7 +74,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (State == State.SetDefaults)
 			{
 				Name         = "BreakoutBoysLiteV1";
-				Description  = "Lean BreakoutBoys panel — SE LONG/SHORT (IBS-gated) + SE LONG/SHORT 2nd (no gate), limit entry offset from Close, bar/swing stop, R-multiple target.";
+				Description  = "Lean BreakoutBoys panel — SE LONG/SHORT (IBS-gated) + SE LONG/SHORT 2nd (no gate), limit entry offset beyond the SB's High/Low, bar/swing stop, R-multiple target.";
 				Calculate    = Calculate.OnBarClose;
 				EntriesPerDirection = 1;
 				EntryHandling = EntryHandling.AllEntries;
@@ -155,12 +156,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			if (isLong)
 			{
-				_entryPx = Close[0] + _offsetTicks * tick;
+				_entryPx = High[0] + _offsetTicks * tick;
 				_stopPx  = (_stopMode == BBLiteStopMode.LastSwing ? _swing.SwingLow[0] : stopRefLo) - SE_StopOffsetTicks * tick;
 			}
 			else
 			{
-				_entryPx = Close[0] - _offsetTicks * tick;
+				_entryPx = Low[0] - _offsetTicks * tick;
 				_stopPx  = (_stopMode == BBLiteStopMode.LastSwing ? _swing.SwingHigh[0] : stopRefHi) + SE_StopOffsetTicks * tick;
 			}
 
@@ -278,8 +279,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 				btnRMult.PreviewMouseRightButtonDown += (o, e) => { e.Handled = true; AdjustRMult(+1); };
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnStpMode, btnRMult);
 
-				// Row: OFFSET (entry ticks off Close) | IBS threshold
-				btnOffset = MakeBtn(s, OffsetLabel(), "Entry offset ticks off Close — left-click −1, right-click +1", Color.FromRgb(60,60,60));
+				// Row: OFFSET (entry ticks beyond SB High/Low) | IBS threshold
+				btnOffset = MakeBtn(s, OffsetLabel(), "Entry offset ticks beyond SB High (long) / Low (short) — left-click −1, right-click +1", Color.FromRgb(60,60,60));
 				btnOffset.PreviewMouseLeftButtonDown  += (o, e) => { e.Handled = true; AdjustOffset(-1); };
 				btnOffset.PreviewMouseRightButtonDown += (o, e) => { e.Handled = true; AdjustOffset(+1); };
 				btnIbs = MakeBtn(s, IbsLabel(), "IBS threshold — left-click −0.05, right-click +0.05", Color.FromRgb(60,60,60));
