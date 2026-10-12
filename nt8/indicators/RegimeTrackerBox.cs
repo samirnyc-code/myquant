@@ -158,7 +158,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ContinueOnGap = false;
 
 				// regime
-				Lag                = 0;
+				// Lag=1 matches RegimeTrackerPanel/V2's canonical default (see
+				// RegimeTrackerV2.cs: "canonical -- matches the live chart"). An
+				// earlier Lag=0 default caused a real, confirmed discrepancy against
+				// RegimeTrackerPanel on the same instrument/period -- user fixed it
+				// by hand on their deployed instance; changing the code default too
+				// so it doesn't silently revert on the next remove+re-add.
+				Lag                = 1;
 				ResetOnNewSession  = true;
 				WeeklyResetOnly    = false;
 				CurrentSessionOnly = true;
