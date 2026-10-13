@@ -22,12 +22,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 	// names would be a compile error.
 	public enum BBLiteStopMode { BarStop, LastSwing }
 
-	// Which of the three entry mechanisms a side is armed/active with.
-	public enum BBEntryKind { StopGated, StopUngated, Lmt }
+	// Which of the four entry mechanisms a side is armed/active with.
+	public enum BBEntryKind { StopGated, StopUngated, LmtPullback, LmtRetest }
 
 	// ══════════════════════════════════════════════════════════════════════════
 	// BreakoutBoysLiteV1 — lean chart-trader button panel, no ATM, no properties
-	// dialog needed during the session. Three entry methods:
+	// dialog needed during the session. Four entry methods:
 	//
 	//   SE LONG / SE SHORT        : arm -> on the bar you armed in (the SB) CLOSING,
 	//                               gate on IBS, then rest a genuine STOP-LIMIT
@@ -44,14 +44,21 @@ namespace NinjaTrader.NinjaScript.Strategies
 	//                               moving the direction the SB already went.
 	//   SE LONG 2nd / SE SHORT 2nd: identical entry, but skips the IBS gate — for
 	//                               failed-first-attempt second entries.
-	//   LMT LONG / LMT SHORT      : arm -> on the SB closing, rest a plain LIMIT
-	//                               on the OPPOSITE side of the SB from the stop
-	//                               entries — SB Low - OFFSET (long) / SB High +
-	//                               OFFSET (short) — no IBS gate. Pullback/fade:
-	//                               betting price retraces back into the SB's
-	//                               range, not that it breaks out of it. Same
-	//                               staleness guard (reject if the level is
-	//                               already marketable at the last price).
+	//   LMT L BB / LMT S SA       : plain LIMIT resting on the NEAR side of the SB
+	//                               (SB Low - OFFSET long / SB High + OFFSET short)
+	//                               — a same-bar pullback/fade, no IBS gate. Only
+	//                               valid (non-marketable, won't fire instantly) if
+	//                               the level is still on the correct side of the
+	//                               last price — true by construction for the SB
+	//                               you just armed in.
+	//   LMT L ▲ / LMT S ▼         : plain LIMIT resting on the FAR side of the SB
+	//                               instead (SB High + OFFSET long / SB Low -
+	//                               OFFSET short) — a RETEST entry, only valid when
+	//                               price has already moved past that level since
+	//                               (almost always requires PICK SB on an older
+	//                               bar — for the bar that just closed, this side
+	//                               is still on the marketable side of price and
+	//                               gets rejected, same staleness guard as above).
 	//
 	// IBS = (Close-Low)/(High-Low) on the SB. Momentum semantics: LONG needs
 	// IBS >= threshold (strong close near the high); SHORT needs IBS <= 1-threshold
@@ -72,7 +79,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private int    ctBaseRowCount;
 		private int    ctRowsAdded;
 
-		private Button btnSELIbs, btnSESIbs, btnSEL2, btnSES2, btnLmtL, btnLmtS, btnPickSB, btnCancel, btnFlat, btnStpMode, btnRMult, btnOffset, btnIbs, btnBars;
+		private Button btnSELIbs, btnSESIbs, btnSEL2, btnSES2, btnLmtL, btnLmtS, btnLmtLUp, btnLmtSDn, btnPickSB, btnCancel, btnFlat, btnStpMode, btnRMult, btnOffset, btnIbs, btnBars;
 		private bool   _mouseHooked;
 
 		private Color  ColorOn, ColorOff, ColorArmed, ColorPick;
@@ -101,7 +108,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (State == State.SetDefaults)
 			{
 				Name         = "BreakoutBoysLiteV1";
-				Description  = "Lean BreakoutBoys panel — SE LONG/SHORT (IBS-gated stop-limit) + SE LONG/SHORT 2nd (ungated stop-limit) + LMT LONG/SHORT (ungated pullback limit), bar/swing stop, R-multiple target.";
+				Description  = "Lean BreakoutBoys panel — SE LONG/SHORT (IBS-gated stop-limit) + SE LONG/SHORT 2nd (ungated stop-limit) + LMT L BB/S SA (pullback limit) + LMT L/S retest (far-side limit), bar/swing stop, R-multiple target.";
 				Calculate    = Calculate.OnBarClose;
 				EntriesPerDirection = 1;
 				EntryHandling = EntryHandling.AllEntries;
@@ -150,8 +157,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 				_pendingLong = _pendingShort = false;
 				_sbPickedBar = -1;
 				if (hadPick) { try { RemoveDrawObject("BBLitePickSB"); } catch (Exception ex) { Print("BBLite remove marker: " + ex.Message); } }
-				if (kind == BBEntryKind.Lmt) TryPlaceLimitEntry(isLong, sbAgo);
-				else                         TryPlaceStopEntry(isLong, kind == BBEntryKind.StopGated, sbAgo);
+				if (kind == BBEntryKind.LmtPullback || kind == BBEntryKind.LmtRetest) TryPlaceLimitEntry(isLong, kind, sbAgo);
+				else                                                                 TryPlaceStopEntry(isLong, kind == BBEntryKind.StopGated, sbAgo);
 				RefreshSEButtons();
 			}
 		}
@@ -257,22 +264,28 @@ namespace NinjaTrader.NinjaScript.Strategies
 			Print(DateTime.Now + " SE expired — unfilled after " + _maxBarsAlive + " bar(s), order cancelled");
 		}
 
-		// Plain LIMIT entry on the OPPOSITE side of the SB from the stop entries —
-		// a pullback/fade, not a breakout. No IBS gate. Same staleness guard logic
-		// as the stop-limit entry, mirrored: the level must still be on the correct
-		// (non-marketable) side of the last price.
-		private void TryPlaceLimitEntry(bool isLong, int sbAgo)
+		// Plain LIMIT entry. Pullback: near side of the SB, same-bar dip/rip (SB Low
+		// for longs / SB High for shorts) — valid by construction for the bar you
+		// just armed in. Retest: far side instead (SB High for longs / SB Low for
+		// shorts) — only valid once price has already moved past that level, which
+		// in practice means PICK SB on an older bar. Either way: no IBS gate, and
+		// the level must still be on the non-marketable side of the last price or
+		// it would fire instantly (same staleness guard as the stop entries).
+		private void TryPlaceLimitEntry(bool isLong, BBEntryKind kind, int sbAgo)
 		{
 			double tick = TickSize;
-			double limitPx = isLong ? Low[sbAgo] - _offsetTicks * tick : High[sbAgo] + _offsetTicks * tick;
+			bool pullback = kind == BBEntryKind.LmtPullback;
+			double limitPx = isLong
+				? (pullback ? Low[sbAgo] - _offsetTicks * tick : High[sbAgo] + _offsetTicks * tick)
+				: (pullback ? High[sbAgo] + _offsetTicks * tick : Low[sbAgo] - _offsetTicks * tick);
 
 			double lastPx = Close[0];
 			bool valid = isLong ? limitPx <= lastPx : limitPx >= lastPx;
 			if (!valid)
 			{
-				string msg = "LMT " + (isLong ? "LONG" : "SHORT") + " blocked — level " + limitPx.ToString("0.00")
+				string msg = "LMT " + (isLong ? "LONG" : "SHORT") + (pullback ? "" : " (retest)") + " blocked — level " + limitPx.ToString("0.00")
 					+ " is already " + (isLong ? "above" : "below") + " the last price " + lastPx.ToString("0.00")
-					+ " (stale SB) — would fire instantly, not a real pullback entry.";
+					+ " (stale SB" + (pullback ? "" : " — retest needs PICK SB on a bar price has already moved past") + ") — would fire instantly, not a real limit entry.";
 				Print(DateTime.Now + " " + msg);
 				ShowPopup(msg);
 				return;
@@ -284,13 +297,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 			_tgtPx   = isLong ? limitPx + risk * _rMult : limitPx - risk * _rMult;
 
 			_dir = isLong ? 1 : -1;
-			_activeKind = BBEntryKind.Lmt;
+			_activeKind = kind;
 			_armedBarIndex = CurrentBar;
 
 			if (isLong) EnterLongLimit (0, true, SE_Qty, Round(limitPx), "SE");
 			else        EnterShortLimit(0, true, SE_Qty, Round(limitPx), "SE");
 
-			Print(DateTime.Now + "  LMT " + (isLong ? "LONG" : "SHORT") + " @" + limitPx.ToString("0.00")
+			Print(DateTime.Now + "  LMT " + (isLong ? "LONG" : "SHORT") + (pullback ? "" : " (retest)") + " @" + limitPx.ToString("0.00")
 				+ " stop@" + _stopPx.ToString("0.00") + " tgt@" + _tgtPx.ToString("0.00")
 				+ " [" + _stopMode + "/" + _rMult.ToString("0.0") + "R, alive " + _maxBarsAlive + " bar(s)]");
 		}
@@ -443,12 +456,19 @@ namespace NinjaTrader.NinjaScript.Strategies
 				btnSES2.Click += (o, e) => TriggerCustomEvent(st => ArmSE(false, BBEntryKind.StopUngated), null);
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnSEL2, btnSES2);
 
-				// Row: LMT LONG | LMT SHORT (plain limit, OPPOSITE side of the SB — pullback/fade, no IBS)
-				btnLmtL = MakeBtn(s, "LMT LONG", "Arm a long limit entry resting below the SB Low — pullback, no IBS gate", ColorOff);
-				btnLmtL.Click += (o, e) => TriggerCustomEvent(st => ArmSE(true, BBEntryKind.Lmt), null);
-				btnLmtS = MakeBtn(s, "LMT SHORT", "Arm a short limit entry resting above the SB High — pullback, no IBS gate", ColorOff);
-				btnLmtS.Click += (o, e) => TriggerCustomEvent(st => ArmSE(false, BBEntryKind.Lmt), null);
+				// Row: LMT L BB | LMT S SA (plain limit, near side of the SB — same-bar pullback, no IBS)
+				btnLmtL = MakeBtn(s, "LMT L BB", "Buy Below — limit resting below the SB Low, same-bar pullback, no IBS gate", ColorOff);
+				btnLmtL.Click += (o, e) => TriggerCustomEvent(st => ArmSE(true, BBEntryKind.LmtPullback), null);
+				btnLmtS = MakeBtn(s, "LMT S SA", "Sell Above — limit resting above the SB High, same-bar pullback, no IBS gate", ColorOff);
+				btnLmtS.Click += (o, e) => TriggerCustomEvent(st => ArmSE(false, BBEntryKind.LmtPullback), null);
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnLmtL, btnLmtS);
+
+				// Row: LMT L ▲ | LMT S ▼ (plain limit, far side of the SB — retest, needs price to have already moved past; no IBS)
+				btnLmtLUp = MakeBtn(s, "LMT L ▲", "Buy above the SB High — retest entry, needs price already past that level (usually PICK SB on an older bar), no IBS gate", ColorOff);
+				btnLmtLUp.Click += (o, e) => TriggerCustomEvent(st => ArmSE(true, BBEntryKind.LmtRetest), null);
+				btnLmtSDn = MakeBtn(s, "LMT S ▼", "Sell below the SB Low — retest entry, needs price already past that level (usually PICK SB on an older bar), no IBS gate", ColorOff);
+				btnLmtSDn.Click += (o, e) => TriggerCustomEvent(st => ArmSE(false, BBEntryKind.LmtRetest), null);
+				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnLmtLUp, btnLmtSDn);
 
 				// Row: PICK SB | CANCEL
 				btnPickSB = MakeBtn(s, "PICK SB", "Toggle, then click a bar to use it as the signal bar (overrides the default: the bar you armed in)", ColorOff);
@@ -497,8 +517,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 				? ((_pendingLong  && _pendingKind == kind) || (_dir == 1  && _activeKind == kind))
 				: ((_pendingShort && _pendingKind == kind) || (_dir == -1 && _activeKind == kind));
 
-			string label = kind == BBEntryKind.Lmt ? "LMT" : "SE";
-			string tag   = kind == BBEntryKind.StopUngated ? " 2nd (no IBS gate)" : "";
+			bool isLmt = kind == BBEntryKind.LmtPullback || kind == BBEntryKind.LmtRetest;
+			string label = isLmt ? "LMT" : "SE";
+			string tag   = kind == BBEntryKind.StopUngated ? " 2nd (no IBS gate)"
+			             : kind == BBEntryKind.LmtRetest   ? " retest"
+			             : "";
 
 			if (sameConfigActive)
 			{
@@ -519,21 +542,25 @@ namespace NinjaTrader.NinjaScript.Strategies
 			RefreshSEButtons();
 		}
 
-		// Set all six entry buttons from live state so colors can never drift out of sync.
+		// Set all eight entry buttons from live state so colors can never drift out of sync.
 		private void RefreshSEButtons()
 		{
 			bool longStopG  = (_pendingLong  && _pendingKind == BBEntryKind.StopGated)   || (_dir == 1  && _activeKind == BBEntryKind.StopGated);
 			bool longStopU  = (_pendingLong  && _pendingKind == BBEntryKind.StopUngated) || (_dir == 1  && _activeKind == BBEntryKind.StopUngated);
-			bool longLmt    = (_pendingLong  && _pendingKind == BBEntryKind.Lmt)         || (_dir == 1  && _activeKind == BBEntryKind.Lmt);
+			bool longLmtPb  = (_pendingLong  && _pendingKind == BBEntryKind.LmtPullback) || (_dir == 1  && _activeKind == BBEntryKind.LmtPullback);
+			bool longLmtRt  = (_pendingLong  && _pendingKind == BBEntryKind.LmtRetest)   || (_dir == 1  && _activeKind == BBEntryKind.LmtRetest);
 			bool shortStopG = (_pendingShort && _pendingKind == BBEntryKind.StopGated)   || (_dir == -1 && _activeKind == BBEntryKind.StopGated);
 			bool shortStopU = (_pendingShort && _pendingKind == BBEntryKind.StopUngated) || (_dir == -1 && _activeKind == BBEntryKind.StopUngated);
-			bool shortLmt   = (_pendingShort && _pendingKind == BBEntryKind.Lmt)         || (_dir == -1 && _activeKind == BBEntryKind.Lmt);
+			bool shortLmtPb = (_pendingShort && _pendingKind == BBEntryKind.LmtPullback) || (_dir == -1 && _activeKind == BBEntryKind.LmtPullback);
+			bool shortLmtRt = (_pendingShort && _pendingKind == BBEntryKind.LmtRetest)   || (_dir == -1 && _activeKind == BBEntryKind.LmtRetest);
 			SetBtn(btnSELIbs, longStopG  ? ColorArmed : ColorOff);
 			SetBtn(btnSEL2,   longStopU  ? ColorArmed : ColorOff);
-			SetBtn(btnLmtL,   longLmt    ? ColorArmed : ColorOff);
+			SetBtn(btnLmtL,   longLmtPb  ? ColorArmed : ColorOff);
+			SetBtn(btnLmtLUp, longLmtRt  ? ColorArmed : ColorOff);
 			SetBtn(btnSESIbs, shortStopG ? ColorArmed : ColorOff);
 			SetBtn(btnSES2,   shortStopU ? ColorArmed : ColorOff);
-			SetBtn(btnLmtS,   shortLmt   ? ColorArmed : ColorOff);
+			SetBtn(btnLmtS,   shortLmtPb ? ColorArmed : ColorOff);
+			SetBtn(btnLmtSDn, shortLmtRt ? ColorArmed : ColorOff);
 		}
 
 		private void OnChartMouseDown(object sender, MouseButtonEventArgs e)
@@ -656,7 +683,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 					ctButtonsGrid.Children.RemoveAt(ctButtonsGrid.Children.Count - 1);
 				while (ctButtonsGrid.RowDefinitions.Count > baseRows)
 					ctButtonsGrid.RowDefinitions.RemoveAt(ctButtonsGrid.RowDefinitions.Count - 1);
-				btnSELIbs = btnSESIbs = btnSEL2 = btnSES2 = btnLmtL = btnLmtS = btnPickSB = btnCancel = btnFlat = btnStpMode = btnRMult = btnOffset = btnIbs = btnBars = null;
+				btnSELIbs = btnSESIbs = btnSEL2 = btnSES2 = btnLmtL = btnLmtS = btnLmtLUp = btnLmtSDn = btnPickSB = btnCancel = btnFlat = btnStpMode = btnRMult = btnOffset = btnIbs = btnBars = null;
 				ctPanelActive = false;
 			}
 			catch (Exception ex) { Print("BBLite DisposeWPFControls: " + ex.Message); }
