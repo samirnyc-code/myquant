@@ -1,0 +1,37 @@
+A = .
+B = C:\Users\Thomas-Code\AppData\Local\Temp\claude\C--Users-Thomas-Code\64b2cd2f-cf7b-4081-88f0-a2f9ee157d1e\scratchpad\lag1
+
+20251226  IDENTICAL
+20260113  IDENTICAL
+20260213  IDENTICAL
+20260406  IDENTICAL
+20260506  DIFFERS  (33 of 81 bars relabelled)
+    A: Ra1 Bu9 Ra64 Bu68
+    B: Ra1 Bu9 Ra21 Be27 Ra53 Bu54 Ra64 Bu68
+    bars: b21-53
+    events only in B: [(18, 'BOS', 'up', 7431.25), (21, 'ChoCh', 'down', 7425.75), (27, 'BOS', 'down', 7425.0), (41, 'BOS', 'down', 7420.0), (53, 'ChoCh', 'up', 7431.0), (54, 'BOS', 'up', 7430.75)]
+    events only in A: [(57, 'BOS', 'up', 7436.25)]
+    pivots only in A: [(16, 'H', False), (20, 'H', True), (21, 'L', False), (23, 'H', False), (27, 'L', False), (36, 'H', False), (52, 'H', False), (53, 'L', False)]
+    pivots only in B: [(16, 'H', True), (16, 'L', True), (20, 'H', False), (21, 'L', True), (23, 'H', True), (27, 'L', True), (36, 'H', True), (42, 'H', False), (52, 'H', True), (53, 'L', True)]
+20260512  DIFFERS  (0 of 81 bars relabelled)
+    events only in B: [(68, 'BOS', 'up', 7471.75)]
+    pivots only in A: [(66, 'H', False)]
+    pivots only in B: [(66, 'H', True), (66, 'L', True)]
+20260518  IDENTICAL
+20260519  IDENTICAL
+20260520  DIFFERS  (0 of 81 bars relabelled)
+    pivots only in A: []
+    pivots only in B: [(40, 'L', False)]
+20260521  DIFFERS  (0 of 81 bars relabelled)
+    pivots only in A: []
+    pivots only in B: [(13, 'L', False), (56, 'H', False)]
+20260522  IDENTICAL
+20260612  DIFFERS  (0 of 81 bars relabelled)
+    pivots only in A: []
+    pivots only in B: [(19, 'L', False), (39, 'L', False)]
+20260625  DIFFERS  (0 of 81 bars relabelled)
+    pivots only in A: []
+    pivots only in B: [(25, 'L', False), (62, 'H', False)]
+20260629  IDENTICAL
+
+8 of 14 sessions identical; 33 of 1134 bars relabelled (2.91%)

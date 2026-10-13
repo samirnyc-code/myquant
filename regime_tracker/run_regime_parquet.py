@@ -4,11 +4,18 @@ file, resampled to N-minute bars, and export regime_data.json for charting.
 
 Usage:
   python run_regime_parquet.py PARQUET --date 2026-05-06 [--bar-minutes 5]
-                                [--lookback-days 0] [--out regime_data.json]
+                                [--lookback-days 0] [--lag 1] [--out regime_data.json]
 
 --lookback-days pulls in N additional prior RTH sessions (each its own
 is_new_session) so the swing-structure classifier has more history to
 confirm regimes on, instead of starting cold on the single target day.
+
+--lag mirrors the NT8 indicators' Lag setting (canonical = 1, user decision
+2026-09-24; all four C# copies default to it). The state machine is fed the
+pivot flags as they stood `lag` bars after each bar closed (`swing_*_asof`) --
+exactly what the indicator acts on via SwingLow[Lag]. Lag 1 can act on a pivot
+MyWedge later erases (the live chart repaints); lag >= 2 equals the finalised,
+non-repainting arrays. Same path diff_nt_vs_py.py validated 100% against NT8.
 """
 import sys, os, json, math, argparse
 import pandas as pd
@@ -25,6 +32,8 @@ def main():
     ap.add_argument("--bar-minutes", type=int, default=5)
     ap.add_argument("--lookback-days", type=int, default=0)
     ap.add_argument("--tick-size", type=float, default=0.25)
+    ap.add_argument("--lag", type=int, default=1,
+                    help="NT8 indicator Lag: 1 = canonical/live chart, >=2 = finalised (non-repaint)")
     ap.add_argument("--out", default="regime_data.json")
     a = ap.parse_args()
 
@@ -65,9 +74,11 @@ def main():
     w = compute_mywedge(O, H, L, C, tick_size=a.tick_size, is_new_session=ins,
                          lookback=0, warmup_floor=0, show_w2l=True, wedge_symmetry=4, ol_sensitivity=1,
                          ctsb_ignore=True, ib_ignore=True, show_wedge_sb=True,
-                         signal_bar_ibs=66.0, continue_mc=False, continue_on_gap=False)
+                         signal_bar_ibs=66.0, continue_mc=False, continue_on_gap=False,
+                         lag=a.lag)
 
-    r = compute_regime(w.swing_low, w.swing_high, L, H, bar_dir=w.bar_dir)
+    # the pivots as the indicator saw them `lag` bars later, not the finalised ones
+    r = compute_regime(w.swing_low_asof, w.swing_high_asof, L, H, bar_dir=w.bar_dir)
 
     # lookback days were only for warmup context -- trim the export back down to
     # the target session so the chart shows just that day, carrying forward
@@ -88,7 +99,8 @@ def main():
     segments.append({"start": start, "end": n, "regime": cur})
 
     data = {
-        "bars": [{"t": ts[i].isoformat(), "o": O[i], "h": H[i], "l": L[i], "c": C[i]} for i in range(n)],
+        "lag": a.lag,
+        "bars":[{"t": ts[i].isoformat(), "o": O[i], "h": H[i], "l": L[i], "c": C[i]} for i in range(n)],
         "regime": regime,
         "segments": segments,
         "pivot_lows": [{"i": i, "price": p, "major": m} for i, p, m in pivot_lows],
@@ -102,7 +114,7 @@ def main():
     counts = {}
     for lbl in regime:
         counts[lbl] = counts.get(lbl, 0) + 1
-    print(f"{n} bars ({a.bar_minutes}min, {len(keep_dates)} session(s), {a.lookback_days} lookback day(s)) -> {a.out}")
+    print(f"{n} bars ({a.bar_minutes}min, {len(keep_dates)} session(s), {a.lookback_days} lookback day(s), lag {a.lag}) -> {a.out}")
     print(", ".join(f"{k}={v}" for k, v in counts.items()))
 
 

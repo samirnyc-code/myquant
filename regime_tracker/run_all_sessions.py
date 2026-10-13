@@ -4,9 +4,11 @@
     python run_all_sessions.py                 # all sessions
     python run_all_sessions.py 2026-05-18 ...  # just these
     python run_all_sessions.py --no-charts     # JSON only
+    python run_all_sessions.py --lag 2 --out-dir ../_lag2   # another view, elsewhere
 
-Writes regime_data_es_<slug>.json + ms_chart_<slug>.png next to this script and
-prints one summary line per session, so a rule change can be diffed by eye.
+Writes regime_data_es_<slug>.json + ms_chart_<slug>.png (default: next to this
+script) and prints one summary line per session, so a rule change can be diffed
+by eye. --lag defaults to 1, the canonical NT8 setting (see run_regime_parquet.py).
 """
 import argparse, json, pathlib, subprocess, sys
 
@@ -19,12 +21,12 @@ SESSIONS = ["2025-12-26", "2026-01-13", "2026-02-13", "2026-04-06",
             "2026-06-12", "2026-06-25", "2026-06-29"]
 
 
-def run(date, charts=True):
+def run(date, charts=True, lag=1, out_dir=HERE):
     slug = date.replace("-", "")
-    js = HERE / f"regime_data_es_{slug}.json"
-    png = HERE / f"ms_chart_{slug}.png"
+    js = out_dir / f"regime_data_es_{slug}.json"
+    png = out_dir / f"ms_chart_{slug}.png"
     subprocess.run([sys.executable, str(HERE / "run_regime_parquet.py"), str(PARQUET),
-                    "--date", date, "--out", str(js)],
+                    "--date", date, "--lag", str(lag), "--out", str(js)],
                    check=True, capture_output=True)
     if charts:
         subprocess.run([sys.executable, str(HERE / "plot_regime.py"), str(js),
@@ -56,19 +58,23 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("dates", nargs="*", default=None)
     ap.add_argument("--no-charts", action="store_true")
+    ap.add_argument("--lag", type=int, default=1,
+                    help="NT8 indicator Lag: 1 = canonical/live chart, >=2 = finalised")
+    ap.add_argument("--out-dir", type=pathlib.Path, default=HERE)
     a = ap.parse_args()
     dates = a.dates or SESSIONS
     if not PARQUET.exists():
         sys.exit(f"parquet not found: {PARQUET}")
+    a.out_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"{'session':<12} {'bars':>4} {'maj':>4} {'min':>4} {'BOS':>4} {'ChoCh':>6} "
           f"{'Bull':>5} {'Bear':>5} {'Rng':>5}  shape")
     for date in dates:
-        s = summarise(run(date, charts=not a.no_charts))
+        s = summarise(run(date, charts=not a.no_charts, lag=a.lag, out_dir=a.out_dir))
         print(f"{date:<12} {s['n']:>4} {s['maj']:>4} {s['minr']:>4} {s['bos']:>4} "
               f"{s['choch']:>6} {s['held']['Bull']:>5} {s['held']['Bear']:>5} "
               f"{s['held']['Range']:>5}  {s['shape']}")
-    print(f"\n{len(dates)} sessions -> {HERE}")
+    print(f"\n{len(dates)} sessions, lag {a.lag} -> {a.out_dir}")
 
 
 if __name__ == "__main__":

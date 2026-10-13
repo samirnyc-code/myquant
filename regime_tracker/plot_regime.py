@@ -133,7 +133,11 @@ def main():
     ax.grid(True, color=GRID, linewidth=0.7, zorder=0)
     ax.set_axisbelow(True)
 
-    ax.set_title("Regime Tracker — Bull / Bear / Trading Range (mywedge swing structure)",
+    # Lag decides which pivots the state machine saw (1 = live chart, may repaint;
+    # >=2 = finalised). JSONs from before the field existed are the finalised view.
+    lag = d.get("lag")
+    lag_txt = "finalised pivots" if lag is None or lag >= 2 else f"Lag {lag} — live-chart view"
+    ax.set_title(f"Regime Tracker — Bull / Bear / Trading Range  ·  {lag_txt}",
                  color=TEXT_PRIMARY, fontsize=13, fontweight="bold", loc="left", pad=12)
     ax.set_ylabel("Price", color=TEXT_SECONDARY, fontsize=10)
 
