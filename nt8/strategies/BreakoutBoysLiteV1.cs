@@ -28,11 +28,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 	//
 	//   SE LONG / SE SHORT        : arm -> on the bar you armed in (the SB) CLOSING,
 	//                               gate on IBS, then rest a genuine STOP-LIMIT
-	//                               entry: stop TRIGGER at the SB's own High (long)
-	//                               / Low (short) — price must actually trade back
-	//                               through it — with a LIMIT cap offset N ticks
-	//                               past the trigger (bounds slippage once it
-	//                               fires). IBS fails, or the trigger is already
+	//                               entry: stop TRIGGER at the SB's High (long) /
+	//                               Low (short) + your OFFSET N ticks of
+	//                               confirmation — price must actually trade back
+	//                               through that level — with a small fixed LIMIT
+	//                               cushion past the trigger (bounds slippage once
+	//                               it fires; the fill can land anywhere between
+	//                               trigger and that cushion, often right at the
+	//                               trigger). IBS fails, or the trigger is already
 	//                               stale (through current price) -> no order, popup.
 	//   SE LONG 2nd / SE SHORT 2nd: identical entry, but skips the IBS gate — for
 	//                               failed-first-attempt second entries.
@@ -61,9 +64,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private Color  ColorOn, ColorOff, ColorArmed, ColorPick;
 
 		// ── runtime state ────────────────────────────────────────────────────
+		private const int StopLimitCushionTicks = 2; // fixed, not user-exposed: limit = trigger +/- this, just to bound slippage once the trigger fires
+
 		private BBLiteStopMode _stopMode = BBLiteStopMode.BarStop;
 		private double _rMult   = 1.0;   // target = risk * _rMult
-		private int    _offsetTicks = 1; // stop-limit's limit cap = SB High/Low trigger +/- this many ticks
+		private int    _offsetTicks = 1; // stop-limit TRIGGER = SB High/Low +/- this many ticks (confirmation beyond the SB)
 		private double _ibsThreshold = 0.50;
 
 		private bool   _pendingLong, _pendingShort;   // armed, waiting for the SB (armed bar) to close
@@ -80,7 +85,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (State == State.SetDefaults)
 			{
 				Name         = "BreakoutBoysLiteV1";
-				Description  = "Lean BreakoutBoys panel — SE LONG/SHORT (IBS-gated) + SE LONG/SHORT 2nd (no gate), stop-limit entry triggered at the SB's High/Low with a tick-offset limit cap, bar/swing stop, R-multiple target.";
+				Description  = "Lean BreakoutBoys panel — SE LONG/SHORT (IBS-gated) + SE LONG/SHORT 2nd (no gate), stop-limit entry triggered at the SB's High/Low + tick offset, bar/swing stop, R-multiple target.";
 				Calculate    = Calculate.OnBarClose;
 				EntriesPerDirection = 1;
 				EntryHandling = EntryHandling.AllEntries;
@@ -159,8 +164,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			double tick = TickSize;
 
-			double triggerPx = isLong ? High[sbAgo] : Low[sbAgo];
-			double limitPx    = isLong ? triggerPx + _offsetTicks * tick : triggerPx - _offsetTicks * tick;
+			// TRIGGER = the SB extreme + your confirmation offset — price must
+			// actually trade this far beyond the SB before the entry activates at
+			// all (matches the original dashboard's stop-market convention, where
+			// the offset defined the entry level itself). LIMIT = trigger + a small
+			// fixed cushion, not user-exposed, purely to bound slippage once it
+			// fires — it is NOT where you should expect the fill to land; the fill
+			// can legitimately land anywhere between trigger and limit, often right
+			// at the trigger.
+			double triggerPx = isLong ? High[sbAgo] + _offsetTicks * tick : Low[sbAgo] - _offsetTicks * tick;
+			double limitPx    = isLong ? triggerPx + StopLimitCushionTicks * tick : triggerPx - StopLimitCushionTicks * tick;
 
 			// Guard against a stale SB (e.g. an old PICK SB bar price has already
 			// moved through): the trigger must still be on the correct side of the
@@ -329,8 +342,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 				btnRMult.PreviewMouseRightButtonDown += (o, e) => { e.Handled = true; AdjustRMult(+1); };
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnStpMode, btnRMult);
 
-				// Row: OFFSET (stop-limit's limit cap, ticks past the SB High/Low trigger) | IBS threshold
-				btnOffset = MakeBtn(s, OffsetLabel(), "Limit cap ticks past the SB trigger (High for long / Low for short) — left-click −1, right-click +1", Color.FromRgb(60,60,60));
+				// Row: OFFSET (stop-limit trigger confirmation, ticks beyond the SB High/Low) | IBS threshold
+				btnOffset = MakeBtn(s, OffsetLabel(), "Stop trigger confirmation ticks beyond the SB High (long) / Low (short) — left-click −1, right-click +1", Color.FromRgb(60,60,60));
 				btnOffset.PreviewMouseLeftButtonDown  += (o, e) => { e.Handled = true; AdjustOffset(-1); };
 				btnOffset.PreviewMouseRightButtonDown += (o, e) => { e.Handled = true; AdjustOffset(+1); };
 				btnIbs = MakeBtn(s, IbsLabel(), "IBS threshold — left-click −0.05, right-click +0.05", Color.FromRgb(60,60,60));
