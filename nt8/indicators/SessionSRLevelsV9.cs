@@ -286,31 +286,34 @@ namespace NinjaTrader.NinjaScript.Indicators
 			else if (State == State.Configure)
 			{
 				// Hidden ETH-hours series: feeds ALL ETH levels so they work regardless of
-				// the chart's own Trading Hours template (incl. RTH-only charts).
+				// the chart's own Trading Hours template (incl. RTH-only charts). 5-MIN (not
+				// 1-min) to cut ~5x the bar-processing load: a bar's High/Low aggregates the
+				// extreme, so the overnight H/L stays exact; only the RTH-open lock boundary is
+				// coarsened to ~5 min (the quiet pre-open window rarely holds the overnight extreme).
 				_ethSeriesAdded = false;
 				if (!string.IsNullOrEmpty(FullTemplateNameHint))
 				{
 					try
 					{
 						AddDataSeries(Instrument.FullName,
-							new BarsPeriod { BarsPeriodType = BarsPeriodType.Minute, Value = 1 },
+							new BarsPeriod { BarsPeriodType = BarsPeriodType.Minute, Value = 5 },
 							FullTemplateNameHint);
 						_ethSeriesAdded = true;
 					}
 					catch (Exception ex) { Print("SessionSRLevelsV9: could not add ETH data series '" + FullTemplateNameHint + "': " + ex.Message); }
 				}
 
-				// Hidden 1-min RTH-hours series: the authoritative source for the RTH session
-				// OPENS (OoD/OoW/OoM). It resets at the session start, so bar[0] of each RTH
-				// session opens exactly on the RTH open — unlike a tick/volume chart whose
-				// straddle bar opens on a pre-08:30 tick.
+				// Hidden DAILY RTH-hours series: the authoritative source for the RTH session
+				// OPENS (OoD/OoW/OoM). The session resets at 08:30, so each daily RTH bar OPENS
+				// exactly on the RTH open — one bar per session (vs ~100k for a 1-min series),
+				// which is why this is Daily, not intraday.
 				_rthSeriesAdded = false;
 				if (!string.IsNullOrEmpty(RthTemplateName))
 				{
 					try
 					{
 						AddDataSeries(Instrument.FullName,
-							new BarsPeriod { BarsPeriodType = BarsPeriodType.Minute, Value = 1 },
+							new BarsPeriod { BarsPeriodType = BarsPeriodType.Day, Value = 1 },
 							RthTemplateName);
 						_rthSeriesAdded = true;
 					}
@@ -568,16 +571,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 			_ethCloseLast = Closes[_ethBip][0];
 		}
 
-		// RTH session OPENS from the hidden 1-min RTH-hours series. Because that series RESETS
-		// at the session start, the first bar of each RTH session opens EXACTLY on the RTH open
-		// — so its Open is the true OoD (unlike the primary tick/volume chart's straddle bar).
-		// Opens are keyed by date so live AND historical OoD/OoW/OoM all read the right value.
+		// RTH session OPENS from the hidden DAILY RTH-hours series. Because that series RESETS
+		// at the session start, each daily RTH bar opens EXACTLY on the RTH open — so its Open
+		// is the true OoD (unlike the primary tick/volume chart's straddle bar). One bar per
+		// session; opens are keyed by date so live AND historical OoD/OoW/OoM read the right value.
 		private void HandleRthSeries()
 		{
 			if (!_rthSeriesAdded || _rthBip < 0 || CurrentBars[_rthBip] < 0) return;
 
-			// RTH bars live entirely within one calendar day (08:30–15:15), so a change of
-			// Times[rth].Date marks the first bar of a new RTH session = the RTH open.
+			// One daily RTH bar per session, so a change of Times[rth].Date marks a new RTH
+			// session; Opens[rth][0] on that bar is the RTH open.
 			DateTime d = Times[_rthBip][0].Date;
 			if (d == _rthSeriesLastDate) return;
 			_rthSeriesLastDate = d;
