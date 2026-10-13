@@ -202,8 +202,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 			_dir = isLong ? 1 : -1;
 			_activeUseIbs = useIbs;
 
-			if (isLong) EnterLongStopLimit(SE_Qty, Round(triggerPx), Round(limitPx), "SE");
-			else        EnterShortStopLimit(SE_Qty, Round(triggerPx), Round(limitPx), "SE");
+			// NinjaScript signature is (quantity, limitPrice, stopPrice, signalName) —
+			// LIMIT first, STOP second (verified via reflection on StrategyBase; the
+			// reversed order threw "Limit price can't be greater than stop price").
+			if (isLong) EnterLongStopLimit(SE_Qty, Round(limitPx), Round(triggerPx), "SE");
+			else        EnterShortStopLimit(SE_Qty, Round(limitPx), Round(triggerPx), "SE");
 
 			Print(DateTime.Now + "  SE " + (isLong ? "LONG" : "SHORT") + (useIbs ? "" : " 2nd") + " trigger@" + triggerPx.ToString("0.00")
 				+ " limit@" + limitPx.ToString("0.00") + " stop@" + _stopPx.ToString("0.00") + " tgt@" + _tgtPx.ToString("0.00")
