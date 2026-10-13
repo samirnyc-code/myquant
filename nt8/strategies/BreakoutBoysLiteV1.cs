@@ -578,10 +578,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 				_pickArmed = false;
 				SetBtn(btnPickSB, ColorOff);
 
-				// Visual confirmation on the chart — side unknown yet at pick time, so
-				// default to the long-style marker (below, pointing up); ArmSE flips it
-				// to the short-style marker (above, pointing down) once a side is chosen.
-				DrawPickMarker(idx, true);
+				// Visual confirmation on the chart. If a side is already pending (armed
+				// BEFORE picking — the reverse of the recommended order), honor it;
+				// otherwise default to long-style until ArmSE flips it once a side is
+				// actually chosen.
+				DrawPickMarker(idx, !_pendingShort);
 
 				Print(DateTime.Now + " SB picked @ bar " + idx + " (" + Time.GetValueAt(Math.Min(idx, CurrentBar)) + ")");
 			}
@@ -596,8 +597,22 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			int barsAgo = Math.Max(0, CurrentBar - barIdx);
 			double tick = TickSize;
-			if (isLong) Draw.ArrowUp  (this, "BBLitePickSB", false, barsAgo, Low[barsAgo]  - 2 * tick, new SolidColorBrush(ColorPick));
-			else        Draw.ArrowDown(this, "BBLitePickSB", false, barsAgo, High[barsAgo] + 2 * tick, new SolidColorBrush(ColorPick));
+			// Same tag does NOT swap an existing drawing object's tool type (an
+			// ArrowUp stays an ArrowUp even if you re-call Draw with that tag as
+			// ArrowDown) — it just repositions it. Remove first so the correct
+			// shape actually gets (re)created.
+			try { RemoveDrawObject("BBLitePickSB"); } catch { }
+			Brush brush = new SolidColorBrush(ColorPick);   // blue regardless of direction
+			if (isLong)
+			{
+				var a = Draw.ArrowUp(this, "BBLitePickSB", false, barsAgo, Low[barsAgo] - 2 * tick, brush);
+				a.Size = ChartMarkerSize.Small;   // ~50% smaller than the prior default
+			}
+			else
+			{
+				var a = Draw.ArrowDown(this, "BBLitePickSB", false, barsAgo, High[barsAgo] + 2 * tick, brush);
+				a.Size = ChartMarkerSize.Small;
+			}
 		}
 
 		// Live (still-cancelable) order states. A resting LIMIT entry sits in
