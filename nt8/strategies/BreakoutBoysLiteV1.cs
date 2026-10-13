@@ -589,7 +589,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 				// actually chosen.
 				DrawPickMarker(idx, !_pendingShort);
 
-				Print(DateTime.Now + " SB picked @ bar " + idx + " (" + Time.GetValueAt(Math.Min(idx, CurrentBar)) + ")");
+				double sbHi = ChartBars.Bars.GetHigh(idx), sbLo = ChartBars.Bars.GetLow(idx);
+				Print(DateTime.Now + " SB picked @ bar " + idx + " (" + Time.GetValueAt(Math.Min(idx, CurrentBar)) + ") H=" + sbHi.ToString("0.00") + " L=" + sbLo.ToString("0.00"));
 			}
 			catch (Exception ex) { Print("BBLite pick: " + ex.Message); }
 		}
