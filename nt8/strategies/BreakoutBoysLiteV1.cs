@@ -97,6 +97,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private BBEntryKind _pendingKind;              // which entry mechanism the pending arm uses
 		private bool   _pickArmed;                     // next chart click selects the SB
 		private int    _sbPickedBar = -1;              // absolute bar index of a manually-picked SB (-1 = none)
+		private string _pickMarkerTag;                 // current pick-marker's draw tag (unique per draw — see DrawPickMarker)
 		private int    _armedBarIndex = -1;            // CurrentBar when the working entry order was submitted (-1 = none working)
 		private int    _dir;                           // +1 long / -1 short for the open trade, 0 flat
 		private BBEntryKind _activeKind;               // which entry mechanism the OPEN trade used
@@ -156,7 +157,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				bool hadPick = _sbPickedBar >= 0;
 				_pendingLong = _pendingShort = false;
 				_sbPickedBar = -1;
-				if (hadPick) { try { RemoveDrawObject("BBLitePickSB"); } catch (Exception ex) { Print("BBLite remove marker: " + ex.Message); } }
+				if (hadPick && !string.IsNullOrEmpty(_pickMarkerTag)) { try { RemoveDrawObject(_pickMarkerTag); } catch (Exception ex) { Print("BBLite remove marker: " + ex.Message); } _pickMarkerTag = null; }
 				if (kind == BBEntryKind.LmtPullback || kind == BBEntryKind.LmtRetest) TryPlaceLimitEntry(isLong, kind, sbAgo);
 				else                                                                 TryPlaceStopEntry(isLong, kind == BBEntryKind.StopGated, sbAgo);
 				RefreshSEButtons();
@@ -593,36 +594,37 @@ namespace NinjaTrader.NinjaScript.Strategies
 			catch (Exception ex) { Print("BBLite pick: " + ex.Message); }
 		}
 
-		// Same tag every time, so re-drawing just moves the one marker rather than
-		// littering old ones. Long: below the bar, pointing up. Short: above the
-		// bar, pointing down — a below-bar marker reads as "buy here" regardless of
-		// which side it's actually for, so it must flip for shorts.
+		// Unique tag every call (not a fixed reused one): removing an object and
+		// immediately re-adding a DIFFERENT drawing-tool type under the exact same
+		// tag in the same call is the kind of same-frame race NinjaScript's drawing
+		// manager is not guaranteed to handle cleanly. Drawing the NEW marker under
+		// a fresh tag first, then removing the OLD one by its own tag, sidesteps
+		// that entirely. Long: below the bar, pointing up. Short: above the bar,
+		// pointing down.
 		private void DrawPickMarker(int barIdx, bool isLong)
 		{
 			try
 			{
 				int barsAgo = Math.Max(0, CurrentBar - barIdx);
 				double tick = TickSize;
-				// Same tag does NOT swap an existing drawing object's tool type (an
-				// ArrowUp stays an ArrowUp even if you re-call Draw with that tag as
-				// ArrowDown) — it just repositions it. Remove first so the correct
-				// shape actually gets (re)created. Separate try/catch so a failed
-				// removal (e.g. nothing to remove yet) can never block the draw below.
-				try { RemoveDrawObject("BBLitePickSB"); } catch { }
+				string oldTag = _pickMarkerTag;
+				_pickMarkerTag = "BBLitePickSB_" + Environment.TickCount;
 
 				Brush brush = new SolidColorBrush(ColorPick);   // blue regardless of direction
 				if (isLong)
 				{
-					var a = Draw.ArrowUp(this, "BBLitePickSB", false, barsAgo, Low[barsAgo] - 2 * tick, brush);
-					if (a != null) a.Size = ChartMarkerSize.Small;
+					var a = Draw.ArrowUp(this, _pickMarkerTag, false, barsAgo, Low[barsAgo] - 2 * tick, brush);
+					if (a != null) { a.Size = ChartMarkerSize.Small; Print(DateTime.Now + " BBLite pick marker drawn (ArrowUp, tag=" + _pickMarkerTag + ")"); }
 					else Print(DateTime.Now + " BBLite pick marker: Draw.ArrowUp returned null");
 				}
 				else
 				{
-					var a = Draw.ArrowDown(this, "BBLitePickSB", false, barsAgo, High[barsAgo] + 2 * tick, brush);
-					if (a != null) a.Size = ChartMarkerSize.Small;
+					var a = Draw.ArrowDown(this, _pickMarkerTag, false, barsAgo, High[barsAgo] + 2 * tick, brush);
+					if (a != null) { a.Size = ChartMarkerSize.Small; Print(DateTime.Now + " BBLite pick marker drawn (ArrowDown, tag=" + _pickMarkerTag + ")"); }
 					else Print(DateTime.Now + " BBLite pick marker: Draw.ArrowDown returned null");
 				}
+
+				if (!string.IsNullOrEmpty(oldTag)) { try { RemoveDrawObject(oldTag); } catch { } }
 			}
 			catch (Exception ex) { Print(DateTime.Now + " BBLite DrawPickMarker FAILED: " + ex); }
 		}
@@ -716,7 +718,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			try
 			{
 				if (_mouseHooked && ChartControl != null) { ChartControl.PreviewMouseDown -= OnChartMouseDown; _mouseHooked = false; }
-				try { RemoveDrawObject("BBLitePickSB"); } catch { }
+				if (!string.IsNullOrEmpty(_pickMarkerTag)) { try { RemoveDrawObject(_pickMarkerTag); } catch { } _pickMarkerTag = null; }
 				if (!ctPanelActive || ctButtonsGrid == null) return;
 				int baseRows = Math.Max(0, ctBaseRowCount);
 				while (ctButtonsGrid.Children.Count > baseRows)
