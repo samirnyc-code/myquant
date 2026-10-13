@@ -154,10 +154,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 				bool isLong  = _pendingLong;
 				BBEntryKind kind = _pendingKind;
 				int  sbAgo   = _sbPickedBar >= 0 ? Math.Max(0, CurrentBar - _sbPickedBar) : 0;
-				bool hadPick = _sbPickedBar >= 0;
 				_pendingLong = _pendingShort = false;
-				_sbPickedBar = -1;
-				if (hadPick && !string.IsNullOrEmpty(_pickMarkerTag)) { try { RemoveDrawObject(_pickMarkerTag); } catch (Exception ex) { Print("BBLite remove marker: " + ex.Message); } _pickMarkerTag = null; }
+				_sbPickedBar = -1;   // pick consumed into sbAgo above — the MARKER itself stays
+				                     // on the chart until the order resolves (fill/cancel/expire),
+				                     // cleared in CancelWorkingEntries / OnExecutionUpdate instead.
 				if (kind == BBEntryKind.LmtPullback || kind == BBEntryKind.LmtRetest) TryPlaceLimitEntry(isLong, kind, sbAgo);
 				else                                                                 TryPlaceStopEntry(isLong, kind == BBEntryKind.StopGated, sbAgo);
 				RefreshSEButtons();
@@ -230,6 +230,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			_dir = isLong ? 1 : -1;
 			_activeKind = useIbs ? BBEntryKind.StopGated : BBEntryKind.StopUngated;
 			_armedBarIndex = CurrentBar;
+			RefreshStatusText();
 
 			// NinjaScript signature is (barsInProgressIndex, isLiveUntilCancelled,
 			// quantity, limitPrice, stopPrice, signalName) — LIMIT before STOP
@@ -252,6 +253,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private void ExpireStaleEntry()
 		{
 			if (_armedBarIndex < 0) return;
+			RefreshStatusText();   // keep the N/M-bars countdown current every bar while working
 			if (CurrentBar - _armedBarIndex < _maxBarsAlive) return;
 
 			bool hasLiveEntry = false;
@@ -300,6 +302,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			_dir = isLong ? 1 : -1;
 			_activeKind = kind;
 			_armedBarIndex = CurrentBar;
+			RefreshStatusText();
 
 			if (isLong) EnterLongLimit (0, true, SE_Qty, Round(limitPx), "SE");
 			else        EnterShortLimit(0, true, SE_Qty, Round(limitPx), "SE");
@@ -368,6 +371,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 					+ " (intended " + _entryPx.ToString("0.00") + ") — stop@" + _stopPx.ToString("0.00")
 					+ " tgt@" + _tgtPx.ToString("0.00") + " [" + _rMult.ToString("0.0") + "R off real entry]");
 				_armedBarIndex = -1;   // filled — no longer a working entry to expire
+				ClearPickMarker();
+				ClearStatusText();
 			}
 		}
 
@@ -538,6 +543,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			_pendingLong = isLong; _pendingShort = !isLong; _pendingKind = kind;
 			CancelWorkingEntries();
 			if (_sbPickedBar >= 0) DrawPickMarker(_sbPickedBar, isLong);   // flip above/below once the side is known
+			UpdateStatusText(label + " PENDING " + (isLong ? "L" : "S") + " — bar closes to place");
 			Print(DateTime.Now + " " + label + " " + (isLong ? "LONG" : "SHORT") + tag
 				+ " armed — SB = " + (_sbPickedBar >= 0 ? "picked bar" : "the bar it closes on")
 				+ " [" + _stopMode + "/" + _rMult.ToString("0.0") + "R]");
@@ -665,6 +671,48 @@ namespace NinjaTrader.NinjaScript.Strategies
 			foreach (Order o in Orders)
 				if (o.Name == "SE" && IsLive(o)) CancelOrder(o);
 			_armedBarIndex = -1;
+			ClearPickMarker();
+			ClearStatusText();
+		}
+
+		// Remove the SB pick marker — called wherever a working/pending entry
+		// resolves (cancelled, disarmed, flattened, expired, or filled), NOT when
+		// the order is merely placed: the whole point is the marker stays visible
+		// for as long as the order is still live, however many bars that takes.
+		private void ClearPickMarker()
+		{
+			if (string.IsNullOrEmpty(_pickMarkerTag)) return;
+			try { RemoveDrawObject(_pickMarkerTag); } catch (Exception ex) { Print("BBLite remove marker: " + ex.Message); }
+			_pickMarkerTag = null;
+		}
+
+		// A second, distinct on-chart signal (separate from the SB marker) so an
+		// armed-but-not-yet-placed order (PENDING) and an actually-resting order
+		// (WORKING, counting down its BARS-alive window) are visually obvious
+		// without having to check the panel button colors. Fixed tag — same
+		// drawing-tool type (Text) every call, so no type-swap hazard like the
+		// Arrow markers had; safe to just reposition/retext in place.
+		private void UpdateStatusText(string text)
+		{
+			try { Draw.Text(this, "BBLiteStatus", text, 0, High[0] + 4 * TickSize); }
+			catch (Exception ex) { Print(DateTime.Now + " BBLite status text FAILED: " + ex.Message); }
+		}
+
+		private void ClearStatusText()
+		{
+			try { RemoveDrawObject("BBLiteStatus"); } catch { }
+		}
+
+		// Rebuilds the WORKING status text from current state (elapsed/_maxBarsAlive
+		// bars) -- called every bar while an order is resting so the countdown stays
+		// live, and once right after submission for the initial draw.
+		private void RefreshStatusText()
+		{
+			if (_armedBarIndex < 0) { ClearStatusText(); return; }
+			bool isLong = _dir == 1;
+			bool isLmt  = _activeKind == BBEntryKind.LmtPullback || _activeKind == BBEntryKind.LmtRetest;
+			int elapsed = CurrentBar - _armedBarIndex;
+			UpdateStatusText((isLmt ? "LMT" : "SE") + " WORKING " + (isLong ? "L" : "S") + " " + elapsed + "/" + _maxBarsAlive + "b");
 		}
 
 		// Cancel working orders (entry + stop/target) but leave an open position alone.
@@ -674,6 +722,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 				if ((o.Name == "SE" || o.Name == "SEstop" || o.Name == "SEtgt") && IsLive(o))
 					CancelOrder(o);
 			_pendingLong = _pendingShort = false;
+			_armedBarIndex = -1;
+			ClearPickMarker();
+			ClearStatusText();
 			RefreshSEButtons();
 			Print(DateTime.Now + " SE CANCEL — working orders cancelled (position kept)");
 		}
@@ -687,6 +738,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (Position.MarketPosition == MarketPosition.Long)       ExitLong ("SEflat", "SE");
 			else if (Position.MarketPosition == MarketPosition.Short) ExitShort("SEflat", "SE");
 			_dir = 0;
+			_armedBarIndex = -1;
+			ClearPickMarker();
+			ClearStatusText();
 			RefreshSEButtons();
 			Print(DateTime.Now + " SE FLATTEN ALL");
 		}
@@ -730,6 +784,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				if (_mouseHooked && ChartControl != null) { ChartControl.PreviewMouseDown -= OnChartMouseDown; _mouseHooked = false; }
 				if (!string.IsNullOrEmpty(_pickMarkerTag)) { try { RemoveDrawObject(_pickMarkerTag); } catch { } _pickMarkerTag = null; }
+				ClearStatusText();
 				if (!ctPanelActive || ctButtonsGrid == null) return;
 				int baseRows = Math.Max(0, ctBaseRowCount);
 				while (ctButtonsGrid.Children.Count > baseRows)
