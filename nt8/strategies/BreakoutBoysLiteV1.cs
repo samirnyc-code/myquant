@@ -610,16 +610,26 @@ namespace NinjaTrader.NinjaScript.Strategies
 				string oldTag = _pickMarkerTag;
 				_pickMarkerTag = "BBLitePickSB_" + Environment.TickCount;
 
+				// Read price data via ChartBars.Bars.GetLow/GetHigh (absolute index),
+				// NOT the Low[]/High[] series indexers. Those indexers are only
+				// reliable from the strategy's own processing thread (OnBarUpdate
+				// etc.) -- this method can run from a raw UI-thread chart click
+				// (OnChartMouseDown), where they throw "Parameter name: barsAgo" for
+				// bars far enough back (confirmed live). Same fix MCStrategyDashboardV3
+				// already uses for this exact reason.
+				double lo = ChartBars.Bars.GetLow(barIdx);
+				double hi = ChartBars.Bars.GetHigh(barIdx);
+
 				Brush brush = new SolidColorBrush(ColorPick);   // blue regardless of direction
 				if (isLong)
 				{
-					var a = Draw.ArrowUp(this, _pickMarkerTag, false, barsAgo, Low[barsAgo] - 2 * tick, brush);
+					var a = Draw.ArrowUp(this, _pickMarkerTag, false, barsAgo, lo - 2 * tick, brush);
 					if (a != null) { a.Size = ChartMarkerSize.Small; Print(DateTime.Now + " BBLite pick marker drawn (ArrowUp, tag=" + _pickMarkerTag + ")"); }
 					else Print(DateTime.Now + " BBLite pick marker: Draw.ArrowUp returned null");
 				}
 				else
 				{
-					var a = Draw.ArrowDown(this, _pickMarkerTag, false, barsAgo, High[barsAgo] + 2 * tick, brush);
+					var a = Draw.ArrowDown(this, _pickMarkerTag, false, barsAgo, hi + 2 * tick, brush);
 					if (a != null) { a.Size = ChartMarkerSize.Small; Print(DateTime.Now + " BBLite pick marker drawn (ArrowDown, tag=" + _pickMarkerTag + ")"); }
 					else Print(DateTime.Now + " BBLite pick marker: Draw.ArrowDown returned null");
 				}
