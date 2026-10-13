@@ -27,11 +27,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 	// dialog needed during the session. Two entry methods only:
 	//
 	//   SE LONG / SE SHORT        : arm -> on the bar you armed in (the SB) CLOSING,
-	//                               gate on IBS, then rest a LIMIT entry offset N
-	//                               ticks beyond the SB's High (long) / Low (short)
-	//                               — a chase marketable-limit with a capped max-
-	//                               slippage, not a resting pullback order. IBS
-	//                               fails -> no order, popup.
+	//                               gate on IBS, then rest a genuine STOP-LIMIT
+	//                               entry: stop TRIGGER at the SB's own High (long)
+	//                               / Low (short) — price must actually trade back
+	//                               through it — with a LIMIT cap offset N ticks
+	//                               past the trigger (bounds slippage once it
+	//                               fires). IBS fails, or the trigger is already
+	//                               stale (through current price) -> no order, popup.
 	//   SE LONG 2nd / SE SHORT 2nd: identical entry, but skips the IBS gate — for
 	//                               failed-first-attempt second entries.
 	//
@@ -61,7 +63,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		// ── runtime state ────────────────────────────────────────────────────
 		private BBLiteStopMode _stopMode = BBLiteStopMode.BarStop;
 		private double _rMult   = 1.0;   // target = risk * _rMult
-		private int    _offsetTicks = 1; // entry = SB High/Low +/- this many ticks
+		private int    _offsetTicks = 1; // stop-limit's limit cap = SB High/Low trigger +/- this many ticks
 		private double _ibsThreshold = 0.50;
 
 		private bool   _pendingLong, _pendingShort;   // armed, waiting for the SB (armed bar) to close
@@ -78,7 +80,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (State == State.SetDefaults)
 			{
 				Name         = "BreakoutBoysLiteV1";
-				Description  = "Lean BreakoutBoys panel — SE LONG/SHORT (IBS-gated) + SE LONG/SHORT 2nd (no gate), limit entry offset beyond the SB's High/Low, bar/swing stop, R-multiple target.";
+				Description  = "Lean BreakoutBoys panel — SE LONG/SHORT (IBS-gated) + SE LONG/SHORT 2nd (no gate), stop-limit entry triggered at the SB's High/Low with a tick-offset limit cap, bar/swing stop, R-multiple target.";
 				Calculate    = Calculate.OnBarClose;
 				EntriesPerDirection = 1;
 				EntryHandling = EntryHandling.AllEntries;
@@ -130,9 +132,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 		}
 
-		// Gate on IBS (if requested), then compute entry/stop/target off the SB
-		// (sbAgo bars back — 0 = the bar that just closed, or a manually-picked bar)
-		// and rest a limit entry.
+		// Gate on IBS (if requested), then compute a genuine STOP-LIMIT entry off the
+		// SB (sbAgo bars back — 0 = the bar that just closed, or a manually-picked
+		// bar): a stop TRIGGER at the SB's own extreme (price must actually trade
+		// back through it — this is what makes it a stop entry, not a chase) and a
+		// LIMIT cap offset ticks past the trigger (bounds worst-case slippage once
+		// triggered, same role a plain stop-market's slippage risk would otherwise
+		// carry unbounded).
 		private void TryPlaceStopEntry(bool isLong, bool useIbs, int sbAgo)
 		{
 			double range = High[sbAgo] - Low[sbAgo];
@@ -153,8 +159,30 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			double tick = TickSize;
 
-			// STOP reference (BarStop): the SB's extreme, but if the SB is an inside
-			// bar, walk LEFT to the first non-inside bar and use that.
+			double triggerPx = isLong ? High[sbAgo] : Low[sbAgo];
+			double limitPx    = isLong ? triggerPx + _offsetTicks * tick : triggerPx - _offsetTicks * tick;
+
+			// Guard against a stale SB (e.g. an old PICK SB bar price has already
+			// moved through): the trigger must still be on the correct side of the
+			// last traded price, or a stop order there would fire instantly — the
+			// exact "disaster" a plain chase-limit produced before this fix.
+			// >= / <= (not strict >/<): the default (non-picked) SB's own High/Low is
+			// always >= / <= its own Close, so a bar that closed exactly at its
+			// extreme (the strongest, most normal case) must still pass.
+			double lastPx = Close[0];
+			bool triggerValid = isLong ? triggerPx >= lastPx : triggerPx <= lastPx;
+			if (!triggerValid)
+			{
+				string msg = "SE " + (isLong ? "LONG" : "SHORT") + " blocked — SB trigger " + triggerPx.ToString("0.00")
+					+ " is already " + (isLong ? "below" : "above") + " the last price " + lastPx.ToString("0.00")
+					+ " (stale SB) — would fire instantly, not a real stop entry.";
+				Print(DateTime.Now + " " + msg);
+				ShowPopup(msg);
+				return;
+			}
+
+			// STOP-LOSS reference (BarStop): the SB's OPPOSITE extreme, but if the SB
+			// is an inside bar, walk LEFT to the first non-inside bar and use that.
 			double stopRefHi = High[sbAgo], stopRefLo = Low[sbAgo];
 			if (_stopMode == BBLiteStopMode.BarStop)
 			{
@@ -164,28 +192,21 @@ namespace NinjaTrader.NinjaScript.Strategies
 				stopRefHi = High[a]; stopRefLo = Low[a];
 			}
 
-			if (isLong)
-			{
-				_entryPx = High[sbAgo] + _offsetTicks * tick;
-				_stopPx  = (_stopMode == BBLiteStopMode.LastSwing ? _swing.SwingLow[0] : stopRefLo) - SE_StopOffsetTicks * tick;
-			}
-			else
-			{
-				_entryPx = Low[sbAgo] - _offsetTicks * tick;
-				_stopPx  = (_stopMode == BBLiteStopMode.LastSwing ? _swing.SwingHigh[0] : stopRefHi) + SE_StopOffsetTicks * tick;
-			}
+			if (isLong) _stopPx = (_stopMode == BBLiteStopMode.LastSwing ? _swing.SwingLow[0]  : stopRefLo) - SE_StopOffsetTicks * tick;
+			else        _stopPx = (_stopMode == BBLiteStopMode.LastSwing ? _swing.SwingHigh[0] : stopRefHi) + SE_StopOffsetTicks * tick;
 
-			double risk = Math.Abs(_entryPx - _stopPx);
-			_tgtPx = isLong ? _entryPx + risk * _rMult : _entryPx - risk * _rMult;
+			double risk = Math.Abs(limitPx - _stopPx);
+			_entryPx = limitPx;   // intended (pre-fill) entry — the stop-limit's limit price, used for display + the OnExecutionUpdate recompute baseline
+			_tgtPx   = isLong ? limitPx + risk * _rMult : limitPx - risk * _rMult;
 
 			_dir = isLong ? 1 : -1;
 			_activeUseIbs = useIbs;
 
-			if (isLong) EnterLongLimit(SE_Qty, Round(_entryPx), "SE");
-			else        EnterShortLimit(SE_Qty, Round(_entryPx), "SE");
+			if (isLong) EnterLongStopLimit(SE_Qty, Round(triggerPx), Round(limitPx), "SE");
+			else        EnterShortStopLimit(SE_Qty, Round(triggerPx), Round(limitPx), "SE");
 
-			Print(DateTime.Now + "  SE " + (isLong ? "LONG" : "SHORT") + (useIbs ? "" : " 2nd") + " entry@" + _entryPx.ToString("0.00")
-				+ " stop@" + _stopPx.ToString("0.00") + " tgt@" + _tgtPx.ToString("0.00")
+			Print(DateTime.Now + "  SE " + (isLong ? "LONG" : "SHORT") + (useIbs ? "" : " 2nd") + " trigger@" + triggerPx.ToString("0.00")
+				+ " limit@" + limitPx.ToString("0.00") + " stop@" + _stopPx.ToString("0.00") + " tgt@" + _tgtPx.ToString("0.00")
 				+ " [" + _stopMode + "/" + _rMult.ToString("0.0") + "R, IBS " + ibs.ToString("0.00") + (useIbs ? " gated" : " ungated") + "]");
 		}
 
@@ -272,16 +293,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 				AddFullRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, title);
 
 				// Row: SE LONG | SE SHORT (IBS-gated)
-				btnSELIbs = MakeBtn(s, "SE LONG", "Arm a long limit entry off the SB close, gated on IBS", ColorOff);
+				btnSELIbs = MakeBtn(s, "SE LONG", "Arm a long stop-limit entry triggered at the SB High, gated on IBS", ColorOff);
 				btnSELIbs.Click += (o, e) => TriggerCustomEvent(st => ArmSE(true, true), null);
-				btnSESIbs = MakeBtn(s, "SE SHORT", "Arm a short limit entry off the SB close, gated on IBS", ColorOff);
+				btnSESIbs = MakeBtn(s, "SE SHORT", "Arm a short stop-limit entry triggered at the SB Low, gated on IBS", ColorOff);
 				btnSESIbs.Click += (o, e) => TriggerCustomEvent(st => ArmSE(false, true), null);
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnSELIbs, btnSESIbs);
 
 				// Row: SE LONG 2nd | SE SHORT 2nd (no IBS gate — failed-2nd-entry)
-				btnSEL2 = MakeBtn(s, "SE LONG 2nd", "Same long entry, no IBS gate — failed-second-entry", ColorOff);
+				btnSEL2 = MakeBtn(s, "SE LONG 2nd", "Same stop-limit long entry, no IBS gate — failed-second-entry", ColorOff);
 				btnSEL2.Click += (o, e) => TriggerCustomEvent(st => ArmSE(true, false), null);
-				btnSES2 = MakeBtn(s, "SE SHORT 2nd", "Same short entry, no IBS gate — failed-second-entry", ColorOff);
+				btnSES2 = MakeBtn(s, "SE SHORT 2nd", "Same stop-limit short entry, no IBS gate — failed-second-entry", ColorOff);
 				btnSES2.Click += (o, e) => TriggerCustomEvent(st => ArmSE(false, false), null);
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnSEL2, btnSES2);
 
@@ -305,8 +326,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 				btnRMult.PreviewMouseRightButtonDown += (o, e) => { e.Handled = true; AdjustRMult(+1); };
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnStpMode, btnRMult);
 
-				// Row: OFFSET (entry ticks beyond SB High/Low) | IBS threshold
-				btnOffset = MakeBtn(s, OffsetLabel(), "Entry offset ticks beyond SB High (long) / Low (short) — left-click −1, right-click +1", Color.FromRgb(60,60,60));
+				// Row: OFFSET (stop-limit's limit cap, ticks past the SB High/Low trigger) | IBS threshold
+				btnOffset = MakeBtn(s, OffsetLabel(), "Limit cap ticks past the SB trigger (High for long / Low for short) — left-click −1, right-click +1", Color.FromRgb(60,60,60));
 				btnOffset.PreviewMouseLeftButtonDown  += (o, e) => { e.Handled = true; AdjustOffset(-1); };
 				btnOffset.PreviewMouseRightButtonDown += (o, e) => { e.Handled = true; AdjustOffset(+1); };
 				btnIbs = MakeBtn(s, IbsLabel(), "IBS threshold — left-click −0.05, right-click +0.05", Color.FromRgb(60,60,60));
