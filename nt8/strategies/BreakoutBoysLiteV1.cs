@@ -536,6 +536,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			_pendingLong = isLong; _pendingShort = !isLong; _pendingKind = kind;
 			CancelWorkingEntries();
+			if (_sbPickedBar >= 0) DrawPickMarker(_sbPickedBar, isLong);   // flip above/below once the side is known
 			Print(DateTime.Now + " " + label + " " + (isLong ? "LONG" : "SHORT") + tag
 				+ " armed — SB = " + (_sbPickedBar >= 0 ? "picked bar" : "the bar it closes on")
 				+ " [" + _stopMode + "/" + _rMult.ToString("0.0") + "R]");
@@ -577,14 +578,26 @@ namespace NinjaTrader.NinjaScript.Strategies
 				_pickArmed = false;
 				SetBtn(btnPickSB, ColorOff);
 
-				// Visual confirmation on the chart — same tag every time, so a new pick
-				// just moves the one marker rather than littering old ones.
-				int barsAgo = Math.Max(0, CurrentBar - idx);
-				Draw.ArrowUp(this, "BBLitePickSB", false, barsAgo, Low[barsAgo] - 2 * TickSize, new SolidColorBrush(ColorPick));
+				// Visual confirmation on the chart — side unknown yet at pick time, so
+				// default to the long-style marker (below, pointing up); ArmSE flips it
+				// to the short-style marker (above, pointing down) once a side is chosen.
+				DrawPickMarker(idx, true);
 
 				Print(DateTime.Now + " SB picked @ bar " + idx + " (" + Time.GetValueAt(Math.Min(idx, CurrentBar)) + ")");
 			}
 			catch (Exception ex) { Print("BBLite pick: " + ex.Message); }
+		}
+
+		// Same tag every time, so re-drawing just moves the one marker rather than
+		// littering old ones. Long: below the bar, pointing up. Short: above the
+		// bar, pointing down — a below-bar marker reads as "buy here" regardless of
+		// which side it's actually for, so it must flip for shorts.
+		private void DrawPickMarker(int barIdx, bool isLong)
+		{
+			int barsAgo = Math.Max(0, CurrentBar - barIdx);
+			double tick = TickSize;
+			if (isLong) Draw.ArrowUp  (this, "BBLitePickSB", false, barsAgo, Low[barsAgo]  - 2 * tick, new SolidColorBrush(ColorPick));
+			else        Draw.ArrowDown(this, "BBLitePickSB", false, barsAgo, High[barsAgo] + 2 * tick, new SolidColorBrush(ColorPick));
 		}
 
 		// Live (still-cancelable) order states. A resting LIMIT entry sits in
