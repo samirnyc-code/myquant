@@ -595,24 +595,32 @@ namespace NinjaTrader.NinjaScript.Strategies
 		// which side it's actually for, so it must flip for shorts.
 		private void DrawPickMarker(int barIdx, bool isLong)
 		{
-			int barsAgo = Math.Max(0, CurrentBar - barIdx);
-			double tick = TickSize;
-			// Same tag does NOT swap an existing drawing object's tool type (an
-			// ArrowUp stays an ArrowUp even if you re-call Draw with that tag as
-			// ArrowDown) — it just repositions it. Remove first so the correct
-			// shape actually gets (re)created.
-			try { RemoveDrawObject("BBLitePickSB"); } catch { }
-			Brush brush = new SolidColorBrush(ColorPick);   // blue regardless of direction
-			if (isLong)
+			try
 			{
-				var a = Draw.ArrowUp(this, "BBLitePickSB", false, barsAgo, Low[barsAgo] - 2 * tick, brush);
-				a.Size = ChartMarkerSize.Small;   // ~50% smaller than the prior default
+				int barsAgo = Math.Max(0, CurrentBar - barIdx);
+				double tick = TickSize;
+				// Same tag does NOT swap an existing drawing object's tool type (an
+				// ArrowUp stays an ArrowUp even if you re-call Draw with that tag as
+				// ArrowDown) — it just repositions it. Remove first so the correct
+				// shape actually gets (re)created. Separate try/catch so a failed
+				// removal (e.g. nothing to remove yet) can never block the draw below.
+				try { RemoveDrawObject("BBLitePickSB"); } catch { }
+
+				Brush brush = new SolidColorBrush(ColorPick);   // blue regardless of direction
+				if (isLong)
+				{
+					var a = Draw.ArrowUp(this, "BBLitePickSB", false, barsAgo, Low[barsAgo] - 2 * tick, brush);
+					if (a != null) a.Size = ChartMarkerSize.Small;
+					else Print(DateTime.Now + " BBLite pick marker: Draw.ArrowUp returned null");
+				}
+				else
+				{
+					var a = Draw.ArrowDown(this, "BBLitePickSB", false, barsAgo, High[barsAgo] + 2 * tick, brush);
+					if (a != null) a.Size = ChartMarkerSize.Small;
+					else Print(DateTime.Now + " BBLite pick marker: Draw.ArrowDown returned null");
+				}
 			}
-			else
-			{
-				var a = Draw.ArrowDown(this, "BBLitePickSB", false, barsAgo, High[barsAgo] + 2 * tick, brush);
-				a.Size = ChartMarkerSize.Small;
-			}
+			catch (Exception ex) { Print(DateTime.Now + " BBLite DrawPickMarker FAILED: " + ex); }
 		}
 
 		// Live (still-cancelable) order states. A resting LIMIT entry sits in
