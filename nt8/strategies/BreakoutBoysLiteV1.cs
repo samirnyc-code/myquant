@@ -566,13 +566,17 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		private void OnChartMouseDown(object sender, MouseButtonEventArgs e)
 		{
-			if (!_pickArmed || ChartControl == null || ChartBars == null) return;
+			if (!_pickArmed) return;   // don't log every ordinary chart click, only while actively picking
+			Print(DateTime.Now + " PICK SB: click seen (button=" + e.ChangedButton + " handled=" + e.Handled
+				+ " ChartControl=" + (ChartControl != null) + " ChartBars=" + (ChartBars != null) + ")");
+			if (ChartControl == null || ChartBars == null) { Print(DateTime.Now + " PICK SB: aborted — ChartControl or ChartBars null"); return; }
 			try
 			{
 				// Coordinate must be relative to ChartControl (NOT ChartPanel) for
 				// GetBarIdxByX to resolve.
 				var pos = e.GetPosition(ChartControl);
 				int idx = ChartBars.GetBarIdxByX(ChartControl, (int)pos.X);
+				Print(DateTime.Now + " PICK SB: pos=" + pos + " resolved idx=" + idx + " CurrentBar=" + CurrentBar);
 				if (idx < 0 || idx > CurrentBar) { Print(DateTime.Now + " PICK SB: click off the bars (idx " + idx + ")"); return; }
 				_sbPickedBar = idx;
 				_pickArmed = false;
