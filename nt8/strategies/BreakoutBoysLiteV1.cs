@@ -12,6 +12,7 @@ using NinjaTrader.Data;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.Strategies;
 using NinjaTrader.NinjaScript.Indicators;
+using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
 namespace NinjaTrader.NinjaScript.Strategies
@@ -120,8 +121,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 				bool isLong  = _pendingLong;
 				bool useIbs  = _pendingUseIbs;
 				int  sbAgo   = _sbPickedBar >= 0 ? Math.Max(0, CurrentBar - _sbPickedBar) : 0;
+				bool hadPick = _sbPickedBar >= 0;
 				_pendingLong = _pendingShort = false;
 				_sbPickedBar = -1;
+				if (hadPick) { try { RemoveDrawObject("BBLitePickSB"); } catch (Exception ex) { Print("BBLite remove marker: " + ex.Message); } }
 				TryPlaceStopEntry(isLong, useIbs, sbAgo);
 				RefreshSEButtons();
 			}
@@ -368,6 +371,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 				_sbPickedBar = idx;
 				_pickArmed = false;
 				SetBtn(btnPickSB, ColorOff);
+
+				// Visual confirmation on the chart — same tag every time, so a new pick
+				// just moves the one marker rather than littering old ones.
+				int barsAgo = Math.Max(0, CurrentBar - idx);
+				Draw.ArrowUp(this, "BBLitePickSB", false, barsAgo, Low[barsAgo] - 2 * TickSize, new SolidColorBrush(ColorPick));
+
 				Print(DateTime.Now + " SB picked @ bar " + idx + " (" + Time.GetValueAt(Math.Min(idx, CurrentBar)) + ")");
 			}
 			catch (Exception ex) { Print("BBLite pick: " + ex.Message); }
@@ -451,6 +460,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			try
 			{
 				if (_mouseHooked && ChartControl != null) { ChartControl.PreviewMouseDown -= OnChartMouseDown; _mouseHooked = false; }
+				try { RemoveDrawObject("BBLitePickSB"); } catch { }
 				if (!ctPanelActive || ctButtonsGrid == null) return;
 				int baseRows = Math.Max(0, ctBaseRowCount);
 				while (ctButtonsGrid.Children.Count > baseRows)
