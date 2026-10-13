@@ -58,7 +58,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private int    ctBaseRowCount;
 		private int    ctRowsAdded;
 
-		private Button btnSELIbs, btnSESIbs, btnSEL2, btnSES2, btnPickSB, btnCancel, btnFlat, btnStpMode, btnRMult, btnOffset, btnIbs;
+		private Button btnSELIbs, btnSESIbs, btnSEL2, btnSES2, btnPickSB, btnCancel, btnFlat, btnStpMode, btnRMult, btnOffset, btnIbs, btnBars;
 		private bool   _mouseHooked;
 
 		private Color  ColorOn, ColorOff, ColorArmed, ColorPick;
@@ -70,11 +70,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private double _rMult   = 1.0;   // target = risk * _rMult
 		private int    _offsetTicks = 1; // stop-limit TRIGGER = SB High/Low +/- this many ticks (confirmation beyond the SB)
 		private double _ibsThreshold = 0.50;
+		private int    _maxBarsAlive = 1; // how many bars a still-unfilled entry order stays working before auto-cancel
 
 		private bool   _pendingLong, _pendingShort;   // armed, waiting for the SB (armed bar) to close
 		private bool   _pendingUseIbs;                 // whether the pending arm gates on IBS
 		private bool   _pickArmed;                     // next chart click selects the SB
 		private int    _sbPickedBar = -1;              // absolute bar index of a manually-picked SB (-1 = none)
+		private int    _armedBarIndex = -1;            // CurrentBar when the working entry order was submitted (-1 = none working)
 		private int    _dir;                           // +1 long / -1 short for the open trade, 0 flat
 		private bool   _activeUseIbs;                   // whether the OPEN trade's entry used the IBS gate
 		private double _entryPx, _stopPx, _tgtPx;
@@ -121,6 +123,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 		protected override void OnBarUpdate()
 		{
 			if (CurrentBar < BarsRequiredToTrade) return;
+
+			ExpireStaleEntry();
 
 			// SB = the manually-picked bar if one is set, else the bar that just closed.
 			if ((_pendingLong || _pendingShort) && Position.MarketPosition == MarketPosition.Flat)
@@ -214,16 +218,40 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			_dir = isLong ? 1 : -1;
 			_activeUseIbs = useIbs;
+			_armedBarIndex = CurrentBar;
 
-			// NinjaScript signature is (quantity, limitPrice, stopPrice, signalName) —
-			// LIMIT first, STOP second (verified via reflection on StrategyBase; the
-			// reversed order threw "Limit price can't be greater than stop price").
-			if (isLong) EnterLongStopLimit(SE_Qty, Round(limitPx), Round(triggerPx), "SE");
-			else        EnterShortStopLimit(SE_Qty, Round(limitPx), Round(triggerPx), "SE");
+			// NinjaScript signature is (barsInProgressIndex, isLiveUntilCancelled,
+			// quantity, limitPrice, stopPrice, signalName) — LIMIT before STOP
+			// (verified via reflection on StrategyBase; the reversed price order
+			// threw "Limit price can't be greater than stop price"). isLiveUntilCancelled
+			// = true so NT8 doesn't auto-cancel this at the next bar close on its
+			// own — ExpireStaleEntry() below now owns that via _maxBarsAlive instead.
+			if (isLong) EnterLongStopLimit(0, true, SE_Qty, Round(limitPx), Round(triggerPx), "SE");
+			else        EnterShortStopLimit(0, true, SE_Qty, Round(limitPx), Round(triggerPx), "SE");
 
 			Print(DateTime.Now + "  SE " + (isLong ? "LONG" : "SHORT") + (useIbs ? "" : " 2nd") + " trigger@" + triggerPx.ToString("0.00")
 				+ " limit@" + limitPx.ToString("0.00") + " stop@" + _stopPx.ToString("0.00") + " tgt@" + _tgtPx.ToString("0.00")
-				+ " [" + _stopMode + "/" + _rMult.ToString("0.0") + "R, IBS " + ibs.ToString("0.00") + (useIbs ? " gated" : " ungated") + "]");
+				+ " [" + _stopMode + "/" + _rMult.ToString("0.0") + "R, IBS " + ibs.ToString("0.00") + (useIbs ? " gated" : " ungated")
+				+ ", alive " + _maxBarsAlive + " bar(s)]");
+		}
+
+		// NT8's default managed behavior auto-cancels an unfilled entry order at
+		// the next bar close; isLiveUntilCancelled=true above opts out of that so
+		// we can honor _maxBarsAlive instead (user-adjustable via the BARS button).
+		private void ExpireStaleEntry()
+		{
+			if (_armedBarIndex < 0) return;
+			if (CurrentBar - _armedBarIndex < _maxBarsAlive) return;
+
+			bool hasLiveEntry = false;
+			foreach (Order o in Orders) if (o.Name == "SE" && IsLive(o)) { hasLiveEntry = true; break; }
+			_armedBarIndex = -1;
+			if (!hasLiveEntry) return;   // already filled or otherwise resolved
+
+			CancelWorkingEntries();
+			_dir = 0; _activeUseIbs = false;
+			RefreshSEButtons();
+			Print(DateTime.Now + " SE expired — unfilled after " + _maxBarsAlive + " bar(s), order cancelled");
 		}
 
 		private double Round(double p) { return Instrument.MasterInstrument.RoundToTickSize(p); }
@@ -266,6 +294,40 @@ namespace NinjaTrader.NinjaScript.Strategies
 				Print(DateTime.Now + "  SE FILLED " + Position.MarketPosition + " x" + quantity + " @ " + price.ToString("0.00")
 					+ " (intended " + _entryPx.ToString("0.00") + ") — stop@" + _stopPx.ToString("0.00")
 					+ " tgt@" + _tgtPx.ToString("0.00") + " [" + _rMult.ToString("0.0") + "R off real entry]");
+				_armedBarIndex = -1;   // filled — no longer a working entry to expire
+			}
+		}
+
+		// If the protective stop (SEstop) gets manually moved (e.g. dragged on the
+		// chart) before IT fills, keep the target a true R-multiple of the new
+		// risk: recompute off the real entry (Position.AveragePrice) and the
+		// stop's new price, then move the resting SEtgt order to match. Only
+		// reacts to orders still working — a filled/cancelled order can't be
+		// "moved" and nothing downstream needs recalculating from it.
+		protected override void OnOrderUpdate(Order order, double limitPrice, double stopPrice, int quantity,
+			int filled, double averageFillPrice, OrderState orderState, DateTime time, ErrorCode error, string comment)
+		{
+			if (order == null || order.Name != "SEstop" || !IsLiveState(orderState)) return;
+
+			double tick = TickSize;
+			if (Math.Abs(stopPrice - _stopPx) < tick / 2) return;   // unchanged — including our own just-submitted price
+
+			_stopPx = stopPrice;
+			bool isLong = _dir == 1;
+			double risk = Math.Abs(Position.AveragePrice - _stopPx);
+			double newTgt = Round(isLong ? Position.AveragePrice + risk * _rMult : Position.AveragePrice - risk * _rMult);
+			if (Math.Abs(newTgt - _tgtPx) < tick / 2) return;
+			_tgtPx = newTgt;
+
+			foreach (Order o in Orders)
+			{
+				if (o.Name == "SEtgt" && IsLive(o))
+				{
+					ChangeOrder(o, o.Quantity, _tgtPx, 0);
+					Print(DateTime.Now + "  SE stop moved to " + _stopPx.ToString("0.00") + " -> target recalculated to "
+						+ _tgtPx.ToString("0.00") + " [" + _rMult.ToString("0.0") + "R]");
+					break;
+				}
 			}
 		}
 
@@ -351,6 +413,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 				btnIbs.PreviewMouseRightButtonDown += (o, e) => { e.Handled = true; AdjustIbs(+1); };
 				AddHalfRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnOffset, btnIbs);
 
+				// Row: BARS (how long an unfilled entry order stays working before auto-cancel)
+				btnBars = MakeBtn(s, BarsAliveLabel(), "Bars an unfilled entry stays working before auto-cancel — left-click −1, right-click +1", Color.FromRgb(60,60,60));
+				btnBars.PreviewMouseLeftButtonDown  += (o, e) => { e.Handled = true; AdjustBarsAlive(-1); };
+				btnBars.PreviewMouseRightButtonDown += (o, e) => { e.Handled = true; AdjustBarsAlive(+1); };
+				AddFullRow(ctButtonsGrid, ctBaseRowCount + ctRowsAdded++, btnBars);
+
 				if (!_mouseHooked) { ChartControl.PreviewMouseDown += OnChartMouseDown; _mouseHooked = true; }
 				ctPanelActive = true;
 			}
@@ -421,9 +489,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		// Live (still-cancelable) order states. A resting LIMIT entry sits in
 		// Accepted/Working until filled — both must be cancelable.
-		private static bool IsLive(Order o)
+		private static bool IsLive(Order o) { return IsLiveState(o.OrderState); }
+
+		private static bool IsLiveState(OrderState s)
 		{
-			switch (o.OrderState)
+			switch (s)
 			{
 				case OrderState.Accepted:
 				case OrderState.Working:
@@ -441,6 +511,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			foreach (Order o in Orders)
 				if (o.Name == "SE" && IsLive(o)) CancelOrder(o);
+			_armedBarIndex = -1;
 		}
 
 		// Cancel working orders (entry + stop/target) but leave an open position alone.
@@ -467,9 +538,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 			Print(DateTime.Now + " SE FLATTEN ALL");
 		}
 
-		private string RMultLabel()  { return "TGT " + _rMult.ToString("0.0") + "R"; }
-		private string OffsetLabel() { return "OFS " + _offsetTicks + "t"; }
-		private string IbsLabel()    { return "IBS " + _ibsThreshold.ToString("0.00"); }
+		private string RMultLabel()     { return "TGT " + _rMult.ToString("0.0") + "R"; }
+		private string OffsetLabel()    { return "OFS " + _offsetTicks + "t"; }
+		private string IbsLabel()       { return "IBS " + _ibsThreshold.ToString("0.00"); }
+		private string BarsAliveLabel() { return "BARS " + _maxBarsAlive; }
 
 		private void AdjustRMult(int dir)
 		{
@@ -492,6 +564,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 			Print(DateTime.Now + " " + IbsLabel());
 		}
 
+		private void AdjustBarsAlive(int dir)
+		{
+			_maxBarsAlive = Math.Max(1, Math.Min(50, _maxBarsAlive + dir));
+			btnBars.Content = BarsAliveLabel();
+			Print(DateTime.Now + " " + BarsAliveLabel());
+		}
+
 		private void DisposeWPFControls()
 		{
 			try
@@ -504,7 +583,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 					ctButtonsGrid.Children.RemoveAt(ctButtonsGrid.Children.Count - 1);
 				while (ctButtonsGrid.RowDefinitions.Count > baseRows)
 					ctButtonsGrid.RowDefinitions.RemoveAt(ctButtonsGrid.RowDefinitions.Count - 1);
-				btnSELIbs = btnSESIbs = btnSEL2 = btnSES2 = btnPickSB = btnCancel = btnFlat = btnStpMode = btnRMult = btnOffset = btnIbs = null;
+				btnSELIbs = btnSESIbs = btnSEL2 = btnSES2 = btnPickSB = btnCancel = btnFlat = btnStpMode = btnRMult = btnOffset = btnIbs = btnBars = null;
 				ctPanelActive = false;
 			}
 			catch (Exception ex) { Print("BBLite DisposeWPFControls: " + ex.Message); }
