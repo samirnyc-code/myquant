@@ -85,7 +85,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Lag           = 0;
 				ResetOnNewSession  = true;
 				WeeklyResetOnly    = false;
-				CurrentSessionOnly = true;    // default ON: skip historical calc (O(n^2) swing rescan over the full lookback) — the 37.6s Utilization cost. Only the current session is computed/shaded.
+				CurrentSessionOnly = true;    // default ON: skip historical calc (O(n^2) swing rescan over the full lookback) — the 37.6s Utilization cost.
+				IncludePriorSession = true;   // with CurrentSessionOnly: compute the last TWO sessions continuously (no reset between) so the current session inherits the prior session's ending regime (ETH 17:00 continues the 16:00 regime; RTH = continue from yesterday).
 
 				BullBrush       = Brushes.SeaGreen;
 				BearBrush       = Brushes.IndianRed;
@@ -143,7 +144,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (_wedge == null) return;
 
 			if (CurrentSessionOnly && _sessionOnlyCutoffBar < 0)
-				_sessionOnlyCutoffBar = FindCurrentSessionStartBar();
+				_sessionOnlyCutoffBar = FindSessionStartBar(IncludePriorSession ? 1 : 0);
 
 			if (!(CurrentSessionOnly && CurrentBar < _sessionOnlyCutoffBar))
 				_wedge.Update();
@@ -157,21 +158,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
-		private int FindCurrentSessionStartBar()
+		// Start bar of the session `sessionsBack` sessions before the current (last) one.
+		// 0 = current session start; 1 = prior session start (so current+prior get computed).
+		private int FindSessionStartBar(int sessionsBack)
 		{
 			if (Bars == null || Bars.Count == 0) return 0;
 			var si = new Data.SessionIterator(Bars);
-			int lastNewSessionBar = 0;
+			var starts = new List<int>();
 			for (int b = 0; b < Bars.Count; b++)
 			{
 				DateTime t = Bars.GetTime(b);
 				if (si.IsNewSession(t, true))
 				{
-					lastNewSessionBar = b;
+					starts.Add(b);
 					si.GetNextSession(t, true);
 				}
 			}
-			return lastNewSessionBar;
+			if (starts.Count == 0) return 0;
+			int idx = starts.Count - 1 - Math.Max(0, sessionsBack);
+			return idx < 0 ? 0 : starts[idx];
 		}
 
 		private void ProcessBar(int i, int barsAgo)
@@ -181,13 +186,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 				DateTime t = Time[barsAgo];
 				if (_sessionIt.IsNewSession(t, true))
 				{
+					// "Current + prior session" mode (CurrentSessionOnly + IncludePriorSession)
+					// runs the two sessions as ONE continuous stretch: never reset at the
+					// session boundary, and never advance the cutoff past the prior-session
+					// start — that's what carries the prior regime into the current session.
+					bool continuous = CurrentSessionOnly && IncludePriorSession;
 					DateTime weekStart = t.Date.AddDays(-(int)t.Date.DayOfWeek);
-					if (ResetOnNewSession && (!WeeklyResetOnly || weekStart != _weekAnchor))
+					if (!continuous && ResetOnNewSession && (!WeeklyResetOnly || weekStart != _weekAnchor))
 					{
 						ResetRegimeState();
 						_weekAnchor = weekStart;
 					}
-					if (CurrentSessionOnly && i > _sessionOnlyCutoffBar)
+					if (CurrentSessionOnly && !IncludePriorSession && i > _sessionOnlyCutoffBar)
 						_sessionOnlyCutoffBar = i;
 					_sessionIt.GetNextSession(t, true);
 				}
@@ -439,6 +449,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty] [Display(Name = "Reset on new session", GroupName = "Regime", Order = 1)] public bool ResetOnNewSession { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Weekly reset only (Sunday ETH start)", GroupName = "Regime", Order = 2)] public bool WeeklyResetOnly { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Only calculate current session (skip history, cheaper on long charts)", GroupName = "Regime", Order = 3)] public bool CurrentSessionOnly { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Include prior session (current + last = 2 sessions, continuous across the roll)", GroupName = "Regime", Order = 4)] public bool IncludePriorSession { get; set; }
 
 		[NinjaScriptProperty] [Range(0, 100)]
 		[Display(Name = "Band opacity %", GroupName = "Style", Order = -1)] public int ShadeOpacity { get; set; }
