@@ -274,6 +274,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (!hasLiveEntry) return;   // already filled or otherwise resolved
 
 			CancelWorkingEntries();
+			ClearPickMarker();   // expired unfilled -> remove the SB marker
 			_dir = 0;
 			RefreshSEButtons();
 			Print(DateTime.Now + " SE expired — unfilled after " + _maxBarsAlive + " bar(s), order cancelled");
@@ -383,7 +384,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 					+ " (intended " + _entryPx.ToString("0.00") + ") — stop@" + _stopPx.ToString("0.00")
 					+ " tgt@" + _tgtPx.ToString("0.00") + " [" + _rMult.ToString("0.0") + "R off real entry]");
 				_armedBarIndex = -1;   // filled — no longer a working entry to expire
-				ClearPickMarker();
+				_pickMarkerTag = null; // RELEASE (don't remove) the SB marker -> it stays on the chart
+				                       // forever, marking where a trade was actually taken.
 				ClearStatusText();
 			}
 		}
@@ -633,6 +635,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				_pendingLong = _pendingShort = false;
 				CancelWorkingEntries();
+				ClearPickMarker();   // disarmed/cancelled unfilled -> remove the SB marker
 				RefreshSEButtons();
 				Print(DateTime.Now + " " + label + " " + (isLong ? "LONG" : "SHORT") + tag + " disarmed");
 				return;
@@ -760,12 +763,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 		}
 
+		// Cancels any working ENTRY order. Does NOT touch the SB marker — the marker is cleared only
+		// by a genuine user cancel/disarm/expire/flatten, and is RELEASED (kept) on a fill. (This
+		// runs when placing a new order too, where the current pick's marker must survive.)
 		private void CancelWorkingEntries()
 		{
 			foreach (Order o in Orders)
 				if (o.Name == "SE" && IsLive(o)) CancelOrder(o);
 			_armedBarIndex = -1;
-			ClearPickMarker();
 			ClearStatusText();
 		}
 
