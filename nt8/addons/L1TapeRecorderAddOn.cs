@@ -84,6 +84,15 @@ namespace NinjaTrader.NinjaScript.AddOns
         private DateTime lastData = DateTime.MinValue;   // wall-time of the last data event (silent-stall detector)
         private const double StallResubSecs = 90;        // no data this long while open -> force a resubscribe
 
+        // RELEASE trigger: touch this file to make the data AddOns DROP the ES subscription so NT
+        // can delete/reload that instrument's live db without a sharing-violation crash during a
+        // "Reload All Historical Data". Delete the file to resubscribe. (scripts/release_nt_feed.py
+        // writes it, waits, and removes it around a reload.)
+        private static readonly string ReleaseFile = @"C:\Users\Admin\myquant\data\nt_ticks\_release_feed";
+        private System.Timers.Timer releaseTimer;
+        private bool releaseHold;                         // true while a command-release is in effect
+        private ConnectionStatus lastPriceStatus = ConnectionStatus.Disconnected;
+
         // ================================================================ lifecycle
         protected override void OnStateChange()
         {
@@ -95,12 +104,17 @@ namespace NinjaTrader.NinjaScript.AddOns
                 {
                     Connection.ConnectionStatusUpdate += OnConnectionStatusUpdate;
                     hooked = true;
+                    // always-on release watcher (independent of subscription state)
+                    releaseTimer = new System.Timers.Timer(2000);
+                    releaseTimer.Elapsed += (s, e) => CheckRelease();
+                    releaseTimer.Start();
                     Log("L1TapeRecorderAddOn: loaded, waiting for price feed", LogLevel.Information);
                 }
             }
             else if (State == State.Terminated)
             {
                 if (hooked) { Connection.ConnectionStatusUpdate -= OnConnectionStatusUpdate; hooked = false; }
+                if (releaseTimer != null) { try { releaseTimer.Stop(); releaseTimer.Dispose(); } catch { } releaseTimer = null; }
                 if (haltTimer != null) { try { haltTimer.Stop(); haltTimer.Dispose(); } catch { } haltTimer = null; }
                 Unsubscribe();
                 if (writer != null)
@@ -114,8 +128,10 @@ namespace NinjaTrader.NinjaScript.AddOns
         {
             try
             {
+                lastPriceStatus = e.PriceStatus;
                 if (e.PriceStatus == ConnectionStatus.Connected)
                 {
+                    if (releaseHold) return;   // held released by command — don't resubscribe
                     lock (subLock)
                     {
                         if (subscribed) return;
@@ -184,6 +200,37 @@ namespace NinjaTrader.NinjaScript.AddOns
             }
             catch { }
             subscribed = false;
+        }
+
+        // Watches ReleaseFile. Present -> drop the ES subscription (so NT can delete/reload the
+        // instrument's live db without a sharing-violation crash). Absent -> resubscribe if the
+        // price feed is connected. Fires every 2s regardless of subscription state.
+        private void CheckRelease()
+        {
+            try
+            {
+                bool want = File.Exists(ReleaseFile);
+                if (want && !releaseHold)
+                {
+                    releaseHold = true;
+                    if (subscribed)
+                    {
+                        Log("L1TapeRecorderAddOn: RELEASE requested — dropping " + SymbolName + " so NT can reload its db", LogLevel.Information);
+                        Unsubscribe();
+                    }
+                }
+                else if (!want && releaseHold)
+                {
+                    releaseHold = false;
+                    if (lastPriceStatus == ConnectionStatus.Connected && !subscribed)
+                    {
+                        bool go = false;
+                        lock (subLock) { if (!subscribed) { subscribed = true; go = true; } }
+                        if (go) { Log("L1TapeRecorderAddOn: release cleared — resubscribing " + SymbolName, LogLevel.Information); Subscribe(); }
+                    }
+                }
+            }
+            catch (Exception ex) { Log("L1TapeRecorderAddOn CheckRelease err: " + ex.Message, LogLevel.Error); }
         }
 
         // ================================================================ data handler (L1 only)
@@ -314,7 +361,7 @@ namespace NinjaTrader.NinjaScript.AddOns
                                 CloseFile();
                             }
 
-                    if (subscribed && !inHalt && lastData != DateTime.MinValue
+                    if (subscribed && !inHalt && !releaseHold && lastData != DateTime.MinValue
                         && (now - lastData).TotalSeconds > StallResubSecs)
                     {
                         Log(string.Format("L1TapeRecorderAddOn: data SILENT {0:N0}s while open — forcing resubscribe",

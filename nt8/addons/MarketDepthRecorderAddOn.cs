@@ -63,6 +63,14 @@ namespace NinjaTrader.NinjaScript.AddOns
         private DateTime lastDepth = DateTime.MinValue;   // wall-time of the last depth event (silent-stall detector)
         private const double StallResubSecs = 90;         // no depth this long while open -> force a resubscribe
 
+        // RELEASE trigger (shared with L1TapeRecorderAddOn): touch this file to DROP the ES
+        // subscription so NT can delete/reload that instrument's live db without a sharing-violation
+        // crash during a "Reload All Historical Data". Delete it to resubscribe.
+        private static readonly string ReleaseFile = @"C:\Users\Admin\myquant\data\nt_ticks\_release_feed";
+        private System.Timers.Timer releaseTimer;
+        private bool releaseHold;
+        private ConnectionStatus lastPriceStatus = ConnectionStatus.Disconnected;
+
         // ================================================================ lifecycle
         protected override void OnStateChange()
         {
@@ -75,12 +83,16 @@ namespace NinjaTrader.NinjaScript.AddOns
                 {
                     Connection.ConnectionStatusUpdate += OnConnectionStatusUpdate;
                     hooked = true;
+                    releaseTimer = new System.Timers.Timer(2000);
+                    releaseTimer.Elapsed += (s, e) => CheckRelease();
+                    releaseTimer.Start();
                     Log("MarketDepthRecorderAddOn: loaded, waiting for price feed", LogLevel.Information);
                 }
             }
             else if (State == State.Terminated)
             {
                 if (hooked) { Connection.ConnectionStatusUpdate -= OnConnectionStatusUpdate; hooked = false; }
+                if (releaseTimer != null) { try { releaseTimer.Stop(); releaseTimer.Dispose(); } catch { } releaseTimer = null; }
                 if (haltTimer != null) { try { haltTimer.Stop(); haltTimer.Dispose(); } catch { } haltTimer = null; }
                 Unsubscribe();
                 if (writer != null)
@@ -94,8 +106,10 @@ namespace NinjaTrader.NinjaScript.AddOns
         {
             try
             {
+                lastPriceStatus = e.PriceStatus;
                 if (e.PriceStatus == ConnectionStatus.Connected)
                 {
+                    if (releaseHold) return;   // held released by command
                     if (!subscribed) Subscribe();
                 }
                 else if (e.PriceStatus == ConnectionStatus.Disconnected || e.PriceStatus == ConnectionStatus.ConnectionLost)
@@ -159,6 +173,35 @@ namespace NinjaTrader.NinjaScript.AddOns
             }
             catch { }
             subscribed = false;
+        }
+
+        // Watches ReleaseFile. Present -> drop the ES subscription so NT can delete/reload the
+        // instrument's live db; absent -> resubscribe if the price feed is connected. Every 2s.
+        private void CheckRelease()
+        {
+            try
+            {
+                bool want = File.Exists(ReleaseFile);
+                if (want && !releaseHold)
+                {
+                    releaseHold = true;
+                    if (subscribed)
+                    {
+                        Log("MarketDepthRecorderAddOn: RELEASE requested — dropping subscription so NT can reload its db", LogLevel.Information);
+                        Unsubscribe();
+                    }
+                }
+                else if (!want && releaseHold)
+                {
+                    releaseHold = false;
+                    if (lastPriceStatus == ConnectionStatus.Connected && !subscribed)
+                    {
+                        Log("MarketDepthRecorderAddOn: release cleared — resubscribing", LogLevel.Information);
+                        Subscribe();
+                    }
+                }
+            }
+            catch (Exception ex) { Log("MarketDepthRecorderAddOn CheckRelease err: " + ex.Message, LogLevel.Error); }
         }
 
         // ================================================================ data handlers
@@ -289,7 +332,7 @@ namespace NinjaTrader.NinjaScript.AddOns
                     // manual restart. If the whole feed is genuinely down this is harmless (still no
                     // rows -> the external watchdog still pages), but for a stuck subscription it
                     // recovers on its own within ~StallResubSecs.
-                    if (subscribed && !inHalt && lastDepth != DateTime.MinValue
+                    if (subscribed && !inHalt && !releaseHold && lastDepth != DateTime.MinValue
                         && (now - lastDepth).TotalSeconds > StallResubSecs)
                     {
                         Log(string.Format("MarketDepthRecorderAddOn: depth SILENT {0:N0}s while open — forcing resubscribe",

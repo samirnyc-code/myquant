@@ -42,6 +42,9 @@ namespace NinjaTrader.NinjaScript.AddOns
         private const string ExportDir = @"C:\Users\Admin\myquant\data\nt_ticks";
         private static readonly string REQ = Path.Combine(ExportDir, "_request.json");
         private static readonly string DONE = Path.Combine(ExportDir, "_request.done.json");
+        // While this file exists, DON'T start a new export: a BarsRequest opens NT's db/tick .ncd
+        // and would block a "Reload All Historical Data" delete (crash). Shared with the recorder AddOns.
+        private static readonly string ReleaseFile = Path.Combine(ExportDir, "_release_feed");
 
         private System.Timers.Timer poll;
         private readonly object gate = new object();
@@ -77,6 +80,7 @@ namespace NinjaTrader.NinjaScript.AddOns
         // ---- request handling -------------------------------------------------------
         private void TryProcess()
         {
+            if (File.Exists(ReleaseFile)) return;   // feed released for an NT reload — don't open db/tick now
             lock (gate) { if (busy) return; if (!File.Exists(REQ)) return; busy = true; }
             try
             {

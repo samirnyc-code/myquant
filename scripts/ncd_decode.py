@@ -8,9 +8,13 @@ Header (28 bytes): int32 version | float64 tickSize | float64 basePrice | int64 
 Records: proprietary — explored here.
 """
 import struct
+import sys
 from pathlib import Path
 from datetime import datetime, timedelta
 import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ncd_io  # share-delete reads so NT can always delete/reload its live .ncd
 
 NCD_DIR = Path(r"C:\Users\Admin\Documents\NinjaTrader 8\db\tick\ES 09-26")
 GT = Path(r"c:\Users\Admin\myquant\data\ticks_continuous\2026-07-09.parquet")
@@ -34,7 +38,7 @@ for hh in ("1300", "1400"):
     f = NCD_DIR / f"202607091{hh[1:]}.Last.ncd" if False else NCD_DIR / f"20260709{hh}.Last.ncd"
     if not f.exists():
         print(f"missing {f.name}"); continue
-    raw = f.read_bytes()
+    raw = ncd_io.read_bytes(f)
     ver, tick, base_px, base_t = read_header(raw)
     bt = net_ticks_to_dt(base_t)
     print(f"\n=== {f.name}  ({len(raw)} bytes) ===")
