@@ -9,7 +9,8 @@ on the NT8 machine caused permanent loss of several indicators and strategies.
 ```
 nt8/
   indicators/          ← NT8 Indicators (compiled as indicators in NT8)
-  strategies/          ← NT8 Strategies and AddOns
+  strategies/          ← NT8 Strategies
+  addons/              ← NT8 AddOns (no enable step, run automatically on NT8 startup)
   third_party/         ← Unmodified third-party code (reference only; do not modify)
 ```
 
@@ -51,6 +52,19 @@ nt8/
 | `WedgeScalper.cs` | MyWedge signal-bar scalper (stop entry 1t beyond SB, +4t scalp, runner BE→trail). Superseded by V2. | ✅ current |
 | `WedgeScalperV2.cs` | WedgeScalper renamed + S107 fixes (single sized entry, all-manual exits, immediate stop on fill via OnExecutionUpdate, no re-scalp, entry auto-expire, hard safety net, qty=0 disables a lot). Has dated change-log header. | ✅ current |
 | `MCBreakout.cs` | MC breakout strategy (pyramiding + ratchet-lock, S32) | ❌ LOST — not committed |
+
+### addons/
+
+AddOns run automatically the instant NT8 starts — no Strategies-grid enable step, survive
+restarts. Deployed copy's enable/disable state lives in the filename extension in the Custom
+folder (`Foo.cs` = compiled/active, `Foo.cs.disabled` = not compiled); the repo copy here is
+always named `.cs` regardless of deployed state — this table is the source of truth for status.
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `TickExportAddOn.cs` | On-demand tick export bridge — watches `data/nt_ticks/_request.json`; what `tick_pipeline.py` and manual backfills ask NT8 for historical ticks through | ✅ current |
+| `L1TapeRecorderAddOn.cs` | L1 tape + best-bid/ask recorder (replaced the old L2/footprint pipeline — footprint is reconstructable offline from the L1 tape, see `FootprintExporter.cs` above) | ⛔ retired 2026-10-14 (user decision) — deployed copy renamed `.cs.disabled`, supporting tasks `MyQuant L1 Recorder Watchdog`/`MyQuant L1 Rollover` disabled. Historical `data/l1_tape/*` files untouched; no new ones accumulate. |
+| `MarketDepthRecorderAddOn.cs` | Experimental L2 market-depth recorder (S75V, 2026-07-21) — shadow-test parallel to the old `MarketDepthRecorder.cs` strategy, writes to `data/depth/addon_test/` (never fed the live pipeline) | ⛔ retired 2026-10-14 — was a zombie well before this: hardcoded `SymbolName = "ES 09-26"` (never updated past that contract's expiry) meant it spent months endlessly reconnecting to a dead contract (log: `depth SILENT 90s ... forcing resubscribe` every ~90s) for zero real data. Deployed copy renamed `.cs.disabled`. |
 
 ### third_party/
 
