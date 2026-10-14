@@ -190,15 +190,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private DateTime _emLastRead = DateTime.MinValue;
 		private const double SQRT252 = 15.874507866387544;
 
-		// ── Chart Trader toggle buttons ───────────────────────────────────
-		private Grid   ctButtonsGrid;
+		// ── Chart Trader toggle buttons (shared panel, routed to the active tab) ──
 		private bool   ctPanelActive;
-		private int    ctBaseRowCount;
-		private Button btnRth, btnEth, btnLabels, btnPrice;
 		private bool   _rthVisible = true, _ethVisible = true, _labelsVisible = true;
 		private bool   _priceVisibleSet = false; private bool _priceVisible = true;  // CT price toggle; seeded from ShowPriceInLabel on first render
-		private WMColor ColorOn  = WMColor.FromRgb(0, 140, 0);
-		private WMColor ColorOff = WMColor.FromRgb(80, 80, 80);
+
+		// A chart WINDOW has ONE Chart Trader shared by all its tabs — so build ONE button set
+		// per grid and route each click to whichever chart tab is currently ACTIVE (set when the
+		// mouse enters that chart). Keyed by the grid so separate windows stay independent.
+		private sealed class CtShared { public SessionSRLevelsV9 active; public Button rth, eth, labels, price; public Grid row1, row2; public RowDefinition rd1, rd2; public int refs; }
+		private static readonly Dictionary<Grid, CtShared> _ctByGrid = new Dictionary<Grid, CtShared>();
+		private Grid _ctGrid;
+		private System.Windows.Input.MouseEventHandler _ctEnter;
+		private static readonly WMColor CtOn  = WMColor.FromRgb(0, 140, 0);
+		private static readonly WMColor CtOff = WMColor.FromRgb(80, 80, 80);
 
 		private struct LevelDef
 		{
@@ -1342,48 +1347,111 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (chartTrader == null) { Print("SessionSRLevelsV9: ChartTrader not found (is Chart Trader shown?)"); return; }
 				var outerGrid = chartTrader.Content as Grid;
 				if (outerGrid == null) return;
+				_ctGrid = null;
 				foreach (UIElement child in outerGrid.Children)
 				{
 					Grid g = child as Grid;
-					if (g != null) { ctButtonsGrid = g; break; }
+					if (g != null) { _ctGrid = g; break; }
 				}
-				if (ctButtonsGrid == null) { Print("SessionSRLevelsV9: button grid not found"); return; }
+				if (_ctGrid == null) { Print("SessionSRLevelsV9: button grid not found"); return; }
 
-				ctBaseRowCount = ctButtonsGrid.RowDefinitions.Count;
-				Style s = Application.Current.TryFindResource("Button") as Style;
+				CtShared sh;
+				if (!_ctByGrid.TryGetValue(_ctGrid, out sh))
+				{
+					sh = BuildPanel(_ctGrid);   // ONE button set for the whole window, created once
+					_ctByGrid[_ctGrid] = sh;
+				}
+				sh.refs++;
+				ShowPanel(sh, true);
 
-				btnRth = MakeBtn(s, "RTH LEVELS", "Toggle RTH session levels", _rthVisible ? ColorOn : ColorOff);
-				btnRth.Click += (o, e) => { _rthVisible = !_rthVisible; SetBtn(btnRth, _rthVisible ? ColorOn : ColorOff); ChartControl.InvalidateVisual(); };
+				// This chart becomes the active target; sync the buttons to its state.
+				sh.active = this;
+				RefreshPanelColors(sh, this);
 
-				btnEth = MakeBtn(s, "ETH LEVELS", "Toggle ETH session levels", _ethVisible ? ColorOn : ColorOff);
-				btnEth.Click += (o, e) => { _ethVisible = !_ethVisible; SetBtn(btnEth, _ethVisible ? ColorOn : ColorOff); ChartControl.InvalidateVisual(); };
-
-				AddHalfRow(ctButtonsGrid, ctBaseRowCount, btnRth, btnEth);
-
-				btnLabels = MakeBtn(s, "LABELS", "Toggle level labels on/off", _labelsVisible ? ColorOn : ColorOff);
-				btnLabels.Click += (o, e) => { _labelsVisible = !_labelsVisible; SetBtn(btnLabels, _labelsVisible ? ColorOn : ColorOff); ChartControl.InvalidateVisual(); };
-
-				if (!_priceVisibleSet) { _priceVisible = ShowPriceInLabel; _priceVisibleSet = true; }
-				btnPrice = MakeBtn(s, "PRICE", "Toggle the price value in the labels", _priceVisible ? ColorOn : ColorOff);
-				btnPrice.Click += (o, e) => { _priceVisible = !_priceVisible; SetBtn(btnPrice, _priceVisible ? ColorOn : ColorOff); ChartControl.InvalidateVisual(); };
-				AddHalfRow(ctButtonsGrid, ctBaseRowCount + 1, btnLabels, btnPrice);
+				// Re-target to whichever chart the mouse is over (tab switch within one window).
+				_ctEnter = (o, e) =>
+				{
+					CtShared ss;
+					if (_ctGrid != null && _ctByGrid.TryGetValue(_ctGrid, out ss)) { ss.active = this; RefreshPanelColors(ss, this); }
+				};
+				ChartControl.MouseEnter += _ctEnter;
 
 				ctPanelActive = true;
 			}
 			catch (Exception ex) { Print("SessionSRLevelsV9 CreateWPFControls: " + ex.Message); }
 		}
 
+		// Build the shared button set once per grid. Clicks route to sh.active (the chart whose
+		// tab is currently active), toggle ITS state, recolor the button, and invalidate ITS chart.
+		private CtShared BuildPanel(Grid grid)
+		{
+			Style s = Application.Current.TryFindResource("Button") as Style;
+			var sh = new CtShared();
+
+			sh.rth = MakeBtn(s, "RTH LEVELS", "Toggle RTH session levels (active chart)", CtOff);
+			sh.rth.Click += (o, e) => { var a = sh.active; if (a == null) return; a._rthVisible = !a._rthVisible; sh.rth.Background = new WMSolidColorBrush(a._rthVisible ? CtOn : CtOff); if (a.ChartControl != null) a.ChartControl.InvalidateVisual(); };
+
+			sh.eth = MakeBtn(s, "ETH LEVELS", "Toggle ETH session levels (active chart)", CtOff);
+			sh.eth.Click += (o, e) => { var a = sh.active; if (a == null) return; a._ethVisible = !a._ethVisible; sh.eth.Background = new WMSolidColorBrush(a._ethVisible ? CtOn : CtOff); if (a.ChartControl != null) a.ChartControl.InvalidateVisual(); };
+
+			sh.labels = MakeBtn(s, "LABELS", "Toggle level labels (active chart)", CtOff);
+			sh.labels.Click += (o, e) => { var a = sh.active; if (a == null) return; a._labelsVisible = !a._labelsVisible; sh.labels.Background = new WMSolidColorBrush(a._labelsVisible ? CtOn : CtOff); if (a.ChartControl != null) a.ChartControl.InvalidateVisual(); };
+
+			sh.price = MakeBtn(s, "PRICE", "Toggle the price in labels (active chart)", CtOff);
+			sh.price.Click += (o, e) => { var a = sh.active; if (a == null) return; if (!a._priceVisibleSet) { a._priceVisible = a.ShowPriceInLabel; a._priceVisibleSet = true; } a._priceVisible = !a._priceVisible; sh.price.Background = new WMSolidColorBrush(a._priceVisible ? CtOn : CtOff); if (a.ChartControl != null) a.ChartControl.InvalidateVisual(); };
+
+			int baseRow = grid.RowDefinitions.Count;
+			sh.rd1 = new RowDefinition() { Height = new GridLength(36) }; grid.RowDefinitions.Add(sh.rd1);
+			sh.row1 = MakeHalfRow(sh.rth, sh.eth); Grid.SetRow(sh.row1, baseRow); Grid.SetColumn(sh.row1, 0); Grid.SetColumnSpan(sh.row1, 3); grid.Children.Add(sh.row1);
+			sh.rd2 = new RowDefinition() { Height = new GridLength(36) }; grid.RowDefinitions.Add(sh.rd2);
+			sh.row2 = MakeHalfRow(sh.labels, sh.price); Grid.SetRow(sh.row2, baseRow + 1); Grid.SetColumn(sh.row2, 0); Grid.SetColumnSpan(sh.row2, 3); grid.Children.Add(sh.row2);
+			return sh;
+		}
+
+		private static Grid MakeHalfRow(Button left, Button right)
+		{
+			var g = new Grid() { Margin = new Thickness(0) };
+			g.ColumnDefinitions.Add(new ColumnDefinition());
+			g.ColumnDefinitions.Add(new ColumnDefinition());
+			Grid.SetColumn(left, 0); Grid.SetColumn(right, 1);
+			g.Children.Add(left); g.Children.Add(right);
+			return g;
+		}
+
+		private void RefreshPanelColors(CtShared sh, SessionSRLevelsV9 inst)
+		{
+			if (sh == null || inst == null) return;
+			if (!inst._priceVisibleSet) { inst._priceVisible = inst.ShowPriceInLabel; inst._priceVisibleSet = true; }
+			sh.rth.Background    = new WMSolidColorBrush(inst._rthVisible    ? CtOn : CtOff);
+			sh.eth.Background    = new WMSolidColorBrush(inst._ethVisible    ? CtOn : CtOff);
+			sh.labels.Background = new WMSolidColorBrush(inst._labelsVisible ? CtOn : CtOff);
+			sh.price.Background  = new WMSolidColorBrush(inst._priceVisible  ? CtOn : CtOff);
+		}
+
+		private static void ShowPanel(CtShared sh, bool vis)
+		{
+			var h = vis ? new GridLength(36) : new GridLength(0);
+			if (sh.rd1 != null) sh.rd1.Height = h;
+			if (sh.rd2 != null) sh.rd2.Height = h;
+			if (sh.row1 != null) sh.row1.Visibility = vis ? Visibility.Visible : Visibility.Collapsed;
+			if (sh.row2 != null) sh.row2.Visibility = vis ? Visibility.Visible : Visibility.Collapsed;
+		}
+
 		private void DisposeWPFControls()
 		{
 			try
 			{
-				if (!ctPanelActive || ctButtonsGrid == null) return;
-				int baseRows = Math.Max(0, ctBaseRowCount);
-				while (ctButtonsGrid.Children.Count > baseRows)
-					ctButtonsGrid.Children.RemoveAt(ctButtonsGrid.Children.Count - 1);
-				while (ctButtonsGrid.RowDefinitions.Count > baseRows)
-					ctButtonsGrid.RowDefinitions.RemoveAt(ctButtonsGrid.RowDefinitions.Count - 1);
-				btnRth = btnEth = btnLabels = btnPrice = null;
+				if (!ctPanelActive) return;
+				try { if (_ctEnter != null && ChartControl != null) ChartControl.MouseEnter -= _ctEnter; } catch { }
+				_ctEnter = null;
+
+				CtShared sh;
+				if (_ctGrid != null && _ctByGrid.TryGetValue(_ctGrid, out sh))
+				{
+					if (sh.active == this) sh.active = null;   // leave the buttons; another tab may still own them
+					sh.refs--;
+					if (sh.refs <= 0) ShowPanel(sh, false);    // last one gone -> hide the rows (no index surgery)
+				}
 				ctPanelActive = false;
 			}
 			catch (Exception ex) { Print("SessionSRLevelsV9 DisposeWPFControls: " + ex.Message); }
