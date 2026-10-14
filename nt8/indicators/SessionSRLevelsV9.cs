@@ -921,7 +921,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			ReloadEm();
 
-			var defs = BuildLevelDefs();
+			var defs = MergeSamePrice(BuildLevelDefs());
 			if (defs.Count == 0) return;
 
 			float panelLeft = (float)ChartPanel.X;
@@ -1204,6 +1204,42 @@ namespace NinjaTrader.NinjaScript.Indicators
 				color = scb != null ? scb.Color : Colors.Gray,
 				opacity = opacity, style = style, thickness = thickness, col = col, startBarIdx = startBarIdx, endBarIdx = endBarIdx
 			});
+		}
+
+		// Collapse levels that sit at the SAME price (within half a tick) into a single line +
+		// one combined label ("OoD RTH / OoW RTH / OoM RTH"), instead of stacking identical lines
+		// with overlapping labels (e.g. OoW=OoD=OoM on the first ETH session of a month, or
+		// OoW ETH=OoD ETH each week). The first level in build order keeps its line style/color;
+		// the merged line spans the union (earliest start, longest right-extent). Price is appended
+		// once at render time, so labels here stay price-free.
+		private List<LevelDef> MergeSamePrice(List<LevelDef> src)
+		{
+			var outp = new List<LevelDef>();
+			foreach (LevelDef d in src)
+			{
+				if (!d.enabled || double.IsNaN(d.price) || d.startBarIdx < 0) continue;   // render-invalid anyway
+				int gi = -1;
+				for (int k = 0; k < outp.Count; k++)
+					if (Math.Abs(outp[k].price - d.price) < TickSize * 0.5) { gi = k; break; }
+				if (gi < 0) { outp.Add(d); continue; }
+
+				LevelDef g = outp[gi];   // struct copy — mutate then write back
+				if (!string.IsNullOrEmpty(d.label) && (g.label == null || !LabelAlreadyIn(g.label, d.label)))
+					g.label = string.IsNullOrEmpty(g.label) ? d.label : g.label + " / " + d.label;
+				if (d.startBarIdx < g.startBarIdx) g.startBarIdx = d.startBarIdx;
+				if (g.endBarIdx < 0 || d.endBarIdx < 0) g.endBarIdx = -1;          // either extends to the edge -> keep longest
+				else if (d.endBarIdx > g.endBarIdx)     g.endBarIdx = d.endBarIdx;
+				outp[gi] = g;
+			}
+			return outp;
+		}
+
+		// True if `piece` is already one of the " / "-separated parts of `combined`.
+		private static bool LabelAlreadyIn(string combined, string piece)
+		{
+			foreach (string part in combined.Split(new[] { " / " }, StringSplitOptions.None))
+				if (part == piece) return true;
+			return false;
 		}
 
 		// Dependency-free dashing (no Direct2D1 StrokeStyle/Factory needed) — segments the
