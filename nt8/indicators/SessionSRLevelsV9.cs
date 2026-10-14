@@ -995,9 +995,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				HRSess s = _rthHist[k];
 				if (s.dayEndBar < fromV || s.dayStartBar > toV) continue;   // trading day fully off-screen
 				int ds = s.dayStartBar, de = s.dayEndBar;
+				var hentries = new List<HistEntry>();
 
 				// This day's own levels. Opens come from the RTH-hours series (keyed by date),
-				// NOT the primary chart — so they're correct on tick/volume charts too.
+				// NOT the primary chart. Same-price levels get merged below into one line + label.
 				double oD, oW, oM;
 				bool hasOD = _rthOpenByDay.TryGetValue(s.date, out oD);
 				bool hasOW = _rthWeekOpenBy.TryGetValue(MondayOf(s.date), out oW);
@@ -1005,57 +1006,48 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (!hasOD) { oD = s.o;        hasOD = !double.IsNaN(oD); }   // fallback to stored open
 				if (!hasOW) { oW = s.weekOpen;  hasOW = !double.IsNaN(oW); }
 				if (!hasOM) { oM = s.monthOpen; hasOM = !double.IsNaN(oM); }
-				DrawHistSeg(chartControl, chartScale, tf, s.oBar, de, panelLeft, panelRight, dim, textH,
-							Hist_OoD && hasOD, oD, ROoD_Label, ROoD_Color, ROoD_Style, ROoD_Thickness, true);
-				DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-							Hist_OoW && hasOW, oW, ROoW_Label, ROoW_Color, ROoW_Style, ROoW_Thickness, true);
-				DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-							Hist_OoM && hasOM, oM, ROoM_Label, ROoM_Color, ROoM_Style, ROoM_Thickness, true);
+				AddHist(hentries, Hist_OoD && hasOD, oD, ROoD_Label, ROoD_Color, ROoD_Style, ROoD_Thickness, true, s.oBar);
+				AddHist(hentries, Hist_OoW && hasOW, oW, ROoW_Label, ROoW_Color, ROoW_Style, ROoW_Thickness, true, ds);
+				AddHist(hentries, Hist_OoM && hasOM, oM, ROoM_Label, ROoM_Color, ROoM_Style, ROoM_Thickness, true, ds);
 				double[] eth;
 				if (_ethByDay.TryGetValue(s.date, out eth) && eth != null && eth.Length >= 2)
 				{
-					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-								Hist_EthH, eth[0], EHOY_Label, EHOY_Color, EHOY_Style, EHOY_Thickness, true);
-					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-								Hist_EthL, eth[1], ELOY_Label, ELOY_Color, ELOY_Style, ELOY_Thickness, false);
+					AddHist(hentries, Hist_EthH, eth[0], EHOY_Label, EHOY_Color, EHOY_Style, EHOY_Thickness, true, ds);
+					AddHist(hentries, Hist_EthL, eth[1], ELOY_Label, ELOY_Color, ELOY_Style, ELOY_Thickness, false, ds);
 				}
 
 				// Settlement = the PRIOR trading day's Daily ETH close (Friday shows Thursday's).
 				double settle = SettlementBefore(s.date);
-				DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-							Hist_Settle && !double.IsNaN(settle), settle, Settle_Label, Settle_Color, Settle_Style, Settle_Thickness, true);
+				AddHist(hentries, Hist_Settle && !double.IsNaN(settle), settle, Settle_Label, Settle_Color, Settle_Style, Settle_Thickness, true, ds);
 
 				// Prior-session-derived levels (need record k-1).
 				if (k >= 1)
 				{
 					HRSess p = _rthHist[k - 1];
-					double pc = p.c;   // prior RTH close — the EM anchor
-					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-								Hist_HOY, p.h, RHOY_Label, RHOY_Color, RHOY_Style, RHOY_Thickness, true);
-					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-								Hist_LOY, p.l, RLOY_Label, RLOY_Color, RLOY_Style, RLOY_Thickness, false);
-					DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-								Hist_COY, pc, RCOY_Label, RCOY_Color, RCOY_Style, RCOY_Thickness, true);
+					double pc = p.c;   // prior RTH close (EM anchor)
+					AddHist(hentries, Hist_HOY, p.h, RHOY_Label, RHOY_Color, RHOY_Style, RHOY_Thickness, true, ds);
+					AddHist(hentries, Hist_LOY, p.l, RLOY_Label, RLOY_Color, RLOY_Style, RLOY_Thickness, false, ds);
+					AddHist(hentries, Hist_COY, pc, RCOY_Label, RCOY_Color, RCOY_Style, RCOY_Thickness, true, ds);
 
 					// 1D bands, both anchored on the prior RTH close (matches live).
 					double vix = VixPriorTo(s.date);
 					if (!double.IsNaN(pc) && pc > 0 && !double.IsNaN(vix) && vix > 0)
 					{
 						double m = pc * (vix / 100.0) / SQRT252 * Math.Max(0.0, EmSigma);
-						DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-									Hist_EMV_Max, pc + m, EMV_Max_Label, EMV_Max_Color, EMV_Max_Style, EMV_Max_Thickness, true);
-						DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-									Hist_EMV_Min, pc - m, EMV_Min_Label, EMV_Min_Color, EMV_Min_Style, EMV_Min_Thickness, false);
+						AddHist(hentries, Hist_EMV_Max, pc + m, EMV_Max_Label, EMV_Max_Color, EMV_Max_Style, EMV_Max_Thickness, true, ds);
+						AddHist(hentries, Hist_EMV_Min, pc - m, EMV_Min_Label, EMV_Min_Color, EMV_Min_Style, EMV_Min_Thickness, false, ds);
 					}
 					double gm = GexMoveFor(s.date);
 					if (!double.IsNaN(pc) && pc > 0 && !double.IsNaN(gm) && gm > 0)
 					{
-						DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-									Hist_EMG_Max, pc + gm, EMG_Max_Label, EMG_Max_Color, EMG_Max_Style, EMG_Max_Thickness, true);
-						DrawHistSeg(chartControl, chartScale, tf, ds, de, panelLeft, panelRight, dim, textH,
-									Hist_EMG_Min, pc - gm, EMG_Min_Label, EMG_Min_Color, EMG_Min_Style, EMG_Min_Thickness, false);
+						AddHist(hentries, Hist_EMG_Max, pc + gm, EMG_Max_Label, EMG_Max_Color, EMG_Max_Style, EMG_Max_Thickness, true, ds);
+						AddHist(hentries, Hist_EMG_Min, pc - gm, EMG_Min_Label, EMG_Min_Color, EMG_Min_Style, EMG_Min_Thickness, false, ds);
 					}
 				}
+
+				// Draw, collapsing any levels that share a price into one line + combined label.
+				foreach (HistEntry he in MergeHistEntries(hentries))
+					DrawHistSeg(chartControl, chartScale, tf, he.startBar, de, panelLeft, panelRight, dim, textH, true, he.price, he.label, he.brush, he.style, he.thickness, he.above);
 			}
 			tf.Dispose();
 		}
@@ -1086,6 +1078,37 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RenderTarget.DrawText(txt, tf, new RectangleF(cx, ty, LabelFontSize * 18f, textH), d2d);
 			}
 			d2d.Dispose();
+		}
+
+		// One historical level to be drawn for a given day (collected, merged by price, then drawn).
+		private struct HistEntry { public double price; public string label; public WMBrush brush; public LevelLineStyle style; public int thickness; public bool above; public int startBar; }
+
+		private static void AddHist(List<HistEntry> es, bool enabled, double price, string label,
+			WMBrush brush, LevelLineStyle style, int thickness, bool above, int startBar)
+		{
+			if (!enabled || double.IsNaN(price)) return;
+			es.Add(new HistEntry { price = price, label = label, brush = brush, style = style, thickness = thickness, above = above, startBar = startBar });
+		}
+
+		// Same-price merge for a day's historical levels — the per-day analogue of MergeSamePrice:
+		// collapse levels at the same price into one entry with a combined "a / b" label and the
+		// earliest start bar; the first entry keeps its style/color/above placement.
+		private List<HistEntry> MergeHistEntries(List<HistEntry> src)
+		{
+			var outp = new List<HistEntry>();
+			foreach (HistEntry e in src)
+			{
+				int gi = -1;
+				for (int k = 0; k < outp.Count; k++)
+					if (Math.Abs(outp[k].price - e.price) < TickSize * 0.5) { gi = k; break; }
+				if (gi < 0) { outp.Add(e); continue; }
+				HistEntry g = outp[gi];
+				if (!string.IsNullOrEmpty(e.label) && (g.label == null || !LabelAlreadyIn(g.label, e.label)))
+					g.label = string.IsNullOrEmpty(g.label) ? e.label : g.label + " / " + e.label;
+				if (e.startBar < g.startBar) g.startBar = e.startBar;
+				outp[gi] = g;
+			}
+			return outp;
 		}
 
 		private List<LevelDef> BuildLevelDefs()
