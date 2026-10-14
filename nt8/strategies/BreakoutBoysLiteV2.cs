@@ -85,6 +85,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			public BreakoutBoysLiteV2 active;
 			public Button selIbs, sesIbs, sel2, ses2, lmtL, lmtS, lmtLUp, lmtSDn, pickSB, cancel, flat, stpMode, rMult, offset, ibs, bars;
+			public bool pickArmed;   // SHARED: PICK SB arms it; the next bar-click (on any tab) consumes it on that chart
 			public List<RowDefinition> rds = new List<RowDefinition>();
 			public List<UIElement> rows = new List<UIElement>();
 			public int refs;
@@ -102,7 +103,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		private bool   _pendingLong, _pendingShort;   // armed, waiting for the SB (armed bar) to close
 		private BBEntryKind _pendingKind;              // which entry mechanism the pending arm uses
-		private bool   _pickArmed;                     // next chart click selects the SB
 		private int    _sbPickedBar = -1;              // absolute bar index of a manually-picked SB (-1 = none)
 		private string _pickMarkerTag;                 // current pick-marker's draw tag (unique per draw — see DrawPickMarker)
 		private int    _armedBarIndex = -1;            // CurrentBar when the working entry order was submitted (-1 = none working)
@@ -496,7 +496,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			AddHalf(grid, sh, row++, sh.lmtLUp, sh.lmtSDn);
 
 			sh.pickSB = MakeBtn(s, "PICK SB", "Toggle, then click a bar to use as the signal bar (active chart)", ColorOff);
-			sh.pickSB.Click += (o, e) => { var a = sh.active; if (a == null) return; a._pickArmed = !a._pickArmed; sh.pickSB.Background = new SolidColorBrush(a._pickArmed ? ColorPick : ColorOff); a.Print(DateTime.Now + " PICK SB " + (a._pickArmed ? "ON — click a bar" : "OFF")); };
+			sh.pickSB.Click += (o, e) => { var a = sh.active; if (a == null) return; sh.pickArmed = !sh.pickArmed; sh.pickSB.Background = new SolidColorBrush(sh.pickArmed ? ColorPick : ColorOff); a.Print(DateTime.Now + " PICK SB " + (sh.pickArmed ? "ON — click a bar" : "OFF")); };
 			sh.cancel = MakeBtn(s, "CANCEL", "Cancel working orders; keep the position (active chart)", Color.FromRgb(120,90,20));
 			sh.cancel.Click += (o, e) => { var a = sh.active; if (a != null) a.TriggerCustomEvent(st => a.CancelSEOrders(), null); };
 			AddHalf(grid, sh, row++, sh.pickSB, sh.cancel);
@@ -596,7 +596,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			sh.ses2.Background   = new SolidColorBrush(sU ? ColorArmed : ColorOff);
 			sh.lmtS.Background   = new SolidColorBrush(sP ? ColorArmed : ColorOff);
 			sh.lmtSDn.Background = new SolidColorBrush(sR ? ColorArmed : ColorOff);
-			sh.pickSB.Background = new SolidColorBrush(a._pickArmed ? ColorPick : ColorOff);
+			sh.pickSB.Background = new SolidColorBrush(sh.pickArmed ? ColorPick : ColorOff);
 		}
 
 		private void ArmSE(bool isLong, BBEntryKind kind)
@@ -644,7 +644,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		private void OnChartMouseDown(object sender, MouseButtonEventArgs e)
 		{
-			if (!_pickArmed) return;   // don't log every ordinary chart click, only while actively picking
+			// PICK is armed on the SHARED panel (set by PICK SB). The bar-click consumes it on
+			// WHATEVER chart was clicked — so clicking a bar here makes this the active chart and
+			// picks the SB on it, regardless of which tab was active when PICK SB was pressed.
+			var ps = Panel();
+			if (ps == null || !ps.pickArmed) return;   // not picking -> ignore ordinary clicks
+			ps.active = this;                           // the chart you clicked to pick is now active
 			Print(DateTime.Now + " PICK SB: click seen (button=" + e.ChangedButton + " handled=" + e.Handled
 				+ " ChartControl=" + (ChartControl != null) + " ChartBars=" + (ChartBars != null) + ")");
 			if (ChartControl == null || ChartBars == null) { Print(DateTime.Now + " PICK SB: aborted — ChartControl or ChartBars null"); return; }
@@ -657,8 +662,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 				Print(DateTime.Now + " PICK SB: pos=" + pos + " resolved idx=" + idx + " CurrentBar=" + CurrentBar);
 				if (idx < 0 || idx > CurrentBar) { Print(DateTime.Now + " PICK SB: click off the bars (idx " + idx + ")"); return; }
 				_sbPickedBar = idx;
-				_pickArmed = false;
-				{ var ps = Panel(); if (ps != null && ps.active == this && ps.pickSB != null) ps.pickSB.Background = new SolidColorBrush(ColorOff); }
+				ps.pickArmed = false;
+				if (ps.pickSB != null) ps.pickSB.Background = new SolidColorBrush(ColorOff);
 
 				// Visual confirmation on the chart. If a side is already pending (armed
 				// BEFORE picking — the reverse of the recommended order), honor it;
