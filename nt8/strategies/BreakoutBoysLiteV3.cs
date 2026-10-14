@@ -586,6 +586,23 @@ namespace NinjaTrader.NinjaScript.Strategies
 			             : kind == BBEntryKind.LmtRetest   ? " retest"
 			             : "";
 
+			// BUY/SELL (auto) with a PICKED SB: place IMMEDIATELY (the bar's levels are known).
+			// This MUST run before the same-config toggle below, or a 2nd picked entry would just
+			// disarm the 1st (its _dir/_activeKind are already set) instead of placing a new order.
+			if (!isLmt && _sbPickedBar >= 0)
+			{
+				if (Position.MarketPosition != MarketPosition.Flat)
+				{ Print(DateTime.Now + " " + label + ": already in a trade — flatten first."); return; }
+				int sbAgo = Math.Max(0, CurrentBar - _sbPickedBar);
+				_pendingLong = _pendingShort = false;
+				_sbPickedBar = -1;
+				try { RemoveDrawObject("BBLiteBlock"); } catch { }
+				CancelWorkingEntries();   // replace any still-working entry
+				PlaceAutoEntry(isLong, kind == BBEntryKind.StopGated, sbAgo);
+				RefreshSEButtons();
+				return;
+			}
+
 			if (sameConfigActive)
 			{
 				_pendingLong = _pendingShort = false;
@@ -596,20 +613,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 			if (Position.MarketPosition != MarketPosition.Flat)
 			{ Print(DateTime.Now + " " + label + ": already in a trade — flatten first."); return; }
-
-			// BUY/SELL (auto) with a PICKED SB: the bar's levels are already known, so place the
-			// order IMMEDIATELY rather than waiting for a bar close. LMT keeps its arm-at-close flow.
-			if (!isLmt && _sbPickedBar >= 0)
-			{
-				int sbAgo = Math.Max(0, CurrentBar - _sbPickedBar);
-				_pendingLong = _pendingShort = false;
-				_sbPickedBar = -1;
-				try { RemoveDrawObject("BBLiteBlock"); } catch { }
-				CancelWorkingEntries();
-				PlaceAutoEntry(isLong, kind == BBEntryKind.StopGated, sbAgo);
-				RefreshSEButtons();
-				return;
-			}
 
 			_pendingLong = isLong; _pendingShort = !isLong; _pendingKind = kind;
 			try { RemoveDrawObject("BBLiteBlock"); } catch { }   // clear any prior block notice on a fresh arm
