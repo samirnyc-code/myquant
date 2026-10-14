@@ -465,11 +465,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 			Style s = Application.Current.TryFindResource("Button") as Style;
 			var sh = new CtShared();
 			int row = grid.RowDefinitions.Count;
-
-			var title = new Button() { Content = "BB LITE", Style = s, Height = 22, Margin = new Thickness(1),
-				FontSize = 11, FontWeight = FontWeights.Bold, IsHitTestVisible = false,
-				Background = new SolidColorBrush(Color.FromRgb(30,30,30)), Foreground = Brushes.Gray };
-			AddFull(grid, sh, row++, title);
+			// (no title row — the Chart Trader panel is short; every row is spent on controls so
+			// the last one, BARS, never gets clipped off the bottom.)
 
 			sh.selIbs = MakeBtn(s, "SE LONG", "Arm a long stop-limit entry at the SB High, IBS-gated (active chart)", ColorOff);
 			sh.selIbs.Click += (o, e) => { var a = sh.active; if (a != null) a.TriggerCustomEvent(st => a.ArmSE(true, BBEntryKind.StopGated), null); };
@@ -530,7 +527,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		private static void AddFull(Grid grid, CtShared sh, int row, UIElement btn)
 		{
-			var rd = new RowDefinition() { Height = new GridLength(36) };
+			var rd = new RowDefinition() { Height = new GridLength(29) };
 			grid.RowDefinitions.Add(rd);
 			Grid.SetRow(btn, row); Grid.SetColumn(btn, 0); Grid.SetColumnSpan(btn, 3);
 			grid.Children.Add(btn);
@@ -539,7 +536,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		private static void AddHalf(Grid grid, CtShared sh, int row, Button left, Button right)
 		{
-			var rd = new RowDefinition() { Height = new GridLength(36) };
+			var rd = new RowDefinition() { Height = new GridLength(29) };
 			grid.RowDefinitions.Add(rd);
 			var g = new Grid() { Margin = new Thickness(0) };
 			g.ColumnDefinitions.Add(new ColumnDefinition());
@@ -553,7 +550,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		private static void ShowPanel(CtShared sh, bool vis)
 		{
-			var h = vis ? new GridLength(36) : new GridLength(0);
+			var h = vis ? new GridLength(29) : new GridLength(0);
 			foreach (var rd in sh.rds) rd.Height = h;
 			foreach (var r in sh.rows) r.Visibility = vis ? Visibility.Visible : Visibility.Collapsed;
 		}
@@ -875,7 +872,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		private Button MakeBtn(Style s, string label, string tip, Color bg, bool blackText = false)
 		{
-			return new Button() { Content = label, Style = s, Height = 34, Margin = new Thickness(1),
+			return new Button() { Content = label, Style = s, Height = 27, Margin = new Thickness(1),
 				FontSize = 12, FontWeight = FontWeights.Bold, ToolTip = tip,
 				Background = new SolidColorBrush(bg), Foreground = blackText ? Brushes.Black : Brushes.White };
 		}
