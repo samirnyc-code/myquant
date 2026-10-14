@@ -1,6 +1,13 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-12 (machine-time W. Europe) — **S135: Trade Playbook "Library"
+**Last Updated:** 2026-10-14 (machine-time W. Europe) — **S-2026-10-14: SessionSRLevelsV9 polish
+(EthFromPrimary fixes "ETH H wrong", OoD/OoW from Daily-RTH feed, Settlement=prior-day Daily-ETH,
+same-price merge, tab-aware Chart Trader buttons, lean feeds) · RegimeTrackerPanel perf
+(CurrentSessionOnly+IncludePriorSession defaults, Lag=0) · BreakoutBoysLite freeze fix (modal
+MessageBox → non-blocking) + V2 (tab-aware panel) + V3 (reworked BUY/SELL auto-type engine, IBS
+toggle, immediate placement via OnMarketData, SB marker stays-on-fill) · NT reload-crash hardening
+(ncd_io share-delete + AddOn _release_feed trigger). ALL deployed+committed+pushed, PENDING user F5;
+BBLiteV3 needs Sim test (V1/V2 untouched = rollback). See the S-2026-10-14 block + Control Board #22/#23.** — **S135: Trade Playbook "Library"
 tab — multi-variant tick/time-bar charts (1000t/2000t/4000t/5m/15m) + a real shipped bug
 fix (delete-button on a selected drawing never fired — root-caused to a document-level
 capture-phase mousedown handler deselecting/unmounting the button before its own click
@@ -34,6 +41,100 @@ correct, but the bar-close event itself (leg/counter freshness) lags for these a
 Daily/Weekly series; a restart and two parameter changes didn't fix it, root cause
 undetermined, deprioritized as a minor staleness issue (the regime reading itself is
 accurate, just dated to the last bar NT8 delivered). See S134 block.** S133: NT8 `RegimeTrackerBox` — NEW multi-timeframe regime dashboard indicator. One box on the chart, rows = timeframes (editable: `2000t,5M,15M,60M,240M,D,W`), two columns RTH + ETH, each cell colored by Bull/Bear/Range. Flexible corner+X/Y offset and font size. Built, compile-checked, deployed, committed+pushed. GOTCHA fixed: the two trading-hours templates must be exact Trading Hours Manager names — `CME US Index Futures RTH` / `CME US Index Futures ETH` (NOT "CME RTH"/"CME ETH"; a bad name makes `AddDataSeries` throw in `OnStateChange` → indicator errors, draws nothing). See S133 block.** **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S-2026-10-14 — SessionSRLevelsV9 polish · RegimeTrackerPanel perf · BBLite V2/V3 rebuild · NT reload-crash hardening
+
+**ALL of the below is DEPLOYED to `Documents\NinjaTrader 8\bin\Custom\...` + COMMITTED + PUSHED.
+The user must still F5 (compile) in NT8 for every bit of it, and SIM-TEST BreakoutBoysLiteV3
+before any real use.** BreakoutBoysLite **V1 and V2 are left UNTOUCHED as rollbacks** — reverting
+is just re-selecting the older strategy in NT8. All NT8 `.cs` are REGION-LESS (NT8 duplicate-region
+bug — never paste a generated region back). Offline compile check = csc.exe with NT Core/Gui/SharpDX/
+WPF refs (see earlier blocks).
+
+### SessionSRLevelsV9.cs (indicator) — all shipped
+- **Historical levels finished**: "22 Historical" properties section with a show checkbox per level
+  (RTH HOY/LOY/COY/OoD/OoW/OoM, ETH H/L, Settlement, 1D Max/Min VIX+GEX). Model A = confined per-day
+  segments starting at the session break, dimmed, centered labels. HOY/LOY/COY = PRIOR session;
+  ETH H/L + 1D bands = that session; Settlement = prior day. `DrawHistorical`/`DrawHistSeg`.
+- **OoD/OoW/OoM opens** now sourced from a hidden **DAILY RTH-hours series** (session resets at 08:30
+  → bar[0] opens exactly on the RTH open — fixes wrong opens on tick/volume charts whose straddle bar
+  opened pre-08:30). Keyed by date (`_rthOpenByDay/_rthWeekOpenBy/_rthMonthOpenBy`) so live + historical
+  both read the right value. Primary chart supplies only the start-bar anchor.
+- **Settlement level** = the PRIOR trading day's **Daily ETH close** (Fri shows Thu), read from a hidden
+  **Daily ETH series** via `SettlementBefore(day)`. Coincides with ECOY. Memory
+  `settlement-level-semantics` — do NOT flip to same-session (flipped twice already).
+- **EthFromPrimary** (new property, default ON): compute ETH overnight H/L + ETH opens + ECOY + `_ethByDay`
+  from THIS chart's own bars (exact tick match — fixes "ETH H marked wrong") and DROP the 5-min ETH feed
+  entirely. Turn OFF only on an RTH-only chart (no overnight bars → falls back to the hidden feed).
+- **Same-price merge** (live AND historical): levels within half a tick collapse to ONE line + a combined
+  "OoD RTH / OoW RTH 7873" label (`MergeSamePrice` for live, `MergeHistEntries` for historical). Fixes
+  OoD=OoW=OoM overlap on the first ETH session of a month, OoW ETH=OoD ETH weekly, RTH=ETH coincidences.
+- **1D EM bands** both anchored on the prior RTH close (VIX-formula vs gexlog `expectedMove`); the old
+  50pt gap was purely the anchor. Labels print price inline (`WordWrapping=NoWrap`).
+- **Chart Trader buttons are now tab-aware**: ONE shared button set per chart WINDOW (a window shares one
+  Chart Trader across tabs), routed to whichever chart the MOUSE last entered (`ChartControl.MouseEnter`).
+  Fixes dead buttons on the 2nd tab (two same-instrument tabs). Static `_ctByGrid` registry keyed by grid.
+- **Perf / leanness**: each hidden feed loads ONLY if a dependent level is on (`needEth/needRth/needSettle`);
+  RTH feed → Daily, ETH feed → 5-min (and gone when EthFromPrimary). **The 365-day chart lookback is the
+  real cost driver** — tell the user to set chart "Days to load" ~15 (they only care about the current week;
+  OoM can be entered manually).
+
+### RegimeTrackerPanel.cs (indicator)
+- Default **CurrentSessionOnly = true** — the 37.6s Utilization cost was a full-history O(n²) `Swings()`
+  rescan over the 365-day lookback; this skips historical calc (no math change). Default **Lag = 0**.
+- New **IncludePriorSession** (default on, pairs with CurrentSessionOnly): computes the last TWO sessions
+  as one continuous stretch (no reset at the roll) so ETH 17:00 inherits the 16:00 regime, RTH = continue
+  from yesterday. `FindSessionStartBar(sessionsBack)`. The Panel adds **no data series** — W timeframe is
+  cheap; its cost was pure CPU. ⚠ default changes only affect NEW instances — user must toggle on the
+  existing chart. (User was adamant: do NOT touch the regime math — only the skip/continuity wiring.)
+
+### BreakoutBoysLite (strategy) — freeze fix + V2 + V3
+- **Freeze fix (edited V1 in place)**: the "entry blocked" notice was a MODAL `MessageBox.Show` on NT's
+  UI thread → froze the whole platform. Replaced with non-blocking on-chart `Draw.TextFixed`.
+- **BreakoutBoysLiteV2.cs** = V1 + tab-aware shared Chart Trader panel (route-to-active, same as the SR
+  indicator) + **shared PICK flag** (per-instance `_pickArmed` broke across tabs) + compacted panel (BARS
+  row was clipped off the bottom). V1 untouched.
+- **BreakoutBoysLiteV3.cs** = V2 + the user's REWORKED ENTRY ENGINE. ← **THE ACTIVE WORK; needs Sim test.**
+  - **BUY / SELL** (one per side): level **L = SB extreme ± OFS**. Order TYPE auto-chosen at placement from
+    last price vs L — not reached → **stop-limit at L** (breakout); already past → **limit at L** (pullback).
+    Never blocked. (`PlaceAutoEntry`; stop case stays stop-limit per user.)
+  - **IBS** = on/off TOGGLE (green=armed, shows "IBS 50") + **[IBS −][IBS +]** mini-buttons (±5). Gates
+    BUY/SELL only; fail = on-chart notice. Threshold stored 0..1, displayed ×100.
+  - **No SB picked** → SB = forming bar, placed at its close (OnBarUpdate). **SB picked** → placed
+    IMMEDIATELY, QUEUED and submitted in **`OnMarketData`** (managed `Enter()` from the button/
+    `TriggerCustomEvent` thread SILENTLY NO-OPS — races an async cancel vs `EntriesPerDirection=1`;
+    OnMarketData is a valid order context and by the next tick the cancel has settled). Immediate block
+    runs BEFORE the same-config toggle (else a 2nd picked entry just disarmed the 1st). **Stop-side guard:**
+    if the stop lands on the wrong side of the entry (stale LastSwing), fall back to the SB BarStop.
+  - **SB marker lifecycle**: persists while the order works; **RELEASED (kept forever) on fill** as a
+    trade mark (`_pickMarkerTag=null`, draw object kept); removed ONLY on cancel/disarm/expire/flatten of an
+    UNFILLED order (explicit `ClearPickMarker` in those paths; `CancelWorkingEntries` no longer touches it).
+  - Removed SE-2nd + LMT-retest; **LMT L BB / LMT S SA unchanged**. Reuses V1's `BBLiteStopMode`/`BBEntryKind`
+    (keep V1 present or V3 won't compile). STP/TGT/OFS/BARS/PICK/CANCEL/FLATTEN kept.
+  - **STILL TO VALIDATE ON SIM**: immediate placement actually FILLS (watch for "queued — placing on next
+    tick" then the order); auto stop-vs-limit selection; two-tab routing; stop-side guard; marker stays on fill.
+
+### NT8 reload-crash hardening
+- Platform CRASHED on "Reload All Historical Data" (5M chart): NT deletes + re-downloads today's live minute
+  `.ncd`, which was held open → **unhandled `IOException`** (stack in `NinjaTrader.Data.BarsSeries.DeleteDbBars`
+  during a 365-day MULTI-CONTRACT 1-min `RequestBars` — NT's bug, not ours). Holder = NT's own live recording
+  (reload-while-recording). The user rejected disconnect-reload.
+- **`scripts/ncd_io.py`**: `open_shared`/`read_bytes`/`copy2` open NT `.ncd` with FILE_SHARE_READ|WRITE|**DELETE**
+  so our readers can never block NT's delete. Wired into `ncd_decode.py` (the only Python opener of NT db;
+  pipeline_health only stats, backup_live_data backs up myquant data not NT db).
+- **AddOn release trigger**: touch `data/nt_ticks/_release_feed` → `L1TapeRecorderAddOn` +
+  `MarketDepthRecorderAddOn` drop the ES MarketData subscription (±2s, resubscribe when removed);
+  `TickExportAddOn` skips exports. **`scripts/release_nt_feed.py`** drives it around a reload. ⚠ charts + a
+  running strategy ALSO hold the instrument — a fully clean reload also needs the other same-instrument tab
+  closed / strategy disabled. Could add the same `_release_feed` check to the strategy if the user wants.
+
+### Open / next
+- F5 everything; **SIM-TEST BreakoutBoysLiteV3** per the checklist above (the live thread).
+- Recommend chart **Days to load ~15**.
+- Verify **ETH H** now matches the chart (EthFromPrimary) and Settlement = prior-day Daily-ETH close.
+- Optional: strategy-side `_release_feed` check; SR Model-B naked-levels toggle; ES-settlement EM anchor.
 
 ---
 
@@ -926,6 +1027,8 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 20 | **Trade Playbook + Journal (separate repo `trade-playbook`)** | 🟡 PENDING F5 (S125 2026-10-01) | Live at https://trade-playbook-ten.vercel.app. Autostart uploader task **registered + verified running** on this machine (`TradePlaybookUploader`). Thomas onboarding **approved, GO** — web app auto-updates for him, only local files are snapshots. April historical trades: **decided, never importing them.** **ONLY remaining item: F5 ClaudeTrackerV2** (performance-incident drawing-code revert + Name fix + MAE/MFE columns + configurable export path, all in one recompile — see S125 block). |
 | 21 | DtDbScanner (DT/DB tick-chart scanner) — add + backtest/walk-forward | ⛔ CLOSED (S126 2026-10-02) — NO mechanical edge | Indicator added (`nt8/indicators/DtDbScanner.cs`), full-history walk-forward + stop/target sweep + freq gate: only 1500t/2000t ever trade >=3/day, both net losers OOS (1500t PF 0.92 -$96.9k; 2000t PF 0.93 -$45.1k). User closed it — discretionary use only, do not resume unasked. See S126 block |
 | 19 | **Regime tracker — BOS/ChoCh regime classifier (5m ES)** | 🟢 LAG RECONCILE DONE (S124 2026-09-24) — PENDING USER F5 | **Lag=1 is canonical** (user decision). S123 export-diff was the Lag setting (Documents=Lag3 vs Desktop=Lag1), NOT a build/tick engine difference. Python now models Lag (`mywedge.compute_mywedge(lag=)` + `swing_*_asof`); **Python(lag=1)↔both NT exports = 100%** (Documents `--session eth`, Desktop `--session date`). NT8 `RegimeTracker.cs` default Lag 3→1, compiled + **deployed — PENDING USER F5** (when flat). Invariant: lag2==lag3==finalised (non-repaint). Repaint effect: 476/500 trend segments identical, 1.04% bar diffs, ~4 short direction-flip windows. **PARKED (user will revisit): Lag 1 vs Lag 2** (chart-match+repaint vs settled/non-repaint). See S124 block. Earlier (S123): outside-bar rule ported (`Swings()`/`Extends()`). **Outside-bar rule (9/22-23):** mywedge marks an outside bar as BOTH a swing high and low; if it extended the structure at both ends both swings stand, else it collapses to the extreme it LEFT ON (`bar_dir`). Validated on 4 hand-marked charts at once — 02-13 **Bull b9**, 12-26 **one Bear b21-53**, 05-19 **Bear b16**, 05-21 **unchanged Bull b28**; other 8 sessions byte-identical. Three rejected variants recorded in the regime-tracker block — do NOT retry (the third, a general minor-pivot filter, broke 14/14 sessions). **Minor pivots beyond outside bars: CLOSED 9/23, user said leave as is** — zero-length in-bar trends (05-06 b5 etc.) are an accepted artifact. **PARKED:** 02-13 late ChoCh ~b76 (outside-bar intrabar order) — tracker is deliberately **bar-only, do NOT resolve with ticks**. Page generators now in `regime_tracker/pages/` (near-duplicates; consolidate before the next batch). Safety tag `pre-nt8-merge-20260923`; stale worktree `C:\Users\Thomas-Code\wt-nt8` can be removed. **S127 2026-10-02: Indicator-Manager hide/show bug fixed in a NEW clone `RegimeTrackerV2.cs` (+ `DtDbScannerV2.cs`) — V1 untouched, still the one in use. See S127 block before next edit to either original.** |
+| 22 | **BreakoutBoysLiteV3 — reworked manual entry engine (BUY/SELL auto-type + IBS toggle)** | 🟡 PENDING USER F5 + SIM TEST (2026-10-14) | NEW strategy; V1/V2 untouched = rollback. BUY/SELL auto-pick stop-limit vs limit at the SB level (never blocked); IBS on/off toggle + [-/+]; picked SB = place IMMEDIATELY (via `OnMarketData` — managed Enter from the button thread silently no-ops); SB marker stays while working + FOREVER on fill. **Sim-test: immediate fill, auto-type, two-tab routing, stop-side guard, marker-on-fill.** See the S-2026-10-14 block. |
+| 23 | **NT8 reload-crash hardening + SessionSRLevelsV9 polish + RegimeTrackerPanel perf** | 🟢 DONE, PENDING F5 (2026-10-14) | SR: EthFromPrimary (ETH H now exact from chart), OoD/OoW from Daily-RTH feed, Settlement=prior-day Daily-ETH, same-price merge, tab-aware buttons, lean feeds. RegimeTrackerPanel: CurrentSessionOnly+IncludePriorSession defaults, Lag=0. Crash: `ncd_io.py` share-delete + AddOn `_release_feed` trigger (`release_nt_feed.py`). **Recommend user sets chart Days-to-load ~15.** See the S-2026-10-14 block. |
 
 ---
 
