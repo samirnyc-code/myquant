@@ -285,13 +285,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else if (State == State.Configure)
 			{
+				// Load each hidden feed ONLY if a level that depends on it is enabled — so
+				// turning a feature off removes its entire data-series cost (leanness). Each
+				// feed is skipped only when ALL its dependent levels are off, so nothing you
+				// can see ever loses its data. Re-evaluated on every reconfigure (property edits).
+				bool needEth    = EHOY_Enabled || ELOY_Enabled || ECOY_Enabled || EOoD_Enabled || EOoW_Enabled || EOoM_Enabled || Hist_EthH || Hist_EthL;
+				bool needRth    = ROoD_Enabled || ROoW_Enabled || ROoM_Enabled || Hist_OoD || Hist_OoW || Hist_OoM;
+				bool needSettle = Settle_Enabled || Hist_Settle;
+
 				// Hidden ETH-hours series: feeds ALL ETH levels so they work regardless of
 				// the chart's own Trading Hours template (incl. RTH-only charts). 5-MIN (not
 				// 1-min) to cut ~5x the bar-processing load: a bar's High/Low aggregates the
 				// extreme, so the overnight H/L stays exact; only the RTH-open lock boundary is
 				// coarsened to ~5 min (the quiet pre-open window rarely holds the overnight extreme).
 				_ethSeriesAdded = false;
-				if (!string.IsNullOrEmpty(FullTemplateNameHint))
+				if (needEth && !string.IsNullOrEmpty(FullTemplateNameHint))
 				{
 					try
 					{
@@ -308,7 +316,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// exactly on the RTH open — one bar per session (vs ~100k for a 1-min series),
 				// which is why this is Daily, not intraday.
 				_rthSeriesAdded = false;
-				if (!string.IsNullOrEmpty(RthTemplateName))
+				if (needRth && !string.IsNullOrEmpty(RthTemplateName))
 				{
 					try
 					{
@@ -325,7 +333,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// Hidden DAILY ETH series: the authoritative source for Settlement (the Daily ETH
 				// bar close). Same ETH template as the chart, Day period.
 				_ethDaySeriesAdded = false;
-				if (!string.IsNullOrEmpty(FullTemplateNameHint))
+				if (needSettle && !string.IsNullOrEmpty(FullTemplateNameHint))
 				{
 					try
 					{

@@ -332,14 +332,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		private double Round(double p) { return Instrument.MasterInstrument.RoundToTickSize(p); }
 
-		// UI-thread popup explaining why no order was placed.
+		// NON-BLOCKING "why no order was placed" notice. A modal MessageBox.Show here
+		// froze the WHOLE platform (it blocks NT8's UI thread until dismissed, and can
+		// open behind the chart) — so instead draw it as fixed on-chart text (plus the
+		// Print the callers already do). Cleared on the next arm / fill / resolve.
 		private void ShowPopup(string msg)
 		{
-			if (ChartControl == null) return;
-			ChartControl.Dispatcher.InvokeAsync((Action)(() =>
-			{
-				MessageBox.Show(msg, "BreakoutBoys Lite — entry blocked", MessageBoxButton.OK, MessageBoxImage.Warning);
-			}));
+			try { Draw.TextFixed(this, "BBLiteBlock", DateTime.Now.ToString("HH:mm:ss") + "  ⛔ " + msg, TextPosition.BottomRight); }
+			catch (Exception ex) { Print("BBLite block notice: " + ex.Message); }
 		}
 
 		protected override void OnExecutionUpdate(Execution execution, string executionId, double price,
@@ -541,6 +541,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{ Print(DateTime.Now + " " + label + ": already in a trade — flatten first."); return; }
 
 			_pendingLong = isLong; _pendingShort = !isLong; _pendingKind = kind;
+			try { RemoveDrawObject("BBLiteBlock"); } catch { }   // clear any prior block notice on a fresh arm
 			CancelWorkingEntries();
 			if (_sbPickedBar >= 0) DrawPickMarker(_sbPickedBar, isLong);   // flip above/below once the side is known
 			UpdateStatusText(label + " PENDING " + (isLong ? "L" : "S") + " — bar closes to place");
@@ -701,6 +702,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private void ClearStatusText()
 		{
 			try { RemoveDrawObject("BBLiteStatus"); } catch { }
+			try { RemoveDrawObject("BBLiteBlock");  } catch { }
 		}
 
 		// Rebuilds the WORKING status text from current state (elapsed/_maxBarsAlive
