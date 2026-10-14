@@ -222,6 +222,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				RthTemplateName     = "CME US Index Futures RTH";
 				FullTemplateNameHint = "CME US Index Futures ETH";
+				EthFromPrimary      = true;   // ETH levels off THIS chart's bars (exact + no 5-min ETH feed); turn off only on RTH-only charts
 				LabelFontSize       = 11;
 				ShowPriceInLabel    = true;
 				ExtendBarsRight     = 10;
@@ -299,7 +300,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// extreme, so the overnight H/L stays exact; only the RTH-open lock boundary is
 				// coarsened to ~5 min (the quiet pre-open window rarely holds the overnight extreme).
 				_ethSeriesAdded = false;
-				if (needEth && !string.IsNullOrEmpty(FullTemplateNameHint))
+				if (needEth && !EthFromPrimary && !string.IsNullOrEmpty(FullTemplateNameHint))
 				{
 					try
 					{
@@ -449,6 +450,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (_rthHist.Count > 70) _rthHist.RemoveAt(0);
 				}
 
+				// ETH overnight H/L + opens + close computed straight from THIS chart's bars
+				// (EthFromPrimary) — exact, and no hidden 5-min ETH feed. Record the completed
+				// ETH session, then reset for the new one (this bar = the ETH/Globex open).
+				if (EthFromPrimary)
+				{
+					if (_haveEth)
+					{
+						_priorEthHigh = _ethHigh; _priorEthLow = _ethLow; _priorEthClose = _ethCloseLast;
+						_ethByDay[_curTradingDay] = new double[] { _ethHigh, _ethLow, _ethCloseLast };
+						if (_ethByDay.Count > 90)
+						{
+							DateTime oldest = Core.Globals.MaxDate;
+							foreach (DateTime dk in _ethByDay.Keys) if (dk < oldest) oldest = dk;
+							_ethByDay.Remove(oldest);
+						}
+					}
+					_ethHigh = High[0]; _ethLow = Low[0]; _haveEth = true; _ethLocked = false;
+					_ethOpenToday = Open[0];
+					DateTime ewk = MondayOf(tradingDay);
+					if (ewk != _ethCurWeekStart) { _ethCurWeekStart = ewk; _ethOpenThisWeek = Open[0]; }
+					int emk = tradingDay.Year * 12 + tradingDay.Month;
+					if (emk != _ethCurMonthKey) { _ethCurMonthKey = emk; _ethOpenThisMonth = Open[0]; }
+				}
+
 				_curTradingDay        = tradingDay;
 				_haveRth              = false;
 				_rthOpenCapturedToday = false;
@@ -489,6 +514,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				DateTime tRth = ConvertToRthTz(barTime);
 				isRth = tRth >= _rthSessBegin && tRth <= _rthSessEnd;
+			}
+
+			// ETH overnight H/L from THIS chart: accumulate from the ETH/Globex open until the
+			// RTH open, then LOCK (the first RTH bar locks it and is excluded). _ethCloseLast
+			// tracks every bar so at the next roll it holds the ETH session's final (16:00) close.
+			if (EthFromPrimary && _haveEth)
+			{
+				_ethCloseLast = Close[0];
+				if (isRth) _ethLocked = true;
+				if (!_ethLocked)
+				{
+					if (High[0] > _ethHigh) _ethHigh = High[0];
+					if (Low[0]  < _ethLow)  _ethLow  = Low[0];
+				}
 			}
 
 			if (isRth)
@@ -1332,6 +1371,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name = "Expected chart template (informational)", Order = 1, GroupName = "00 Session Templates",
 			Description = "Just a sanity check: Print()s a warning at DataLoaded if the chart's own Trading Hours template name differs (expects the 23h Globex template so ETH bars actually exist).")]
 		public string FullTemplateNameHint { get; set; }
+
+		[Display(Name = "ETH levels from THIS chart (ETH/Globex charts)", Order = 2, GroupName = "00 Session Templates", Description = "ON (default): compute ETH overnight H/L + ETH opens + ETH close from this chart's own bars — exact tick match, and NO hidden 5-min ETH feed (much lighter). Use ON for an ETH/Globex chart with overnight bars; turn OFF on an RTH-only chart to fall back to the hidden ETH feed.")]
+		public bool EthFromPrimary { get; set; }
 
 		[Range(6, 24)]
 		[Display(Name = "Label font size", Order = 2, GroupName = "01 Display")]
