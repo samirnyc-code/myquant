@@ -82,7 +82,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				SignalBarIBS  = 66.0;
 				ContinueMC    = false;
 				ContinueOnGap = false;
-				Lag           = 1;
+				Lag           = 0;
 				ResetOnNewSession  = true;
 				WeeklyResetOnly    = false;
 				CurrentSessionOnly = true;    // default ON: skip historical calc (O(n^2) swing rescan over the full lookback) — the 37.6s Utilization cost. Only the current session is computed/shaded.
