@@ -1,6 +1,16 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-14 (machine-time W. Europe) — **S-2026-10-14: SessionSRLevelsV9 polish
+**Last Updated:** 2026-10-14 (machine-time W. Europe) — **S136: Shadow Stop panel was
+silently missing 6 days (10-02/05/06/07/08 + 08-10). Root cause: the 2026-10-09
+git-revert data-loss incident (commit `eecb1aed`, 2026-10-10) — already fixed at the
+trade-data level back then (real trades recovered from archives, Oct-1 mis-dated legs
+fixed, runtime-state files gitignored) but that fix was NEVER written up in this
+handoff, so it wasn't visible. Re-ran `shadow_stop_monitor.py --backfill` today to
+restore the missing log rows (real P&L, ties to dashboard: $11,575/47 days). Intraday
+drawdown for those 6 days is confirmed permanently unrecoverable (marks.csv never
+captured it; IB no longer has contract definitions for the now-expired 0DTE options) —
+shown as `no marks`, not faked. Realized P&L across all 49 booked days was never wrong.
+See S136 block.** — **S-2026-10-14: SessionSRLevelsV9 polish
 (EthFromPrimary fixes "ETH H wrong", OoD/OoW from Daily-RTH feed, Settlement=prior-day Daily-ETH,
 same-price merge, tab-aware Chart Trader buttons, lean feeds) · RegimeTrackerPanel perf
 (CurrentSessionOnly+IncludePriorSession defaults, Lag=0) · BreakoutBoysLite freeze fix (modal
@@ -135,6 +145,57 @@ WPF refs (see earlier blocks).
 - Recommend chart **Days to load ~15**.
 - Verify **ETH H** now matches the chart (EthFromPrimary) and Settlement = prior-day Daily-ETH close.
 - Optional: strategy-side `_release_feed` check; SR Model-B naked-levels toggle; ES-settlement EM anchor.
+
+---
+
+## S136-shadow-stop-gap (2026-10-14) — Shadow Stop panel missing 6 days: root-caused to the undocumented S134 git-revert incident, backfilled
+
+**What:** user spotted the Shadow Daily Stop panel (options dashboard) silently missing
+2026-10-02, 10-05, 10-06, 10-07, 10-08 (plus a pre-existing isolated gap on 2026-08-10).
+Root-caused to the **2026-10-09 git-revert incident already fixed in commit `eecb1aed`
+(2026-10-10, "S134: untrack live desk runtime state from git")** — but that fix was
+**never written up as a handoff session block**, so this information was not visible to
+the user until re-discovered today. Documenting it properly now per the persist rule.
+
+**What actually happened (2026-10-09):** `trades.parquet` and the rest of
+`data/options_sim`/`data/options_log` were git-tracked but routinely left uncommitted. An
+unrelated NT8-branch git merge that day silently reverted those working-tree files to
+their last commit, wiping the 5 real trading days above and mis-dating 6 Oct-1 settlement
+legs onto Oct-9. `eecb1aed` already: (1) recovered the 5 days' real trades from
+`gameplan_*.json`+`postmortem_*.json` archives via `recover_oct2026_real_trades.py`
+(credit/pnl exact; clock times exact for EOD-settled, approximated+flagged for
+intraday-stopped), (2) fixed the 6 mis-dated Oct-1 legs via
+`fix_oct1_mislated_settlement.py`, (3) gitignored these runtime-state paths going forward
+so a stray merge can never silently wipe them again. **Verified today: all of this was
+already correctly applied** — `trades.parquet` has the real recovered rows, Oct-1 legs
+have the correct `exit_dt`.
+
+**What was never done:** nobody re-ran `shadow_stop_monitor.py --backfill` after the
+S134 recovery, so `shadow_stop_log.csv` kept showing the gap on the dashboard even though
+the underlying trade data was already fixed. **Fixed today**: ran `--backfill` → 47 book
+days written (49 total minus the 2 known `EXCLUDE_DAYS` error days 08-04/08-05), P&L total
+ties to the dashboard ($11,575).
+
+**What is NOT recoverable:** `marks.csv` (live intraday tick-by-tick mark feed) was wiped
+by the same revert for those 5 Oct days + 08-10, with no archive to rebuild it from. Tried
+the IB-historical-bar reconstruction that worked for 10-09
+(`replay_intraday_dd_breaker_ib.py`) — **failed on all 5 days**: IB no longer has security
+definitions for these expired 0DTE SPXW contracts (tested directly — both SMART and CBOE
+qualify as "No security definition found"). The 10-09 reconstruction only worked because
+it was run the same evening, while the contracts still existed; these are 6-12 days
+expired now. Deleted the resulting $0/no-trades garbage output rather than leave it in the
+repo. **Net: these 6 days' realized P&L is correct and now shown; their intraday
+drawdown / shadow-stop-trigger path is permanently unknown — flagged `no marks` in the
+log, not faked as zero.**
+
+**Scope check (user feared "3 months of sim data useless"):** not the case. 49 booked
+trading days on file total; only these 6 ever had any gap, and only the observational
+intraday-DD overlay is affected — the realized P&L driving the dashboard/calendar/analytics
+tiles was never wrong (`analytics_payload()` uses the booked trade log directly for closed
+trades, not `marks.csv`).
+
+**Status: DONE.** Committed: `data/options_sim/shadow_stop_log.csv` backfill. No code
+changed. No open items on this thread.
 
 ---
 
@@ -1029,6 +1090,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 19 | **Regime tracker — BOS/ChoCh regime classifier (5m ES)** | 🟢 LAG RECONCILE DONE (S124 2026-09-24) — PENDING USER F5 | **Lag=1 is canonical** (user decision). S123 export-diff was the Lag setting (Documents=Lag3 vs Desktop=Lag1), NOT a build/tick engine difference. Python now models Lag (`mywedge.compute_mywedge(lag=)` + `swing_*_asof`); **Python(lag=1)↔both NT exports = 100%** (Documents `--session eth`, Desktop `--session date`). NT8 `RegimeTracker.cs` default Lag 3→1, compiled + **deployed — PENDING USER F5** (when flat). Invariant: lag2==lag3==finalised (non-repaint). Repaint effect: 476/500 trend segments identical, 1.04% bar diffs, ~4 short direction-flip windows. **PARKED (user will revisit): Lag 1 vs Lag 2** (chart-match+repaint vs settled/non-repaint). See S124 block. Earlier (S123): outside-bar rule ported (`Swings()`/`Extends()`). **Outside-bar rule (9/22-23):** mywedge marks an outside bar as BOTH a swing high and low; if it extended the structure at both ends both swings stand, else it collapses to the extreme it LEFT ON (`bar_dir`). Validated on 4 hand-marked charts at once — 02-13 **Bull b9**, 12-26 **one Bear b21-53**, 05-19 **Bear b16**, 05-21 **unchanged Bull b28**; other 8 sessions byte-identical. Three rejected variants recorded in the regime-tracker block — do NOT retry (the third, a general minor-pivot filter, broke 14/14 sessions). **Minor pivots beyond outside bars: CLOSED 9/23, user said leave as is** — zero-length in-bar trends (05-06 b5 etc.) are an accepted artifact. **PARKED:** 02-13 late ChoCh ~b76 (outside-bar intrabar order) — tracker is deliberately **bar-only, do NOT resolve with ticks**. Page generators now in `regime_tracker/pages/` (near-duplicates; consolidate before the next batch). Safety tag `pre-nt8-merge-20260923`; stale worktree `C:\Users\Thomas-Code\wt-nt8` can be removed. **S127 2026-10-02: Indicator-Manager hide/show bug fixed in a NEW clone `RegimeTrackerV2.cs` (+ `DtDbScannerV2.cs`) — V1 untouched, still the one in use. See S127 block before next edit to either original.** |
 | 22 | **BreakoutBoysLiteV3 — reworked manual entry engine (BUY/SELL auto-type + IBS toggle)** | 🟡 PENDING USER F5 + SIM TEST (2026-10-14) | NEW strategy; V1/V2 untouched = rollback. BUY/SELL auto-pick stop-limit vs limit at the SB level (never blocked); IBS on/off toggle + [-/+]; picked SB = place IMMEDIATELY (via `OnMarketData` — managed Enter from the button thread silently no-ops); SB marker stays while working + FOREVER on fill. **Sim-test: immediate fill, auto-type, two-tab routing, stop-side guard, marker-on-fill.** See the S-2026-10-14 block. |
 | 23 | **NT8 reload-crash hardening + SessionSRLevelsV9 polish + RegimeTrackerPanel perf** | 🟢 DONE, PENDING F5 (2026-10-14) | SR: EthFromPrimary (ETH H now exact from chart), OoD/OoW from Daily-RTH feed, Settlement=prior-day Daily-ETH, same-price merge, tab-aware buttons, lean feeds. RegimeTrackerPanel: CurrentSessionOnly+IncludePriorSession defaults, Lag=0. Crash: `ncd_io.py` share-delete + AddOn `_release_feed` trigger (`release_nt_feed.py`). **Recommend user sets chart Days-to-load ~15.** See the S-2026-10-14 block. |
+| 24 | **Shadow Stop panel 6-day gap (10-02/05/06/07/08 + 08-10)** | ✅ DONE (S136 2026-10-14) | Root cause = the 2026-10-09 git-revert incident (fixed at trade-data level in `eecb1aed` 2026-10-10, never documented). Re-ran `shadow_stop_monitor.py --backfill` — real P&L restored for all 6 days. Intraday DD for those days is **permanently unrecoverable** (no marks.csv archive; IB no longer has the now-expired 0DTE contract definitions) — shown honestly as `no marks`. See S136 block. |
 
 ---
 
