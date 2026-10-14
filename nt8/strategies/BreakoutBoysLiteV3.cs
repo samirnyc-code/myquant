@@ -101,6 +101,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private double _ibsThreshold = 0.50;
 		private int    _maxBarsAlive = 1; // how many bars a still-unfilled entry order stays working before auto-cancel
 		private bool   _ibsArmed = true;  // IBS gate on/off toggle (applies to BUY/SELL only)
+		// immediate (picked-SB) entry: submitted from OnMarketData, NOT the button thread —
+		// managed Enter() from TriggerCustomEvent (racing an async cancel vs EntriesPerDirection)
+		// silently no-ops; OnMarketData is a valid order-submission context and fires next tick.
+		private bool   _immPending; private bool _immLong, _immUseIbs; private int _immSbBar = -1;
 
 		private bool   _pendingLong, _pendingShort;   // armed, waiting for the SB (armed bar) to close
 		private BBEntryKind _pendingKind;              // which entry mechanism the pending arm uses
@@ -175,6 +179,20 @@ namespace NinjaTrader.NinjaScript.Strategies
 		// LIMIT cap offset ticks past the trigger (bounds worst-case slippage once
 		// triggered, same role a plain stop-market's slippage risk would otherwise
 		// carry unbounded).
+		// Immediate (picked-SB) entries are submitted HERE — OnMarketData is a valid managed-order
+		// context (unlike the button's TriggerCustomEvent thread), and by the next tick the earlier
+		// CancelWorkingEntries() has settled, so EntriesPerDirection no longer blocks the new order.
+		protected override void OnMarketData(MarketDataEventArgs e)
+		{
+			if (!_immPending || e.MarketDataType != MarketDataType.Last) return;
+			_immPending = false;
+			if (Position.MarketPosition != MarketPosition.Flat)
+			{ Print(DateTime.Now + " immediate entry skipped — already in a trade"); return; }
+			int sbAgo = Math.Max(0, CurrentBar - _immSbBar);
+			PlaceAutoEntry(_immLong, _immUseIbs, sbAgo);
+			RefreshSEButtons();
+		}
+
 		// BUY / SELL auto-entry: level L = the SB breakout extreme +/- offset. The ORDER TYPE is
 		// chosen at placement from the LAST price vs L, so it can NEVER be blocked:
 		//   price hasn't reached L yet -> stop-limit at L (breakout);
@@ -223,6 +241,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 				if (isLong) EnterLongLimit (0, true, SE_Qty, Round(L), "SE");
 				else        EnterShortLimit(0, true, SE_Qty, Round(L), "SE");
 			}
+
+			// Safety: the stop MUST sit on the protective side of the entry (below for a long,
+			// above for a short). A stale LastSwing can land on the wrong side (stop above a long
+			// entry = instant stop-out) — if so, fall back to the SB BarStop (opposite extreme).
+			bool stopOk = isLong ? (_stopPx < entryRef) : (_stopPx > entryRef);
+			if (!stopOk) _stopPx = isLong ? lo - SE_StopOffsetTicks * tick : hi + SE_StopOffsetTicks * tick;
 
 			double risk = Math.Abs(entryRef - _stopPx);
 			_entryPx = entryRef;
@@ -593,12 +617,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				if (Position.MarketPosition != MarketPosition.Flat)
 				{ Print(DateTime.Now + " " + label + ": already in a trade — flatten first."); return; }
-				int sbAgo = Math.Max(0, CurrentBar - _sbPickedBar);
+				// Queue it for OnMarketData (next tick) — do NOT submit the managed entry from here.
+				_immPending = true; _immLong = isLong; _immUseIbs = (kind == BBEntryKind.StopGated); _immSbBar = _sbPickedBar;
 				_pendingLong = _pendingShort = false;
 				_sbPickedBar = -1;
 				try { RemoveDrawObject("BBLiteBlock"); } catch { }
-				CancelWorkingEntries();   // replace any still-working entry
-				PlaceAutoEntry(isLong, kind == BBEntryKind.StopGated, sbAgo);
+				CancelWorkingEntries();   // replace any still-working entry (completes before the tick fires)
+				UpdateStatusText((isLong ? "BUY" : "SELL") + " placing...");
+				Print(DateTime.Now + " " + (isLong ? "BUY" : "SELL") + " (picked bar) queued — placing on next tick");
 				RefreshSEButtons();
 				return;
 			}
