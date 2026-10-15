@@ -104,23 +104,23 @@ namespace NinjaTrader.NinjaScript.Indicators
                 PaintPriceMarkers = false;
                 IsSuspendedWhileInactive = true;
 
-                // --- detection parameters (defaults = ES starting point) ---
-                SwingStrength     = 4;   // bars required on each side of a pivot to confirm it (bigger = fewer, stronger swings; adds this much lag)
+                // --- defaults = user's settings 2026-10-15 (15-min ES chart) ---
+                SwingStrength     = 1;   // bars required on each side of a pivot to confirm it (bigger = fewer, stronger swings; adds this much lag)
                 PeakToleranceTicks = 6;  // max price difference between the two peaks/troughs, in ticks
-                MinValleyDepthTicks = 10;// the pullback between peaks must be at least this deep, in ticks (rejects flat tops)
-                UseAbrSizing      = false; // true: peak tolerance + min valley depth = multiple of the average bar range instead of fixed ticks
+                MinValleyDepthTicks = 5;// the pullback between peaks must be at least this deep, in ticks (rejects flat tops)
+                UseAbrSizing      = true;  // true: peak tolerance + min valley depth = multiple of the average bar range instead of fixed ticks
                 AbrBars           = 8;     // bars in the average bar range (High-Low), ending at the bar the pattern is evaluated on
                 PeakToleranceAbr  = 0.5;   // peak tolerance = this x ABR (when UseAbrSizing)
                 MinValleyDepthAbr = 0.5;   // min valley depth = this x ABR (when UseAbrSizing)
-                MinBarsBetween    = 6;   // peaks closer than this are noise
-                MaxBarsBetween    = 120; // peaks farther apart than this are unrelated
-                NecklineBufferTicks = 2; // close must break the neckline by this much to confirm
-                ConfirmWithinBars = 150; // if no confirm within this many bars after forming, drop the setup
+                MinBarsBetween    = 2;   // peaks closer than this are noise
+                MaxBarsBetween    = 50;  // peaks farther apart than this are unrelated
+                NecklineBufferTicks = 0; // close must break the neckline by this much to confirm
+                ConfirmWithinBars = 50;  // if no confirm within this many bars after forming, drop the setup
                 MinScoreToAlert   = 50;  // suppress forming-alerts below this quality score
                 RearmSeconds      = 30;  // alert re-arm window
                 ShowDrawings      = true;
-                DeleteInvalidated = false; // true: remove a DT/DB's drawings when price invalidates it (new extreme beyond the peaks/troughs)
-                ShowLabel         = true;  // 'DT 72' / 'DB 64' text next to each pattern
+                DeleteInvalidated = true;  // true: remove a DT/DB's drawings when price invalidates it (new extreme beyond the peaks/troughs)
+                ShowLabel         = false; // 'DT 72' / 'DB 64' text next to each pattern
                 DtLegBrush        = Brushes.Firebrick;    // peak -> valley -> peak legs of a DT
                 DbLegBrush        = Brushes.SeaGreen;     // trough -> peak -> trough legs of a DB
                 LegDashStyle      = DashStyleHelper.Solid;
@@ -129,7 +129,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 PeakLineDashStyle = DashStyleHelper.Solid;
                 PeakLineWidth     = 4;
                 ConfirmTriangleSize = 30;  // font size of the neckline-break triangle (~3x NT8's built-in triangle marker)
-                ShowDebugPrints   = true; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
+                ShowDebugPrints   = false; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
             }
             else if (State == State.Configure)
             {
