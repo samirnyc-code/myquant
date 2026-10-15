@@ -1,0 +1,17 @@
+rule,n_skipped,skipped_pnl,kept_pnl,delta_vs_base
+"drop October entirely (hindsight, NOT a real rule -- shown for scale only)",84,-3454,12662,3454
+"drop worst 3 strategies (eodfly_p, openic_c, eodic_c)",104,-3085,12293,3085
+drop worst single strategy (eodfly_p),49,-2593,11801,2593
+drop POP<0.50,78,-2420,11628,2420
+drop the EOD book,165,97,9110,-97
+drop the PUT side,220,1613,7595,-1613
+drop Mondays,55,1695,7512,-1695
+drop grade D,108,1873,7335,-1873
+drop ALL GexWall (gx_bcs+gx_bps),75,2890,6318,-2890
+drop Fridays,69,3550,5658,-3550
+drop POP<0.60,180,3630,5578,-3630
+drop TREND days (gameplan),86,4164,5044,-4164
+drop the Open book,173,6221,2987,-6221
+drop NEGATIVE-gamma days (gameplan),200,6626,2582,-6626
+drop grades C+D (keep A/B only),313,7537,1671,-7537
+drop the CALL side,193,7595,1613,-7595
