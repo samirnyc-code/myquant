@@ -93,8 +93,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				Timeframe           = "";
 				Template            = "CME US Index Futures ETH";
-				IntradayBarsToLoad  = 1000;
-				DaysToLoad          = 365;
 				DebugLog            = false;
 
 				LookBack      = 12;
@@ -139,43 +137,33 @@ namespace NinjaTrader.NinjaScript.Indicators
 					TfDef tf;
 					if (TryParseTimeframe(Timeframe, out tf))
 					{
-						int bars;
-						bool? resetArg;
-						if (tf.Intraday)
-						{
-							// CONFIRMED via the debug CSV: the barsBack count passed to
-							// AddDataSeries is NOT just an initial-history request -- NT8
-							// caps the added series' TOTAL lifetime bar count at this number.
-							// Once hit, the series stops accepting new real-time bars
-							// entirely (bip1Calls froze dead while bip0Calls kept climbing,
-							// identically in two separate runs regardless of RTH/ETH). A
-							// Panel instance has to keep extending for as long as the chart
-							// stays open, so floor this WAY above IntradayBarsToLoad's
-							// user-facing value -- 200000 5-minute bars is ~2 years of
-							// continuous 24/7 bars, comfortably beyond any realistic
-							// between-reload lifetime, at negligible memory cost.
-							bars = Math.Max(200000, IntradayBarsToLoad);
-							resetArg = ResetOnNewSession;
-						}
-						else
-						{
-							// AddDataSeries only accepts a BAR count -- convert DaysToLoad
-							// (calendar days, matches a normal NT8 Data Series dialog) per
-							// period type: ~260 Daily bars, ~52 Weekly bars for 365 days.
-							bars = tf.Type == BarsPeriodType.Week
-								? Math.Max(10, (int)Math.Ceiling(DaysToLoad / 7.0))
-								: Math.Max(10, (int)Math.Ceiling(DaysToLoad * 260.0 / 365.0));
-							resetArg = null;   // use NT8's own default, matches RegimeTrackerBox
-						}
+						// CONFIRMED via the debug CSV, twice: the barsToLoad-specifying
+						// AddDataSeries overload caps the added series' TOTAL LIFETIME bar
+						// count at whatever number you pass it -- not just initial history.
+						// Once that many bars exist (historical backfill satisfies it almost
+						// immediately for a liquid instrument), the series stops accepting
+						// ANY further real-time bars, permanently, for the rest of the
+						// indicator's life -- bip1Calls froze dead at ~999, then again at
+						// exactly ~200000 after raising the requested count, while bip0Calls
+						// kept climbing both times. RegimeTrackerBox has this same latent cap
+						// (IntradayBarsToLoad=1000 default) -- just invisible there since it
+						// only ever shows the CURRENT snapshot, not a historical timeline, so
+						// a silent freeze doesn't visibly contradict anything on screen.
+						//
+						// FIX: use the overload with NO barsToLoad parameter at all (reflected
+						// off the installed NinjaTrader.Core.dll -- confirmed to exist:
+						// AddDataSeries(string, BarsPeriod, string, bool?)). NT8 manages this
+						// series' historical depth and growth the same uncapped way it manages
+						// the chart's own primary series.
+						//
 						// every AddDataSeries call elsewhere in this codebase (RegimeTrackerBox)
 						// always passes a real trading-hours template string, never null -- and
 						// specifically NEVER defaults to RTH: RegimeTrackerBox's own comments
-						// (and this exact symptom, confirmed via the debug CSV -- bip1 stopped
-						// advancing at a fixed bar while bip0 kept ticking) document that an
-						// RTH-templated intraday series STALLS once RTH closes for the day,
-						// while ETH keeps advancing through the evening/overnight session.
+						// document that an RTH-templated intraday series STALLS once RTH closes
+						// for the day, while ETH keeps advancing through the evening/overnight.
 						string template = string.IsNullOrWhiteSpace(Template) ? "CME US Index Futures ETH" : Template;
-						AddDataSeries(Instrument.FullName, new BarsPeriod { BarsPeriodType = tf.Type, Value = tf.Value }, bars, template, resetArg);
+						bool? resetArg = tf.Intraday ? ResetOnNewSession : (bool?)null;   // null for D/W, matches RegimeTrackerBox
+						AddDataSeries(Instrument.FullName, new BarsPeriod { BarsPeriodType = tf.Type, Value = tf.Value }, template, resetArg);
 						_engineBip = 1;
 					}
 					else
@@ -715,16 +703,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name = "Trading hours template (blank = ETH; RTH will STALL after RTH closes for the day -- only used when Timeframe is set)", GroupName = "Timeframe", Order = 1)]
 		public string Template { get; set; }
 
-		[NinjaScriptProperty] [Range(50, 10000)]
-		[Display(Name = "Intraday bars to load (tick/sec/min only; floored at 200000 internally -- this value also caps the series' LIFETIME bar count, not just initial history)", GroupName = "Timeframe", Order = 2)]
-		public int IntradayBarsToLoad { get; set; }
-
-		[NinjaScriptProperty] [Range(14, 7300)]
-		[Display(Name = "Daily/Weekly days to load (D/W only, calendar days)", GroupName = "Timeframe", Order = 3)]
-		public int DaysToLoad { get; set; }
-
 		[NinjaScriptProperty]
-		[Display(Name = "Debug log (writes Documents\\regime_tracker_panel_debug_<instrument>.csv -- investigative only)", GroupName = "Timeframe", Order = 4)]
+		[Display(Name = "Debug log (writes Documents\\regime_tracker_panel_debug_<instrument>.csv -- investigative only)", GroupName = "Timeframe", Order = 2)]
 		public bool DebugLog { get; set; }
 
 		[NinjaScriptProperty] [Range(1, 10000)]
