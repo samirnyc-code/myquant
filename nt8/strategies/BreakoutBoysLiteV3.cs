@@ -84,7 +84,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private sealed class CtShared
 		{
 			public BreakoutBoysLiteV3 active;
-			public Button buy, sell, lmtL, lmtS, ibsToggle, ibsMinus, ibsPlus, pickSB, cancel, flat, stpMode, rMult, offset, bars;
+			public Button buy, sell, lmtL, lmtS, ibsToggle, ibsMinus, ibsPlus, pickSB, cancel, flat, stpMode, rMult, offset;
 			public bool pickArmed;   // SHARED: PICK SB arms it; the next bar-click (on any tab) consumes it on that chart
 			public List<RowDefinition> rds = new List<RowDefinition>();
 			public List<UIElement> rows = new List<UIElement>();
@@ -264,7 +264,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		// NT8's default managed behavior auto-cancels an unfilled entry order at
 		// the next bar close; isLiveUntilCancelled=true above opts out of that so
-		// we can honor _maxBarsAlive instead (user-adjustable via the BARS button).
+		// we can honor _maxBarsAlive instead (fixed at its default — no longer a UI button).
 		private void ExpireStaleEntry()
 		{
 			if (_armedBarIndex < 0) return;
@@ -527,14 +527,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 			sh.rMult.PreviewMouseRightButtonDown += (o, e) => { e.Handled = true; var a = sh.active; if (a != null) { a.AdjustRMult(+1); sh.rMult.Content = a.RMultLabel(); } };
 			AddHalf(grid, sh, row++, sh.stpMode, sh.rMult);
 
-			// Row: OFS | BARS
+			// Row: OFS (BARS button removed — Thomas's call, fixed-width working-entry auto-cancel
+			// stays internally at its default, just no longer user-adjustable)
 			sh.offset = MakeBtn(s, "OFS 1t", "Entry offset ticks beyond the SB extreme — left -1 / right +1 (active chart)", Color.FromRgb(60,60,60));
 			sh.offset.PreviewMouseLeftButtonDown  += (o, e) => { e.Handled = true; var a = sh.active; if (a != null) { a.AdjustOffset(-1); sh.offset.Content = a.OffsetLabel(); } };
 			sh.offset.PreviewMouseRightButtonDown += (o, e) => { e.Handled = true; var a = sh.active; if (a != null) { a.AdjustOffset(+1); sh.offset.Content = a.OffsetLabel(); } };
-			sh.bars = MakeBtn(s, "BARS 1", "Bars an unfilled entry stays working — left -1 / right +1 (active chart)", Color.FromRgb(60,60,60));
-			sh.bars.PreviewMouseLeftButtonDown  += (o, e) => { e.Handled = true; var a = sh.active; if (a != null) { a.AdjustBarsAlive(-1); sh.bars.Content = a.BarsAliveLabel(); } };
-			sh.bars.PreviewMouseRightButtonDown += (o, e) => { e.Handled = true; var a = sh.active; if (a != null) { a.AdjustBarsAlive(+1); sh.bars.Content = a.BarsAliveLabel(); } };
-			AddHalf(grid, sh, row++, sh.offset, sh.bars);
+			AddFull(grid, sh, row++, sh.offset);
 
 			return sh;
 		}
@@ -586,7 +584,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 			sh.offset.Content       = a.OffsetLabel();
 			sh.ibsToggle.Content    = a.IbsLabel();
 			sh.ibsToggle.Background = new SolidColorBrush(a._ibsArmed ? ColorOn : ColorOff);
-			sh.bars.Content         = a.BarsAliveLabel();
 		}
 
 		private static void SetEntryColors(CtShared sh, BreakoutBoysLiteV3 a)
@@ -853,7 +850,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private string RMultLabel()     { return "TGT " + _rMult.ToString("0.0") + "R"; }
 		private string OffsetLabel()    { return "OFS " + _offsetTicks + "t"; }
 		private string IbsLabel()       { return "IBS " + (int)Math.Round(_ibsThreshold * 100); }
-		private string BarsAliveLabel() { return "BARS " + _maxBarsAlive; }
 
 		private void AdjustRMult(int dir)
 		{
@@ -871,12 +867,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			_ibsThreshold = Math.Max(0.05, Math.Min(0.95, Math.Round(_ibsThreshold + dir * 0.05, 2)));
 			Print(DateTime.Now + " " + IbsLabel());
-		}
-
-		private void AdjustBarsAlive(int dir)
-		{
-			_maxBarsAlive = Math.Max(1, Math.Min(50, _maxBarsAlive + dir));
-			Print(DateTime.Now + " " + BarsAliveLabel());
 		}
 
 		private void DisposeWPFControls()
