@@ -58,7 +58,17 @@ namespace NinjaTrader.NinjaScript.Indicators
             public int    FormBar;         // CurrentBar when the structure formed
             public double Score;
             public bool   IsTop;           // true = double top, false = double bottom
+            public string DrawTag;         // DrawStructure tag prefix (set when drawn), links the confirm triangle
         }
+
+        // Every structure still on the chart, oldest first, with its confirm
+        // triangle's tag once confirmed. Drives ShowLastN.
+        private class DrawnRecord
+        {
+            public string Tag;
+            public string TriTag;
+        }
+        private readonly List<DrawnRecord> drawnHistory = new List<DrawnRecord>();
 
         // Every structure drawn on the chart and not yet resolved. Separate from
         // pendingTop/pendingBottom (which hold only the latest of each type, for
@@ -71,6 +81,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             public double Neckline;
             public double InvalidateBeyond;
             public int    FormBar;
+            public int    NeckBar;          // bar of the valley/peak the neckline starts from
         }
         private readonly List<DrawnStructure> openDrawn = new List<DrawnStructure>();
 
@@ -128,6 +139,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                 PeakLineBrush     = Brushes.Black;        // line joining the two tops/bottoms
                 PeakLineDashStyle = DashStyleHelper.Solid;
                 PeakLineWidth     = 4;
+                DtTriangleBrush   = Brushes.Red;          // DT neckline-break triangle
+                DbTriangleBrush   = Brushes.SeaGreen;     // DB neckline-break triangle
+                ShowLastN         = 0;                    // 0 = show all; N = keep only the newest N DT/DB on the chart
                 ConfirmTriangleSize = 30;  // font size of the neckline-break triangle (~3x NT8's built-in triangle marker)
                 ShowDebugPrints   = false; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
             }
@@ -325,10 +339,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 return false;
             }
 
-            Pivot valley = LowestLowBetween(p1.Bar, p2.Bar);
+            Pivot valley = NecklineLow(p1.Bar, p2.Bar);
             if (valley == null)
             {
-                if (ShowDebugPrints) Print(Time[0] + "  DT-reject p1@" + p1.Bar + " p2@" + p2.Bar + "  reason=NO_VALLEY (no confirmed low between the two highs)");
+                if (ShowDebugPrints) Print(Time[0] + "  DT-reject p1@" + p1.Bar + " p2@" + p2.Bar + "  reason=NO_VALLEY (no bar between the two highs)");
                 return false;
             }
 
@@ -362,7 +376,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (ShowDrawings)
             {
                 DrawStructure(p1, valley, p2, score, isTop: true);
-                TrackDrawn(pendingTop, "DT_" + p2.Bar);   // tag must match DrawStructure
+                TrackDrawn(pendingTop, "DT_" + p2.Bar, valley.Bar);   // tag must match DrawStructure
             }
 
             if (score >= MinScoreToAlert)
@@ -408,10 +422,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 return false;
             }
 
-            Pivot peak = HighestHighBetween(t1.Bar, t2.Bar);
+            Pivot peak = NecklineHigh(t1.Bar, t2.Bar);
             if (peak == null)
             {
-                if (ShowDebugPrints) Print(Time[0] + "  DB-reject t1@" + t1.Bar + " t2@" + t2.Bar + "  reason=NO_PEAK (no confirmed high between the two lows)");
+                if (ShowDebugPrints) Print(Time[0] + "  DB-reject t1@" + t1.Bar + " t2@" + t2.Bar + "  reason=NO_PEAK (no bar between the two lows)");
                 return false;
             }
 
@@ -445,7 +459,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (ShowDrawings)
             {
                 DrawStructure(t1, peak, t2, score, isTop: false);
-                TrackDrawn(pendingBottom, "DB_" + t2.Bar); // tag must match DrawStructure
+                TrackDrawn(pendingBottom, "DB_" + t2.Bar, peak.Bar); // tag must match DrawStructure
             }
 
             if (score >= MinScoreToAlert)
@@ -475,7 +489,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                         + "  neckline " + pendingTop.Neckline.ToString(), Brushes.Red);
                     if (ShowDrawings)
                     {
-                        TrackDrawObj(DrawConfirmTriangle("DTconfTri_" + pendingTop.FormBar, true, High[0] + 4 * TickSize, Brushes.Red));
+                        string triTag = "DTconfTri_" + pendingTop.FormBar;
+                        TrackDrawObj(DrawConfirmTriangle(triTag, true, High[0] + 4 * TickSize, DtTriangleBrush));
+                        LinkTriangle(pendingTop, triTag);
                     }
                     pendingTop = null;
                 }
@@ -495,7 +511,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                         + "  neckline " + pendingBottom.Neckline.ToString(), Brushes.Lime);
                     if (ShowDrawings)
                     {
-                        TrackDrawObj(DrawConfirmTriangle("DBconfTri_" + pendingBottom.FormBar, false, Low[0] - 4 * TickSize, Brushes.SeaGreen));
+                        string triTag = "DBconfTri_" + pendingBottom.FormBar;
+                        TrackDrawObj(DrawConfirmTriangle(triTag, false, Low[0] - 4 * TickSize, DbTriangleBrush));
+                        LinkTriangle(pendingBottom, triTag);
                     }
                     pendingBottom = null;
                 }
@@ -553,21 +571,37 @@ namespace NinjaTrader.NinjaScript.Indicators
         // --------------------------------------------------------------------
         //  helpers
         // --------------------------------------------------------------------
-        private Pivot LowestLowBetween(int barA, int barB)
+        // DT neckline: lowest Low of every bar strictly between the two peaks (no swing
+        // pivot required). Outside-bar special case — a peak bar's OWN low also counts
+        // when it most likely printed on the valley side of its high: peak-1 bar closing
+        // DOWN (high assumed before low), peak-2 bar closing UP (low assumed before high).
+        // Dojis (Close == Open) are ambiguous and never count.
+        private Pivot NecklineLow(int barA, int barB)
         {
             Pivot best = null;
-            foreach (Pivot p in lows)
-                if (p.Bar > barA && p.Bar < barB && (best == null || p.Price < best.Price))
-                    best = p;
+            for (int bar = barA; bar <= barB; bar++)
+            {
+                int ago = CurrentBar - bar;
+                if (bar == barA && !(Close[ago] < Open[ago])) continue;
+                if (bar == barB && !(Close[ago] > Open[ago])) continue;
+                if (best == null || Low[ago] < best.Price) best = new Pivot(Low[ago], bar);
+            }
             return best;
         }
 
-        private Pivot HighestHighBetween(int barA, int barB)
+        // DB neckline: mirror — highest High between the two troughs; trough-1 bar's own
+        // high counts if it closed UP (low before high, e.g. an outside up bar), trough-2
+        // bar's own high counts if it closed DOWN (high before low).
+        private Pivot NecklineHigh(int barA, int barB)
         {
             Pivot best = null;
-            foreach (Pivot p in highs)
-                if (p.Bar > barA && p.Bar < barB && (best == null || p.Price > best.Price))
-                    best = p;
+            for (int bar = barA; bar <= barB; bar++)
+            {
+                int ago = CurrentBar - bar;
+                if (bar == barA && !(Close[ago] > Open[ago])) continue;
+                if (bar == barB && !(Close[ago] < Open[ago])) continue;
+                if (best == null || High[ago] > best.Price) best = new Pivot(High[ago], bar);
+            }
             return best;
         }
 
@@ -591,23 +625,35 @@ namespace NinjaTrader.NinjaScript.Indicators
             Brush leg = isTop ? DtLegBrush : DbLegBrush;
             TrackDrawObj(Draw.Line(this, tag + "_l1", false, aAgo, a.Price, midAgo, mid.Price, leg, LegDashStyle, LegWidth));
             TrackDrawObj(Draw.Line(this, tag + "_l2", false, midAgo, mid.Price, bAgo, b.Price, leg, LegDashStyle, LegWidth));
-            TrackDrawObj(Draw.Line(this, tag + "_neck", false, midAgo, mid.Price, 0, mid.Price, c, DashStyleHelper.Dash, 2));
+            DrawNeckline(tag, isTop, mid.Bar, mid.Price);   // to the current bar; extended on the break (SweepDrawn)
             TrackDrawObj(Draw.Line(this, tag + "_peaks", false, aAgo, a.Price, bAgo, b.Price, PeakLineBrush, PeakLineDashStyle, PeakLineWidth)); // joins the two tops/bottoms
             if (ShowLabel)
                 TrackDrawObj(Draw.Text(this, tag + "_txt", (isTop ? "DT " : "DB ") + score.ToString("F0"),
                           bAgo, isTop ? b.Price + 10 * TickSize : b.Price - 10 * TickSize, c));
         }
 
-        private void TrackDrawn(Pending p, string tag)
+        // Neckline from the valley/peak bar to the CURRENT bar. Called when the pattern
+        // forms, and again (same tag = same line, redrawn) on the bar that closes beyond it.
+        private void DrawNeckline(string tag, bool isTop, int neckBar, double price)
+        {
+            Brush c = isTop ? Brushes.Firebrick : Brushes.SeaGreen;
+            TrackDrawObj(Draw.Line(this, tag + "_neck", false, CurrentBar - neckBar, price, 0, price, c, DashStyleHelper.Dash, 2));
+        }
+
+        private void TrackDrawn(Pending p, string tag, int neckBar)
         {
             if (p == null) return;
+            p.DrawTag = tag;
+            drawnHistory.Add(new DrawnRecord { Tag = tag });
+            EnforceShowLast();
             openDrawn.Add(new DrawnStructure
             {
                 Tag              = tag,
                 IsTop            = p.IsTop,
                 Neckline         = p.Neckline,
                 InvalidateBeyond = p.InvalidateBeyond,
-                FormBar          = p.FormBar
+                FormBar          = p.FormBar,
+                NeckBar          = neckBar
             });
         }
 
@@ -627,14 +673,46 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                 if (invalid)
                 {
-                    if (DeleteInvalidated) RemoveStructure(d.Tag);
+                    if (DeleteInvalidated)
+                    {
+                        RemoveStructure(d.Tag);
+                        drawnHistory.RemoveAll(r => r.Tag == d.Tag);   // no longer on the chart
+                    }
                     openDrawn.RemoveAt(i);
                 }
-                else if (expired || confirmed)
+                else if (expired)
                 {
                     openDrawn.RemoveAt(i);
                 }
+                else if (confirmed)
+                {
+                    DrawNeckline(d.Tag, d.IsTop, d.NeckBar, d.Neckline);   // extend to the bar that closed beyond
+                    openDrawn.RemoveAt(i);
+                }
             }
+        }
+
+        // ShowLastN > 0: keep only the newest N structures (DT + DB together) on the
+        // chart; older ones lose all their drawings incl. the confirm triangle.
+        private void EnforceShowLast()
+        {
+            if (ShowLastN <= 0) return;
+            while (drawnHistory.Count > ShowLastN)
+            {
+                DrawnRecord old = drawnHistory[0];
+                RemoveStructure(old.Tag);
+                if (!string.IsNullOrEmpty(old.TriTag)) RemoveDrawObject(old.TriTag);
+                openDrawn.RemoveAll(d => d.Tag == old.Tag);
+                drawnHistory.RemoveAt(0);
+            }
+        }
+
+        // remembers which confirm triangle belongs to which structure (for ShowLastN)
+        private void LinkTriangle(Pending p, string triTag)
+        {
+            if (p == null || p.DrawTag == null) return;
+            foreach (DrawnRecord r in drawnHistory)
+                if (r.Tag == p.DrawTag) { r.TriTag = triTag; return; }
         }
 
         // Removes every drawing DrawStructure made for one structure (invalidated setups,
@@ -828,6 +906,22 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Range(1, 20)]
         [Display(Name = "Peak line width", Description = "Width of the line joining the two tops/bottoms.", Order = 7, GroupName = "5. Lines")]
         public int PeakLineWidth { get; set; }
+
+        [XmlIgnore]
+        [Display(Name = "DT triangle color", Description = "Color of the double-top neckline-break triangle.", Order = 8, GroupName = "5. Lines")]
+        public Brush DtTriangleBrush { get; set; }
+        [Browsable(false)]
+        public string DtTriangleBrushSerialize { get { return Serialize.BrushToString(DtTriangleBrush); } set { DtTriangleBrush = Serialize.StringToBrush(value); } }
+
+        [XmlIgnore]
+        [Display(Name = "DB triangle color", Description = "Color of the double-bottom neckline-break triangle.", Order = 9, GroupName = "5. Lines")]
+        public Brush DbTriangleBrush { get; set; }
+        [Browsable(false)]
+        public string DbTriangleBrushSerialize { get { return Serialize.BrushToString(DbTriangleBrush); } set { DbTriangleBrush = Serialize.StringToBrush(value); } }
+
+        [Range(0, int.MaxValue)]
+        [Display(Name = "Show last N DT/DB", Description = "0 = show all. N > 0 = keep only the newest N patterns (DT and DB counted together) on the chart; older ones are removed incl. their triangle.", Order = 19, GroupName = "3. Alerts")]
+        public int ShowLastN { get; set; }
         #endregion
     }
 }
