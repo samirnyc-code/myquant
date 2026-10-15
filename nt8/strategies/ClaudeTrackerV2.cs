@@ -161,6 +161,19 @@ namespace NinjaTrader.NinjaScript.Strategies
             // MAEinR_Window    = MAEPoints_Window / RiskPoints
         }
 
+        // Per-named-target-order settle/move tracking (Target1, Target2, Target3, ...),
+        // mirroring the InitialStop settle-window pattern on ActiveTrade but keyed per
+        // order since there can be more than one live target at once.
+        private class TargetTrackState
+        {
+            public bool Started;
+            public bool Locked;
+            public DateTime WindowStartTime;
+            public double PendingCandidate;
+            public double LockedPrice;
+            public int MoveCount;
+        }
+
         private class ActiveTrade
         {
             public string TradeID;
@@ -203,6 +216,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             public bool FirstActualCaptured;
             public double CurrentStop;
             public double CurrentTarget;
+            // Keyed by sanitized order name (e.g. "TARGET1") — tracks each target
+            // order's own settle window + subsequent moves independently.
+            public Dictionary<string, TargetTrackState> Targets = new Dictionary<string, TargetTrackState>();
             public int EventCounter;
             public List<TradeEventRow> EventRows = new List<TradeEventRow>();
             public string TradeFolder;
@@ -314,6 +330,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (CurrentBar < 1) return;
             UpdateOpenTradeExcursions();
             TryLockInitialStop();
+            TryLockTargets();
         }
 
         #endregion
@@ -329,7 +346,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (o.Instrument.FullName != Instrument.FullName) return;
                 if (activeTrade == null) return;
                 if (IsStopOrder(o)) { double sp = o.StopPrice; if (sp > 0) HandleStopUpdate(sp, o); }
-                else if (IsTargetOrder(o)) { double tp = GetTargetPrice(o); if (tp > 0) activeTrade.CurrentTarget = tp; }
+                else if (IsTargetOrder(o) && (o.Name ?? string.Empty).Trim().ToUpperInvariant().StartsWith("TARGET"))
+                {
+                    // Name-gated: IsTargetOrder() is true for ANY limit order (incl. a
+                    // limit scale-in ENTRY), but only ATM-generated "Target1/2/3" orders
+                    // are actual exit targets — gating on the name avoids logging a fake
+                    // target move/screenshot every time a limit entry order is placed.
+                    double tp = GetTargetPrice(o);
+                    if (tp > 0) HandleTargetUpdate(tp, o);
+                }
             }
             catch (Exception ex) { Print("OnAccountOrderUpdate error: " + ex.Message); }
         }
@@ -933,6 +958,120 @@ if (name.StartsWith("TARGET"))
             activeTrade.InitialStopLocked = true;
             AppendStopRowToStudy("INITIAL_STOP", activeTrade.InitialStop, activeTrade.InitialStopTime);
             DebugPrint("InitialStop locked at " + F2(activeTrade.InitialStop));
+        }
+
+        #endregion
+
+        #region Target handling
+
+        // Same settle-then-track-moves shape as HandleStopUpdate/TryLockInitialStop,
+        // generalized per order name since there can be multiple live targets (T1/T2/T3).
+        private void HandleTargetUpdate(double targetPrice, Order o)
+        {
+            if (activeTrade == null) return;
+            DateTime now = Core.Globals.Now;
+            string orderKey = SanitizeLabel((o.Name ?? "TARGET").Trim().ToUpperInvariant());
+            if (string.IsNullOrEmpty(orderKey)) orderKey = "TARGET";
+
+            activeTrade.CurrentTarget = targetPrice;
+
+            TargetTrackState st;
+            if (!activeTrade.Targets.TryGetValue(orderKey, out st))
+            {
+                st = new TargetTrackState();
+                activeTrade.Targets[orderKey] = st;
+            }
+
+            if (!st.Started)
+            {
+                st.Started          = true;
+                st.WindowStartTime  = now;
+                st.PendingCandidate = targetPrice;
+                return;
+            }
+
+            if (!st.Locked)
+            {
+                if ((now - st.WindowStartTime).TotalSeconds <= InitialStopLockSeconds)
+                {
+                    st.PendingCandidate = targetPrice;
+                    return;
+                }
+                st.Locked      = true;
+                st.LockedPrice = st.PendingCandidate;
+                AppendTargetRowToStudy(orderKey + "_INITIAL", st.LockedPrice, now);
+                if (targetPrice.ApproxCompare(st.LockedPrice) == 0) return;
+                st.LockedPrice = targetPrice;
+                st.MoveCount++;
+                AppendTargetRowToStudy(orderKey + "_MOVED_" + st.MoveCount.ToString(INV), targetPrice, now);
+                return;
+            }
+
+            if (st.LockedPrice.ApproxCompare(targetPrice) != 0)
+            {
+                st.LockedPrice = targetPrice;
+                st.MoveCount++;
+                AppendTargetRowToStudy(orderKey + "_MOVED_" + st.MoveCount.ToString(INV), targetPrice, now);
+            }
+        }
+
+        private void AppendTargetRowToStudy(string targetEvent, double targetPrice, DateTime targetTime)
+        {
+            if (activeStudy == null) return;
+
+            if (activeStudy.LastStopWrittenTime != default(DateTime) &&
+                (targetTime - activeStudy.LastStopWrittenTime).TotalMilliseconds < 200)
+            {
+                DebugPrint("DEBOUNCE: Target " + F2(targetPrice) + " within 200ms — skipped");
+                return;
+            }
+
+            int sessionBar, sessionLastBar;
+            GetBarInfo(targetTime, out sessionBar, out sessionLastBar);
+            // RiskEvent.riskPoints is generically "distance from entry at this
+            // checkpoint" (both STOP and TARGET kinds) — not direction-clamped
+            // like GetRiskPoints, since a target is always on the favorable side.
+            double distPoints = Math.Abs(targetPrice - activeStudy.EntryPrice);
+
+            activeStudy.StopRows.Add(new EntryStudyRow
+            {
+                TradeID         = activeStudy.TradeID,
+                InstrumentName  = Instrument.FullName,
+                Direction       = activeStudy.Direction,
+                EntryPrice      = activeStudy.EntryPrice,
+                EntryQty        = activeStudy.EntryQty,
+                EntryTime       = activeStudy.EntryTime,
+                EntrySessionBar = activeStudy.EntrySessionBar,
+                StopEvent       = targetEvent,
+                StopEventIndex  = activeStudy.StopRows.Count,
+                StopPrice       = targetPrice,
+                StopTime        = targetTime,
+                StopSessionBar  = sessionBar,
+                RiskPoints      = distPoints
+            });
+
+            activeStudy.LastStopWrittenTime = targetTime;
+            WriteEntryStudy(activeStudy);
+            RequestScreenshot(targetEvent, targetTime, activeStudy.TradeID, activeStudy.EntryTime);
+
+            DebugPrint(targetEvent + " appended: target=" + F2(targetPrice) + " dist=" + F2(distPoints) + " pts");
+        }
+
+        // Fallback for the same reason TryLockInitialStop exists: if a target's price
+        // never changes again after its first settle, no further OrderUpdate fires to
+        // trigger the lock — called every bar to lock once the settle window elapses.
+        private void TryLockTargets()
+        {
+            if (activeTrade == null) return;
+            foreach (KeyValuePair<string, TargetTrackState> kv in activeTrade.Targets)
+            {
+                TargetTrackState st = kv.Value;
+                if (!st.Started || st.Locked) continue;
+                if ((Core.Globals.Now - st.WindowStartTime).TotalSeconds < InitialStopLockSeconds) continue;
+                st.Locked      = true;
+                st.LockedPrice = st.PendingCandidate;
+                AppendTargetRowToStudy(kv.Key + "_INITIAL", st.LockedPrice, Core.Globals.Now);
+            }
         }
 
         #endregion
