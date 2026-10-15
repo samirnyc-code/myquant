@@ -190,6 +190,42 @@ isolated log going forward. **Still open:** no confirmed root cause yet for the 
 visual "not working" on the 2k chart specifically — need the user to F5 (new filenames) and
 reproduce, then read the correctly-isolated per-instance log instead of guessing further.
 
+**Both resolved later the same session (commit `4d96bea`):**
+
+- **`SessionSRLevelsV9` — the HOY/LOY date fix above caused a full outage ("all levels gone
+  again"), confirmed via the NT8 Control Center log**: `'GetTradingDay' can only be called when
+  SessionIterator was created with 'Bars'-parameter`. `_rthIter` is built from a `TradingHours`
+  object (for `IsNewSession`/`GetNextSession`), NOT `Bars` — `GetTradingDay` needs the latter.
+  Threw on every bar, which NT8 silently handles by disabling the whole indicator (nothing in
+  this file's `OnBarUpdate` catches exceptions — one bad call anywhere = total outage, worse
+  than the original missing-levels bug). Fixed: added `_rthBarsIter`, a NEW Bars-bound iterator
+  over the hidden RTH series' own Bars (same proven pattern already used for `_ethDayIter`), and
+  wrapped the call in try/catch with a fallback, so a future edge case here degrades instead of
+  disabling the indicator again. **Lesson: `nt8_compile_check.ps1` passing is NOT proof a new
+  NT8 API call is runtime-safe — NT8 has call-pattern preconditions (which iterator
+  constructor was used) that only surface as a Control Center log error at F5, never a compile
+  error. Check that log after every F5 on a changed file, don't just trust a clean compile.**
+- **`RegimeTrackerPanel` "disappears" — root-caused, once the per-instance debug file above
+  isolated the actual 2k-tick-chart instance.** Confirmed via its own clean DebugLog (zero
+  render gaps, zero null-guard trips, `bip1Calls` climbing normally) that the ENGINE was never
+  the problem — this was always a rendering bug. `OnRender` computed its paint rectangle's
+  vertical bounds from `chartScale.MaxValue`/`MinValue`, which NT8 auto-fits to the Regime
+  plot's VISIBLE values. `CurrentRegime` sits at exactly `0.0` (Range) for long stretches — if
+  every bar currently in view happens to be Range, that auto-fit range collapses toward `[0,0]`,
+  making `yTop==yBot` and `FillRectangle` paint a **zero-height, invisible band** despite
+  completely correct underlying data. Fixed: use `ChartPanel`'s own pixel bounds directly
+  instead (matching what this function's own header comment always claimed it does — "full
+  panel height... edge-to-edge" — the chartScale-based implementation never actually matched
+  that intent). Also pinned `Plots[0].Max/Min` as a secondary Data-Box safeguard, and added the
+  `ChartPanel == null` guard the sibling `RegimeTrackerBox` indicator already uses for this
+  exact pattern.
+
+**Status:** both compile clean, deployed, committed (`4d96bea`). **PENDING user F5 on both +
+visual confirmation** — this session hit two real regressions from its own fixes (the
+`GetTradingDay` outage, caught via the NT8 log) before landing on verified-healthy-engine +
+targeted-rendering-fix for the Panel. Don't take "compiled clean" as "done" again without
+checking the Control Center log after F5.
+
 ---
 
 ## S138-nt8-regime-box-panel-parity (2026-10-15) — `RegimeTrackerBox` gains IncludePriorSession; Lag default reconciled with Panel
