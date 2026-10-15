@@ -174,6 +174,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int      _primaryWeekOpenBar  = -1;
 		private int      _primaryMonthOpenBar = -1;
 
+		// Daily/Weekly primary only: trading day -> that day's own primary bar index (one
+		// bar = one day). The intraday RTH/ETH sub-session classification loop below can't
+		// run on a whole-day bar, so HandleRthSeries/HandleEthSeries (driven by their own
+		// hidden series, independent of the primary's period) use this to anchor their
+		// lines/historical segments to the right bar on THIS chart.
+		private readonly Dictionary<DateTime, int> _dailyPrimaryBarByDate = new Dictionary<DateTime, int>();
+
 		// Current-day running High/Low, tracked from the ACTUAL bars (not the visible window)
 		// so it stays locked when you scroll/zoom. Intraday only; on daily OnBarUpdate is
 		// skipped and the current-day H/L is just the latest daily bar's own High/Low.
@@ -304,8 +311,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// 1-min) to cut ~5x the bar-processing load: a bar's High/Low aggregates the
 				// extreme, so the overnight H/L stays exact; only the RTH-open lock boundary is
 				// coarsened to ~5 min (the quiet pre-open window rarely holds the overnight extreme).
+				// EthFromPrimary is also IGNORED (hidden series added anyway) when the primary
+				// isn't intraday: computing ETH overnight H/L from the primary's own bars means
+				// classifying each bar as RTH-time or ETH-time, which a single whole-day Daily
+				// bar can't support -- the hidden series is the only way ETH works on a Daily chart.
+				bool primaryIntraday = Bars != null && Bars.BarsType.IsIntraday;
 				_ethSeriesAdded = false;
-				if (needEth && !EthFromPrimary && !string.IsNullOrEmpty(FullTemplateNameHint))
+				if (needEth && (!EthFromPrimary || !primaryIntraday) && !string.IsNullOrEmpty(FullTemplateNameHint))
 				{
 					try
 					{
@@ -427,7 +439,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (_rthBip >= 0 && BarsInProgress == _rthBip) { HandleRthSeries(); return; }
 			if (_ethDayBip >= 0 && BarsInProgress == _ethDayBip) { HandleEthDailySeries(); return; }
 			if (BarsInProgress != 0) return;
-			if (CurrentBar < 0 || !Bars.BarsType.IsIntraday) return;
+			if (CurrentBar < 0) return;
+			if (!Bars.BarsType.IsIntraday)
+			{
+				// Daily/Weekly primary: one bar = one whole day/week, so there's no intraday
+				// RTH/ETH sub-session to classify bar-by-bar (everything below needs that).
+				// Still record date -> bar index so HandleRthSeries/HandleEthSeries (driven by
+				// their OWN hidden series, unaffected by the primary's period) can anchor their
+				// lines/historical segments to the right bar on THIS chart.
+				DateTime td = _dayIter.GetTradingDay(Time[0]);
+				_curTradingDay = td;
+				_curWeekStart  = MondayOf(td);
+				_curMonthKey   = td.Year * 12 + td.Month;
+				_dailyPrimaryBarByDate[td] = CurrentBar;
+				return;
+			}
 
 			DateTime barTime    = Time[0];
 			DateTime tradingDay = _dayIter.GetTradingDay(barTime);
@@ -635,7 +661,42 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// session; Opens[rth][0] on that bar is the RTH open.
 			DateTime d = Times[_rthBip][0].Date;
 			if (d == _rthSeriesLastDate) return;
+			DateTime prevDate = _rthSeriesLastDate;
 			_rthSeriesLastDate = d;
+
+			// Daily/Weekly primary only: the primary's own OnBarUpdate loop (which normally
+			// rolls _priorRthHigh/_priorRthLow/_priorRthClose and pushes _rthHist) is skipped
+			// entirely on a non-intraday chart (see OnBarUpdate). This hidden RTH-daily series
+			// already gives exactly one bar per RTH session, so read the just-COMPLETED one's
+			// own High/Low/Close directly here instead -- independent of the primary's period,
+			// which is why HOY/LOY/COY + the historical Model-A segments can work on a Daily
+			// chart even though the intraday classification loop below never runs for it.
+			if (BarsArray != null && BarsArray.Length > 0 && !BarsArray[0].BarsType.IsIntraday
+				&& prevDate > Core.Globals.MinDate && CurrentBars[_rthBip] >= 1)
+			{
+				double prevHigh = Highs[_rthBip][1], prevLow = Lows[_rthBip][1];
+				double prevClose = Closes[_rthBip][1], prevOpen = Opens[_rthBip][1];
+				int prevHighBar, prevLowBar, prevCloseBar;
+				if (!_dailyPrimaryBarByDate.TryGetValue(prevDate, out prevHighBar)) prevHighBar = -1;
+				prevLowBar = prevCloseBar = prevHighBar;
+
+				_priorRthHigh = prevHigh;  _priorRthHighStartBar  = prevHighBar;
+				_priorRthLow  = prevLow;   _priorRthLowStartBar   = prevLowBar;
+				_priorRthClose = prevClose; _priorRthCloseStartBar = prevCloseBar;
+
+				double prevWeekOpen, prevMonthOpen;
+				if (!_rthWeekOpenBy.TryGetValue(MondayOf(prevDate), out prevWeekOpen)) prevWeekOpen = prevOpen;
+				if (!_rthMonthOpenBy.TryGetValue(new DateTime(prevDate.Year, prevDate.Month, 1), out prevMonthOpen)) prevMonthOpen = prevOpen;
+
+				_rthHist.Add(new HRSess {
+					date = prevDate,
+					o = prevOpen, oBar = prevHighBar,
+					h = prevHigh, hBar = prevHighBar, l = prevLow, lBar = prevLowBar,
+					c = prevClose, cBar = prevCloseBar,
+					weekOpen = prevWeekOpen, monthOpen = prevMonthOpen,
+					dayStartBar = prevHighBar, dayEndBar = prevHighBar });
+				if (_rthHist.Count > 70) _rthHist.RemoveAt(0);
+			}
 
 			double op = Opens[_rthBip][0];                 // true RTH open for this session
 			_rthOpenByDay[d] = op;
@@ -1149,11 +1210,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Add(list, RHOY_Enabled, RHOY_Label, _priorRthHigh,    RHOY_Color, RHOY_Opacity, RHOY_Style, RHOY_Thickness, 0, _priorRthHighStartBar);
 				Add(list, RLOY_Enabled, RLOY_Label, _priorRthLow,     RLOY_Color, RLOY_Opacity, RLOY_Style, RLOY_Thickness, 0, _priorRthLowStartBar);
 				Add(list, RCOY_Enabled, RCOY_Label, _priorRthClose,   RCOY_Color, RCOY_Opacity, RCOY_Style, RCOY_Thickness, 0, _priorRthCloseStartBar);
-				// OoD RTH stops at the end of its RTH session (_rthLastBar) — doesn't spill into the following ETH session.
-				Add(list, ROoD_Enabled, ROoD_Label, _rthOpenToday,    ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, _rthOpenStartBar, _rthLastBar);
-				Add(list, ROoW_Enabled, ROoW_Label, _rthOpenThisWeek, ROoW_Color, ROoW_Opacity, ROoW_Style, ROoW_Thickness, 0, _rthWeekStartBar);
+
+				// RTH start bars: on an INTRADAY chart use the anchors tracked live in
+				// OnBarUpdate. On a DAILY chart that loop is skipped, so fall back to the
+				// calendar date walk (same pattern as the ETH block below).
+				int rthOpenStart, rthLastBarEff, rthWeekStart, rthMonthStart;
+				if (BarsArray != null && BarsArray.Length > 0 && BarsArray[0].BarsType.IsIntraday)
+				{
+					rthOpenStart  = _rthOpenStartBar;
+					rthLastBarEff = _rthLastBar;
+					rthWeekStart  = _rthWeekStartBar;
+					rthMonthStart = _rthMonthStartBar;
+				}
+				else
+				{
+					rthOpenStart  = FirstBarOfCurrentPeriod(0);
+					rthLastBarEff = -1;   // no intraday RTH-only tail to cap on a daily bar -- extend normally
+					rthWeekStart  = FirstBarOfCurrentPeriod(1);
+					rthMonthStart = FirstBarOfCurrentPeriod(2);
+				}
+				// OoD RTH stops at the end of its RTH session (_rthLastBar) on an intraday chart — doesn't spill into the following ETH session.
+				Add(list, ROoD_Enabled, ROoD_Label, _rthOpenToday,    ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, rthOpenStart, rthLastBarEff);
+				Add(list, ROoW_Enabled, ROoW_Label, _rthOpenThisWeek, ROoW_Color, ROoW_Opacity, ROoW_Style, ROoW_Thickness, 0, rthWeekStart);
 				// RTH OoM: manual override wins when a price is set and its month == the current month
-				double rOoM = _rthOpenThisMonth; int rOoMBar = _rthMonthStartBar;
+				double rOoM = _rthOpenThisMonth; int rOoMBar = rthMonthStart;
 				if (ROoM_ManualPrice != 0 && MonthKeyOf(ROoM_ManualMonth) == _curMonthKey)
 				{ rOoM = ROoM_ManualPrice; rOoMBar = ChartBars.FromIndex; }
 				Add(list, ROoM_Enabled, ROoM_Label, rOoM, ROoM_Color, ROoM_Opacity, ROoM_Style, ROoM_Thickness, 0, rOoMBar);

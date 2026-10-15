@@ -1,6 +1,19 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-15 (machine-time W. Europe) — **S138: NT8 `RegimeTrackerBox` gains
+**Last Updated:** 2026-10-15 (machine-time W. Europe) — **S139: NT8 `SessionSRLevelsV9` — fixed
+a real, confirmed gap: its RTH/ETH session levels never computed on a Daily-period primary
+chart (the "Daily Globex" tab) because the value computation lived entirely inside the
+primary's `OnBarUpdate`, gated `!Bars.BarsType.IsIntraday → return`. User's saved workspace
+config (`Hist_* = true`, `HistSessions=5`) proved this was a real, deliberately-configured
+setup, not user error. Fix: HOY/LOY/COY + the historical Model-A segments now source H/L/C
+directly from the existing hidden Daily-RTH-template series (`HandleRthSeries`, already
+independent of the primary's bar type) instead of the primary's intraday-only loop; ETH
+levels fall back to the existing hidden 5-min ETH series when the primary isn't intraday
+(Configure-time `EthFromPrimary` override). Settlement/EM-bands fixed for free (downstream of
+`_priorRthClose`/`_curTradingDay`, now tracked correctly on Daily too). Compiles clean,
+deployed, committed. **I initially misdiagnosed this as "working as designed" and separately
+made a false claim the indicator's saved config was empty (a self-inflicted grep-filtering
+artifact, not real) — logged as a lesson, see S139 block.** See S139 block.** S138: NT8 `RegimeTrackerBox` gains
 `IncludePriorSession` (ported from `RegimeTrackerPanel`, same current+prior-session continuity)
 + `RegimeTrackerPanel`'s `Lag` default reconciled back to the canonical `1` (had drifted to 0
 in a later perf session, mismatching Box's `1`). Both compile clean, deployed, committed
@@ -74,6 +87,79 @@ correct, but the bar-close event itself (leg/counter freshness) lags for these a
 Daily/Weekly series; a restart and two parameter changes didn't fix it, root cause
 undetermined, deprioritized as a minor staleness issue (the regime reading itself is
 accurate, just dated to the last bar NT8 delivered). See S134 block.** S133: NT8 `RegimeTrackerBox` — NEW multi-timeframe regime dashboard indicator. One box on the chart, rows = timeframes (editable: `2000t,5M,15M,60M,240M,D,W`), two columns RTH + ETH, each cell colored by Bull/Bear/Range. Flexible corner+X/Y offset and font size. Built, compile-checked, deployed, committed+pushed. GOTCHA fixed: the two trading-hours templates must be exact Trading Hours Manager names — `CME US Index Futures RTH` / `CME US Index Futures ETH` (NOT "CME RTH"/"CME ETH"; a bad name makes `AddDataSeries` throw in `OnStateChange` → indicator errors, draws nothing). See S133 block.** **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S139-nt8-srlevels-daily-chart (2026-10-15) — `SessionSRLevelsV9`: real fix for Daily-chart levels, not user error
+
+**Trigger:** user reported SR levels missing on the "Daily Globex" chart tab, insisted they
+used to show on this exact chart. I initially (wrongly) treated this as either user error or
+"by design" — both wrong, and said so to the user, who (correctly) pushed back hard.
+
+**What I got wrong along the way (logged so it isn't repeated):**
+1. First claimed the levels "can't work on Daily bars, never could" — based on real code
+   (`OnBarUpdate`'s primary branch returns immediately when `!Bars.BarsType.IsIntraday`) but an
+   incomplete read: didn't check whether OTHER parts of the pipeline (the hidden RTH/ETH
+   series) were independent of that gate.
+2. Then claimed the indicator's saved workspace config was **completely empty** — this was
+   **false**, a self-inflicted artifact: an `awk`/grep filter that only printed lines
+   containing the literal string "SessionSRLevelsV9" skipped ~250 lines of real property
+   values in between the opening and closing tags, making a fully-populated block look empty.
+   Re-reading the actual file content (not just grep-matched lines) showed the real saved
+   config: `HistSessions=5`, `Hist_HOY/LOY/COY/OoD/OoW/OoM/EthH/EthL/Settle = true`,
+   `BarsPeriodTypeSerialize=5` (Day) — a real, deliberate setup for exactly this Daily chart,
+   not defaults. **Lesson: a grep/awk filter that only prints matching lines can make a large,
+   fully-populated XML/config block look empty if the filter pattern doesn't appear in every
+   line — read the actual file range, don't trust a sparse grep as proof of absence.**
+
+**Real root cause, confirmed:** `SessionSRLevelsV9`'s RTH/ETH session-level VALUES (HOY/LOY/
+COY, the historical Model-A segments, OoD/OoW/OoM anchors) are computed inside the PRIMARY
+chart's own `OnBarUpdate`, which classifies each primary bar as RTH-time or ETH-time by
+comparing its timestamp against the RTH session window — structurally impossible on a single
+Daily bar (it spans the whole day, no sub-session info survives). That gate (`!Bars.BarsType.
+IsIntraday → return`) has been in the file since its first commit — but the ETH side of this
+used to have a genuine workaround: `git log -S EthFromPrimary` shows exactly ONE commit,
+`2eb93aff` (**2026-10-14, the day before this session**), "compute ETH levels from the chart's
+own bars (fix wrong ETH H + drop 5-min feed)" — this added `EthFromPrimary` defaulting **ON**
+and explicitly dropped reliance on the old hidden 5-min ETH series by default. S132 (2026-10-02,
+committed) had built that hidden-series path specifically so "ETH levels...work on RTH-only +
+daily charts." The 2026-10-14 change fixed a real intraday-chart bug (wrong ETH H) but, as an
+unconsidered side effect, silently cut the Daily-chart ETH path it depended on — **this exactly
+matches the user's memory of levels working before and breaking recently.** The RTH side
+(HOY/LOY/COY) was apparently never fully wired to Daily charts at all — partial support existed
+(`FirstBarOfCurrentPeriod`, `CurrentDayHighLow`'s Daily branch, comments explicitly
+acknowledging "on daily charts these stay -1 ... falls back to the calendar-date walk") but the
+underlying VALUES (`_priorRthHigh`/`_priorRthLow`/`_priorRthClose`, `_rthHist`) were never
+connected to a non-intraday-safe source — only the bar-anchor side got the treatment, not the
+value side.
+
+**Fix (`nt8/indicators/SessionSRLevelsV9.cs`, compiled clean, deployed, committed):**
+- New `_dailyPrimaryBarByDate` dict: on a non-intraday primary, `OnBarUpdate`'s primary branch
+  now does lightweight bookkeeping (`_curTradingDay`, `_curWeekStart`, `_curMonthKey`, and this
+  date→bar map) instead of returning with nothing done, then still returns before the
+  intraday-only RTH/ETH classification logic (unchanged, zero behavior change on intraday charts).
+- `HandleRthSeries()` (driven by the hidden Daily-RTH-template series, already independent of
+  the primary's own period) now ALSO rolls `_priorRthHigh/_priorRthLow/_priorRthClose` and
+  pushes `_rthHist` historical records when the primary isn't intraday — reading the just-
+  completed hidden RTH-daily bar's own H/L/C directly (one bar = one full RTH session, so no
+  classification needed) and anchoring to the primary bar via `_dailyPrimaryBarByDate`.
+- `State.Configure`: the hidden ETH series is now added whenever `needEth && (!EthFromPrimary
+  || !primaryIntraday)` — i.e., `EthFromPrimary` is ignored (hidden series added anyway) when
+  the primary isn't intraday, since `EthFromPrimary` fundamentally cannot classify RTH-vs-ETH
+  from a whole-day bar either. `HandleEthSeries()` was ALREADY fully independent of the
+  primary's bar type (confirmed by reading it) — it just needed the hidden series to actually
+  exist on a Daily chart, which it now does.
+- Live-level RTH anchors (OoD/OoW/OoM start bars) now branch intraday-vs-Daily the same way the
+  ETH block already did (`FirstBarOfCurrentPeriod` fallback) instead of relying on
+  `_rthOpenStartBar`/`_rthWeekStartBar`/`_rthMonthStartBar`, which stayed `-1` forever on Daily.
+- Settlement and the VIX/GEX expected-move bands needed **no direct fix** — both were already
+  downstream of `_priorRthClose`/`_curTradingDay`, which the above now keeps current on Daily
+  too. Custom levels (C1–C8) and HoD/LoD were already Daily-safe, untouched.
+
+**Status:** compiles clean (`nt8_compile_check.ps1`), deployed to
+`Documents\NinjaTrader 8\bin\Custom\Indicators\SessionSRLevelsV9.cs`, committed. **PENDING:
+user F5** (when flat) + visual confirmation on the actual "Daily Globex" chart that HOY/LOY/COY,
+OoD/OoW/OoM, ETH H/L, Settlement, and the historical multi-session segments are back.
 
 ---
 
@@ -1224,7 +1310,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 21 | DtDbScanner (DT/DB tick-chart scanner) — add + backtest/walk-forward | ⛔ CLOSED (S126 2026-10-02) — NO mechanical edge | Indicator added (`nt8/indicators/DtDbScanner.cs`), full-history walk-forward + stop/target sweep + freq gate: only 1500t/2000t ever trade >=3/day, both net losers OOS (1500t PF 0.92 -$96.9k; 2000t PF 0.93 -$45.1k). User closed it — discretionary use only, do not resume unasked. See S126 block |
 | 19 | **Regime tracker — BOS/ChoCh regime classifier (5m ES)** | 🔧 **WIP (Thomas-Code chat, 2026-10-13): Python review pipeline → Lag-aware (Python = base for the 4 C# copies)** · 🟢 LAG RECONCILE DONE (S124 2026-09-24) — PENDING USER F5 | **Lag=1 is canonical** (user decision). S123 export-diff was the Lag setting (Documents=Lag3 vs Desktop=Lag1), NOT a build/tick engine difference. Python now models Lag (`mywedge.compute_mywedge(lag=)` + `swing_*_asof`); **Python(lag=1)↔both NT exports = 100%** (Documents `--session eth`, Desktop `--session date`). NT8 `RegimeTracker.cs` default Lag 3→1, compiled + **deployed — PENDING USER F5** (when flat). Invariant: lag2==lag3==finalised (non-repaint). Repaint effect: 476/500 trend segments identical, 1.04% bar diffs, ~4 short direction-flip windows. **PARKED (user will revisit): Lag 1 vs Lag 2** (chart-match+repaint vs settled/non-repaint). See S124 block. Earlier (S123): outside-bar rule ported (`Swings()`/`Extends()`). **Outside-bar rule (9/22-23):** mywedge marks an outside bar as BOTH a swing high and low; if it extended the structure at both ends both swings stand, else it collapses to the extreme it LEFT ON (`bar_dir`). Validated on 4 hand-marked charts at once — 02-13 **Bull b9**, 12-26 **one Bear b21-53**, 05-19 **Bear b16**, 05-21 **unchanged Bull b28**; other 8 sessions byte-identical. Three rejected variants recorded in the regime-tracker block — do NOT retry (the third, a general minor-pivot filter, broke 14/14 sessions). **Minor pivots beyond outside bars: CLOSED 9/23, user said leave as is** — zero-length in-bar trends (05-06 b5 etc.) are an accepted artifact. **PARKED:** 02-13 late ChoCh ~b76 (outside-bar intrabar order) — tracker is deliberately **bar-only, do NOT resolve with ticks**. Page generators now in `regime_tracker/pages/` (near-duplicates; consolidate before the next batch). Safety tag `pre-nt8-merge-20260923`; stale worktree `C:\Users\Thomas-Code\wt-nt8` can be removed. **S127 2026-10-02: Indicator-Manager hide/show bug fixed in a NEW clone `RegimeTrackerV2.cs` (+ `DtDbScannerV2.cs`) — V1 untouched, still the one in use. See S127 block before next edit to either original.** **S138 2026-10-15: `RegimeTrackerBox` gains `IncludePriorSession` (matches Panel); Panel's `Lag` default restored 0→1 to match Box's canonical value. Compiled+deployed+committed (`41f138d`), PENDING user F5. See S138 block.** |
 | 22 | **BreakoutBoysLiteV3 — reworked manual entry engine (BUY/SELL auto-type + IBS toggle)** | 🟡 PENDING USER F5 + SIM TEST (2026-10-14) | NEW strategy; V1/V2 untouched = rollback. BUY/SELL auto-pick stop-limit vs limit at the SB level (never blocked); IBS on/off toggle + [-/+]; picked SB = place IMMEDIATELY (via `OnMarketData` — managed Enter from the button thread silently no-ops); SB marker stays while working + FOREVER on fill. **Sim-test: immediate fill, auto-type, two-tab routing, stop-side guard, marker-on-fill.** See the S-2026-10-14 block. |
-| 23 | **NT8 reload-crash hardening + SessionSRLevelsV9 polish + RegimeTrackerPanel perf** | 🟢 DONE, PENDING F5 (2026-10-14) | SR: EthFromPrimary (ETH H now exact from chart), OoD/OoW from Daily-RTH feed, Settlement=prior-day Daily-ETH, same-price merge, tab-aware buttons, lean feeds. RegimeTrackerPanel: CurrentSessionOnly+IncludePriorSession defaults, Lag=0 **(⚠ S138 2026-10-15: this Lag=0 default was a drift from the canonical Lag=1 — reverted back to 1, see row #19/S138 block)**. Crash: `ncd_io.py` share-delete + AddOn `_release_feed` trigger (`release_nt_feed.py`). **Recommend user sets chart Days-to-load ~15.** See the S-2026-10-14 block. |
+| 23 | **NT8 reload-crash hardening + SessionSRLevelsV9 polish + RegimeTrackerPanel perf** | 🟢 DONE, PENDING F5 (2026-10-14) | SR: EthFromPrimary (ETH H now exact from chart), OoD/OoW from Daily-RTH feed, Settlement=prior-day Daily-ETH, same-price merge, tab-aware buttons, lean feeds **(⚠ S139 2026-10-15: EthFromPrimary's default-ON here silently broke ETH levels on Daily-period charts, since it can't classify RTH-vs-ETH from a whole-day bar — fixed by falling back to the hidden ETH series when the primary isn't intraday; HOY/LOY/COY RTH levels + historical segments were ALSO never fully wired to Daily charts and got the same treatment — see S139 block)**. RegimeTrackerPanel: CurrentSessionOnly+IncludePriorSession defaults, Lag=0 **(⚠ S138 2026-10-15: this Lag=0 default was a drift from the canonical Lag=1 — reverted back to 1, see row #19/S138 block)**. Crash: `ncd_io.py` share-delete + AddOn `_release_feed` trigger (`release_nt_feed.py`). **Recommend user sets chart Days-to-load ~15.** See the S-2026-10-14 block. |
 | 24 | **Shadow Stop panel 6-day gap (10-02/05/06/07/08 + 08-10)** | ✅ DONE (S136 2026-10-14) | Root cause = the 2026-10-09 git-revert incident (fixed at trade-data level in `eecb1aed` 2026-10-10, never documented). Re-ran `shadow_stop_monitor.py --backfill` — real P&L restored for all 6 days. Intraday DD for those days is **permanently unrecoverable** (no marks.csv archive; IB no longer has the now-expired 0DTE contract definitions) — shown honestly as `no marks`. See S136 block. |
 
 ---
