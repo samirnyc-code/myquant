@@ -127,6 +127,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// Data Box / exported -- rendered transparent, the band itself is
 				// custom-painted in OnRender.
 				AddPlot(new Stroke(Brushes.Transparent, 1), PlotStyle.Line, "Regime");
+				// Pin the scale explicitly -- adding the plot alone does NOT prevent a
+				// degenerate scale: NT8 auto-fits a Line plot's Y-range from its VISIBLE
+				// values, and CurrentRegime sits at exactly 0.0 (Range) for long stretches.
+				// If every bar in the current view happens to be Range, the auto-fit range
+				// collapses toward [0,0] -> yTop==yBot in OnRender -> FillRectangle paints a
+				// ZERO-HEIGHT band, i.e. the panel visibly "disappears" with nothing wrong in
+				// the data (confirmed healthy via DebugLog when this was reported) -- a fixed
+				// range makes that structurally impossible regardless of how long the regime
+				// sits at Range.
+				Plots[0].Max = 1.5; Plots[0].Min = -1.5;
 			}
 			else if (State == State.Configure)
 			{
@@ -368,7 +378,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				LogDebug("OnRender", ChartBars == null ? "ChartBars NULL" : Bars == null ? "Bars NULL" : "");
 			}
 
-			if (ChartBars == null || Bars == null || _barRegime == null) return;
+			if (ChartBars == null || Bars == null || _barRegime == null || ChartPanel == null) return;
 
 			var bullDx = _bullShade.ToDxBrush(RenderTarget);
 			var bearDx = _bearShade.ToDxBrush(RenderTarget);
@@ -376,8 +386,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 			try
 			{
 				int from = ChartBars.FromIndex, to = ChartBars.ToIndex;
-				float yTop = chartScale.GetYByValue(chartScale.MaxValue);
-				float yBot = chartScale.GetYByValue(chartScale.MinValue);
+				// Use the PANEL's own pixel bounds, not chartScale.MaxValue/MinValue -- the
+				// latter auto-fits to the Regime plot's VISIBLE values, which sit at exactly
+				// 0.0 (Range) for long stretches; if every bar in view happens to be Range,
+				// that auto-fit range collapses toward [0,0] -> yTop==yBot here -> a
+				// zero-height FillRectangle, i.e. the whole band silently vanishes with
+				// nothing wrong in the underlying data (confirmed healthy via DebugLog when
+				// this was reported -- S139). ChartPanel's own Y/H can't degenerate this way,
+				// and matches what this function's own header comment always said it does:
+				// "paints one full-panel-height, edge-to-edge rectangle per bar."
+				float yTop = (float)ChartPanel.Y;
+				float yBot = (float)(ChartPanel.Y + ChartPanel.H);
 
 				int lastBar = Bars.Count - 1;
 				for (int bi = Math.Max(0, from); bi <= to && bi < Bars.Count; bi++)

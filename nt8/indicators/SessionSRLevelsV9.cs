@@ -120,6 +120,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// work on ANY chart — incl. an RTH-only chart whose own bars never fall in ETH
 		// hours. This series has its own session timeline, tracked separately from RTH.
 		private SessionIterator _ethDayIter;
+		// Bars-bound iterator over the hidden RTH-hours series itself, used ONLY to resolve
+		// "which RTH trading day" a primary bar's timestamp falls on (GetTradingDay requires
+		// a Bars-constructed SessionIterator -- _rthIter below is built from a TradingHours
+		// object instead, for IsNewSession/GetNextSession, and does NOT support GetTradingDay;
+		// calling it there throws "can only be called when SessionIterator was created with
+		// 'Bars'-parameter" and disables the whole indicator -- confirmed via the NT8 Control
+		// Center log after the first attempt at this). Same proven pattern as _ethDayIter.
+		private SessionIterator _rthBarsIter;
 		private SessionIterator _rthMembershipIter;   // separate RTH iterator used to lock the overnight H/L at RTH open
 
 		// ── RTH session OPENS (OoD/OoW/OoM) come from a dedicated hidden 1-min RTH-hours
@@ -386,7 +394,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// (primary = 0, ETH 1-min, RTH 1-min, Daily ETH). Stays correct if any is skipped.
 				{ int bip = 1; _ethBip = _ethSeriesAdded ? bip++ : -1; _rthBip = _rthSeriesAdded ? bip++ : -1; _ethDayBip = _ethDaySeriesAdded ? bip++ : -1; }
 
-				_ethDayIter = null; _rthMembershipIter = null; _ethLocked = false;
+				_ethDayIter = null; _rthBarsIter = null; _rthMembershipIter = null; _ethLocked = false;
 				_ethCurTradingDay = Core.Globals.MinDate; _ethCurWeekStart = Core.Globals.MinDate; _ethCurMonthKey = -1;
 				_primaryDayOpenBar = _primaryWeekOpenBar = _primaryMonthOpenBar = -1;
 				_curDayHigh = _curDayLow = double.NaN; _curDayStartBar = -1;
@@ -415,6 +423,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				if (_ethSeriesAdded && _ethBip >= 0 && BarsArray.Length > _ethBip)
 					_ethDayIter = new SessionIterator(BarsArray[_ethBip]);
+
+				if (_rthSeriesAdded && _rthBip >= 0 && BarsArray.Length > _rthBip)
+					_rthBarsIter = new SessionIterator(BarsArray[_rthBip]);
 
 				if (_ethDaySeriesAdded && _ethDayBip >= 0 && BarsArray.Length > _ethDayBip)
 					_ethDaySessIter = new SessionIterator(BarsArray[_ethDayBip]);
@@ -466,14 +477,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// their OWN hidden series, unaffected by the primary's period) can anchor their
 				// lines/historical segments to the right bar on THIS chart.
 				//
-				// Resolve the day via the RTH template (_rthIter), NOT _dayIter (which is bound
-				// to the PRIMARY's own template -- typically ETH/Globex on a chart like this).
-				// _dayIter.GetTradingDay would compute "which GLOBEX trading day", a different
-				// day boundary than the hidden RTH-hours series' own dates (Times[_rthBip][0]
-				// .Date, which HandleRthSeries keys everything by) -- using the wrong one here
-				// is exactly the kind of mismatch that silently shifts HOY/LOY/COY onto the
-				// wrong day. Falls back to _dayIter only if the RTH template failed to load.
-				DateTime td = _rthOk ? _rthIter.GetTradingDay(ConvertToRthTz(Time[0])) : _dayIter.GetTradingDay(Time[0]);
+				// Resolve the day via _rthBarsIter (Bars-bound, over the hidden RTH series'
+				// OWN bars), NOT _dayIter (bound to the PRIMARY's own template -- typically
+				// ETH/Globex on a chart like this, a DIFFERENT day boundary than the hidden
+				// RTH-hours series' own dates, which HandleRthSeries keys everything by --
+				// using the wrong one here is what shifted HOY/LOY/COY onto the wrong day).
+				// NOTE: _rthIter (built from a TradingHours object, not Bars) does NOT support
+				// GetTradingDay -- confirmed via NT8 Control Center log ("can only be called
+				// when SessionIterator was created with 'Bars'-parameter"), which THREW on
+				// every bar and disabled the whole indicator on the first attempt (nothing in
+				// this file catches OnBarUpdate exceptions -- one throw = total outage). Wrapped
+				// defensively this time: if _rthBarsIter.GetTradingDay ever throws for a reason
+				// not yet seen (e.g. called before the hidden series has any bars), fall back to
+				// _dayIter rather than take the whole indicator down again.
+				DateTime td;
+				try { td = _rthBarsIter != null ? _rthBarsIter.GetTradingDay(Time[0]) : _dayIter.GetTradingDay(Time[0]); }
+				catch { td = _dayIter.GetTradingDay(Time[0]); }
 				_curTradingDay = td;
 				_curWeekStart  = MondayOf(td);
 				_curMonthKey   = td.Year * 12 + td.Month;
