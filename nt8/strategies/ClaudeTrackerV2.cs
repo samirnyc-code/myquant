@@ -310,6 +310,19 @@ namespace NinjaTrader.NinjaScript.Strategies
     }
     DebugPrint("Loaded. Resuming from trade #" + dailyTradeCounter.ToString(INV));
 }
+            else if (State == State.Realtime)
+            {
+                // A chart/strategy reload (recompile, reconnect, platform restart)
+                // wipes activeTrade/activeStudy — plain in-memory fields, never
+                // persisted. If the broker still shows an open position for this
+                // instrument right now, pick it back up instead of silently losing
+                // its eventual exit fill (StartBehavior=AdoptAccountPosition above
+                // is what makes Position reliable here). 2026-10-15: exactly this
+                // scenario stuck two trades OPEN forever and dropped a third
+                // entirely — HandleExitExecution's activeTrade==null guard quietly
+                // ate the closing fill, no error, no trace.
+                ReconcileOpenPosition();
+            }
             else if (State == State.Terminated)
             {
                 if (Account != null)
@@ -494,6 +507,88 @@ namespace NinjaTrader.NinjaScript.Strategies
             WriteEntryStudy(activeStudy);
             DebugPrint("ENTRY written for " + tradeId + " [" + entryType + "] at " + F2(ex.Price));
             RequestScreenshot("ENTRY", ex.Time, tradeId, ex.Time);
+        }
+
+        // Synthesizes a minimal activeTrade/activeStudy from the broker's own
+        // position when we come up live and find one with nothing tracking it.
+        // Same shape as BeginNewTrade's setup, but sourced from Position instead
+        // of an Execution — there's no fill to key off, the original entry
+        // already happened before this instance existed. Original StartTime,
+        // true entry fill count, and any stop/risk history from before the
+        // reload are permanently gone; this buys correctness (the trade WILL
+        // close) over completeness (it won't look identical to a normally-
+        // tracked trade). TradeID and EntryType are both tagged "RECOVERED" /
+        // "Recovered" so this is never mistaken for a normal trade downstream.
+        private void ReconcileOpenPosition()
+        {
+            if (activeTrade != null) return;
+            if (Position == null || Position.MarketPosition == MarketPosition.Flat) return;
+
+            DateTime now = Core.Globals.Now;
+            int signedQty = Position.MarketPosition == MarketPosition.Long ? Position.Quantity : -Position.Quantity;
+
+            dailyTradeCounter++;
+            string instrumentName = SanitizeFilePart(Instrument.FullName);
+            string tradeId = instrumentName
+                + "_" + now.ToString("yyyyMMdd", INV)
+                + "_" + now.ToString("HHmmss", INV)
+                + "_" + (signedQty > 0 ? "LONG" : "SHORT")
+                + "_RECOVERED_T" + dailyTradeCounter.ToString(INV);
+
+            int sessionBar, sessionLastBar;
+            GetBarInfo(now, out sessionBar, out sessionLastBar);
+
+            activeTrade = new ActiveTrade
+            {
+                TradeID               = tradeId,
+                InstrumentName        = Instrument.FullName,
+                Direction             = signedQty > 0 ? "LONG" : "SHORT",
+                EntryType             = "Recovered",
+                EntryOrderName        = string.Empty,
+                StartTime             = now,
+                LastEventTime         = now,
+                StartSessionBar       = sessionBar,
+                LastEventSessionBar   = sessionBar,
+                CurrentQty            = signedQty,
+                MaxPositionQty        = Math.Abs(signedQty),
+                TotalEntryQty         = Math.Abs(signedQty),
+                FirstEntryPrice       = Position.AveragePrice,
+                WeightedAvgEntryPrice = Position.AveragePrice,
+                EntryPriceSum         = Position.AveragePrice * Math.Abs(signedQty),
+                TradeFolder           = EnsureTradeFolder(tradeId, now)
+            };
+
+            activeStudy = new SessionStudy
+            {
+                TradeID         = tradeId,
+                Direction       = activeTrade.Direction,
+                EntryPrice      = Position.AveragePrice,
+                EntryQty        = Math.Abs(signedQty),
+                EntryTime       = now,
+                EntrySessionBar = sessionBar
+            };
+
+            activeStudy.StopRows.Add(new EntryStudyRow
+            {
+                TradeID         = tradeId,
+                InstrumentName  = Instrument.FullName,
+                Direction       = activeTrade.Direction,
+                EntryPrice      = Position.AveragePrice,
+                EntryQty        = Math.Abs(signedQty),
+                EntryTime       = now,
+                EntrySessionBar = sessionBar,
+                StopEvent       = "ENTRY_RECOVERED",
+                StopEventIndex  = 0,
+                StopPrice       = 0,
+                StopSessionBar  = -1,
+                RiskPoints      = 0
+            });
+
+            WriteEntryStudy(activeStudy);
+            Print("[ClaudeTracker] WARNING: found an open " + activeTrade.Direction + " position ("
+                + Math.Abs(signedQty) + " @ " + F2(Position.AveragePrice) + ") on startup with nothing "
+                + "tracking it — a prior reload lost it. Recovering as " + tradeId
+                + " (original entry time and any stop/risk history before the reload are unrecoverable).");
         }
 
         private void HandleAddExecution(Execution ex, Order o, int signedQty, int positionBefore, int positionAfter)
