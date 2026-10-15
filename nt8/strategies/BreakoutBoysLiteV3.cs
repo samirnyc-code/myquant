@@ -104,7 +104,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		// immediate (picked-SB) entry: submitted from OnMarketData, NOT the button thread —
 		// managed Enter() from TriggerCustomEvent (racing an async cancel vs EntriesPerDirection)
 		// silently no-ops; OnMarketData is a valid order-submission context and fires next tick.
-		private bool   _immPending; private bool _immLong, _immUseIbs; private int _immSbBar = -1;
+		private bool   _immPending; private bool _immLong; private BBEntryKind _immKind; private int _immSbBar = -1;
 
 		private bool   _pendingLong, _pendingShort;   // armed, waiting for the SB (armed bar) to close
 		private BBEntryKind _pendingKind;              // which entry mechanism the pending arm uses
@@ -189,7 +189,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 			if (Position.MarketPosition != MarketPosition.Flat)
 			{ Print(DateTime.Now + " immediate entry skipped — already in a trade"); return; }
 			int sbAgo = Math.Max(0, CurrentBar - _immSbBar);
-			PlaceAutoEntry(_immLong, _immUseIbs, sbAgo);
+			if (_immKind == BBEntryKind.LmtPullback || _immKind == BBEntryKind.LmtRetest)
+				TryPlaceLimitEntry(_immLong, _immKind, sbAgo);
+			else
+				PlaceAutoEntry(_immLong, _immKind == BBEntryKind.StopGated, sbAgo);
 			RefreshSEButtons();
 		}
 
@@ -612,21 +615,23 @@ namespace NinjaTrader.NinjaScript.Strategies
 			             : kind == BBEntryKind.LmtRetest   ? " retest"
 			             : "";
 
-			// BUY/SELL (auto) with a PICKED SB: place IMMEDIATELY (the bar's levels are known).
-			// This MUST run before the same-config toggle below, or a 2nd picked entry would just
-			// disarm the 1st (its _dir/_activeKind are already set) instead of placing a new order.
-			if (!isLmt && _sbPickedBar >= 0)
+			// With a PICKED SB: place IMMEDIATELY (the bar's levels are known) — applies to BUY/SELL
+			// (auto) AND LMT L BB/S SA alike. This MUST run before the same-config toggle below, or a
+			// 2nd picked entry would just disarm the 1st (its _dir/_activeKind are already set) instead
+			// of placing a new order.
+			if (_sbPickedBar >= 0)
 			{
 				if (Position.MarketPosition != MarketPosition.Flat)
 				{ Print(DateTime.Now + " " + label + ": already in a trade — flatten first."); return; }
+				string sideWord = isLmt ? (isLong ? "LONG" : "SHORT") : (isLong ? "BUY" : "SELL");
 				// Queue it for OnMarketData (next tick) — do NOT submit the managed entry from here.
-				_immPending = true; _immLong = isLong; _immUseIbs = (kind == BBEntryKind.StopGated); _immSbBar = _sbPickedBar;
+				_immPending = true; _immLong = isLong; _immKind = kind; _immSbBar = _sbPickedBar;
 				_pendingLong = _pendingShort = false;
 				_sbPickedBar = -1;
 				try { RemoveDrawObject("BBLiteBlock"); } catch { }
 				CancelWorkingEntries();   // replace any still-working entry (completes before the tick fires)
-				UpdateStatusText((isLong ? "BUY" : "SELL") + " placing...");
-				Print(DateTime.Now + " " + (isLong ? "BUY" : "SELL") + " (picked bar) queued — placing on next tick");
+				UpdateStatusText(label + " " + sideWord + " placing...");
+				Print(DateTime.Now + " " + label + " " + sideWord + " (picked bar) queued — placing on next tick");
 				RefreshSEButtons();
 				return;
 			}
