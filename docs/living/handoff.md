@@ -1,6 +1,10 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-14 (machine-time W. Europe) — **S137: NT8 `RegimeTrackerBox` —
+**Last Updated:** 2026-10-15 (machine-time W. Europe) — **S138: NT8 `RegimeTrackerBox` gains
+`IncludePriorSession` (ported from `RegimeTrackerPanel`, same current+prior-session continuity)
++ `RegimeTrackerPanel`'s `Lag` default reconciled back to the canonical `1` (had drifted to 0
+in a later perf session, mismatching Box's `1`). Both compile clean, deployed, committed
+(`41f138d`), PENDING user F5. See S138 block.** S137: NT8 `RegimeTrackerBox` —
 closed out the S134 session-staleness saga with real root causes, not more deprioritization.
 (1) Un-merged D/W back to separate RTH/ETH columns — S134's "byte-identical, so merge to one
 column" was a backward-looking data fact, not a live-update-timing guarantee; confirmed live
@@ -70,6 +74,55 @@ correct, but the bar-close event itself (leg/counter freshness) lags for these a
 Daily/Weekly series; a restart and two parameter changes didn't fix it, root cause
 undetermined, deprioritized as a minor staleness issue (the regime reading itself is
 accurate, just dated to the last bar NT8 delivered). See S134 block.** S133: NT8 `RegimeTrackerBox` — NEW multi-timeframe regime dashboard indicator. One box on the chart, rows = timeframes (editable: `2000t,5M,15M,60M,240M,D,W`), two columns RTH + ETH, each cell colored by Bull/Bear/Range. Flexible corner+X/Y offset and font size. Built, compile-checked, deployed, committed+pushed. GOTCHA fixed: the two trading-hours templates must be exact Trading Hours Manager names — `CME US Index Futures RTH` / `CME US Index Futures ETH` (NOT "CME RTH"/"CME ETH"; a bad name makes `AddDataSeries` throw in `OnStateChange` → indicator errors, draws nothing). See S133 block.** **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S138-nt8-regime-box-panel-parity (2026-10-15) — `RegimeTrackerBox` gains IncludePriorSession; Lag default reconciled with Panel
+
+**Trigger:** user saw the Box's 5M-ETH cell read `Bull` on a chart that visually looked like
+a clean downtrend, then asked for the root cause and — separately — to give `RegimeTrackerBox`
+the same "current + prior session" continuity `RegimeTrackerPanel` already has, and to make
+sure the two indicators ship with matching settings.
+
+**1. Why 5M-ETH read Bull (explained, not a bug):** the classifier is a structural BOS state
+machine (`ProcessBar`), not a slope read. Once `BULL`, it only flips to `RANGE` when a low
+closes below `_counter` (the swing low from the entry/last BOS); it only reaches `BEAR` after
+that, via a fresh bearish two-swing structure (`EntrySetup`). A pullback that hasn't broken
+`_counter` yet reads `Bull` regardless of how the chart looks. `Lag=1` also holds the engine
+one bar behind the latest close. Did not have a live read on the actual `_counter` level —
+flagged as unverified; `DebugLog` → `Documents\regime_tracker_box_debug_ES.csv` is how to
+pull the exact number if needed.
+
+**2. `RegimeTrackerBox.cs` — added `IncludePriorSession`** (same name/semantics/default=true
+as the Panel's). Ported from `RegimeTrackerPanel.cs` verbatim:
+- `FindCurrentSessionStartBar()` → `FindSessionStartBar(sessionsBack)` (0=current session,
+  1=current+prior), called as `FindSessionStartBar(_includePriorSession ? 1 : 0)`.
+- `ProcessBar`'s session-boundary block now computes `continuous = _sessionSkip &&
+  _includePriorSession` and skips both the `ResetRegimeState()` call and the cutoff advance
+  when continuous — so the current session inherits the prior session's ending Bull/Bear/Range
+  state instead of restarting at `RANGE` on every session open (e.g. ETH 17:00 continuing the
+  16:00 regime).
+- No effect on Daily/Weekly rows — `_sessionSkip` is already false there (`resetSession =
+  ResetOnNewSession && tf.Intraday`), same as before.
+
+**3. Settings-parity fix: `Lag` default drift.** Diffed every shared `SetDefaults` value
+between the two files. Everything else already matched (`LookBack=12, ShowW2L=true,
+WedgeSymmetry=4, OLSensitivity=1, CTSB_Ignore=true, IB_Ignore=true, ShowWedgeSB=true,
+SignalBarIBS=66.0, ContinueMC=false, ContinueOnGap=false, ResetOnNewSession=true,
+WeeklyResetOnly=false, CurrentSessionOnly=true`). `Lag` did not: Box defaults to `1` (the
+canonical value per S124/S137 — "matches the live chart"), but Panel had been reset to `0`
+in the S-2026-10-14 perf session (handoff line documents it as a deliberate change at the
+time, but it was never reconciled against the S124/S137 canonical decision and is the exact
+kind of mismatch S137 already root-caused once as a Panel-vs-Box disagreement cause).
+**Fixed: Panel's code default changed back to `Lag=1`.** Per NT8 semantics, this only affects
+brand-new indicator instances — any already-deployed chart instance keeps whatever `Lag` it
+was explicitly set to.
+
+**Status:** both files compile clean (`nt8_compile_check.ps1`), deployed to
+`Documents\NinjaTrader 8\bin\Custom\Indicators\`, committed (`41f138d`). **PENDING: user F5**
+(when flat) on both indicators to pick up the change. New instances of either indicator will
+now default to `Lag=1, IncludePriorSession=true`; existing chart instances are unaffected
+until the user explicitly re-sets a property.
 
 ---
 
@@ -1169,9 +1222,9 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 18 | **Wyckoff 2.0 discretionary toolset + full-tape recording DB** | 🟢 ACTIVE (S121-wyckoff-tools 9/16, leglab) — **CONTINUE HERE** | **DB LIVE**: L1 tape+BBO recorder `L1TapeRecorderAddOn.cs` running on **ES 12-26** (ES-only per user; ~90% quote, self-healing) + nightly rollover + watchdog tasks + `check_l1_tape` tile. Footprint pipeline RETIRED (L1 reconstructs it). **Stage-1 tools built** (VP engine+NT8 drawer PENDING F5, Weis wave, VWAP-readable). **`wyckoff_marker.py` = the interactive HTML Wyckoff marker** (click-box+snap, auto events from box, box-free bull/bear/transition trend engine, multi-day, S/R+21EMA, flex-renko). Renko+wicks+**Sierra flex_renko**; NT8 `FlexRenkoBarsType.cs` deployed — **RESOLVED (S122): it's in Data Series → Type, NOT the Chart-Style dropdown; not a compile error (type + strings byte-verified in the DLL)**. **FINDING: 9/15 low = SPRING of overnight low.** NEXT: Stage-2 (TR-Box + retro event engine) + Stage-3 (OF trigger panel); VWAP host-exporter; marker threshold calibration (user marks AR/springs); optional ChoCH volume/spread confirm. **READ S121-wyckoff-tools BLOCK.** |
 | 20 | **Trade Playbook + Journal (separate repo `trade-playbook`)** | 🟡 PENDING F5 (S125 2026-10-01) | Live at https://trade-playbook-ten.vercel.app. Autostart uploader task **registered + verified running** on this machine (`TradePlaybookUploader`). Thomas onboarding **approved, GO** — web app auto-updates for him, only local files are snapshots. April historical trades: **decided, never importing them.** **ONLY remaining item: F5 ClaudeTrackerV2** (performance-incident drawing-code revert + Name fix + MAE/MFE columns + configurable export path, all in one recompile — see S125 block). |
 | 21 | DtDbScanner (DT/DB tick-chart scanner) — add + backtest/walk-forward | ⛔ CLOSED (S126 2026-10-02) — NO mechanical edge | Indicator added (`nt8/indicators/DtDbScanner.cs`), full-history walk-forward + stop/target sweep + freq gate: only 1500t/2000t ever trade >=3/day, both net losers OOS (1500t PF 0.92 -$96.9k; 2000t PF 0.93 -$45.1k). User closed it — discretionary use only, do not resume unasked. See S126 block |
-| 19 | **Regime tracker — BOS/ChoCh regime classifier (5m ES)** | 🔧 **WIP (Thomas-Code chat, 2026-10-13): Python review pipeline → Lag-aware (Python = base for the 4 C# copies)** · 🟢 LAG RECONCILE DONE (S124 2026-09-24) — PENDING USER F5 | **Lag=1 is canonical** (user decision). S123 export-diff was the Lag setting (Documents=Lag3 vs Desktop=Lag1), NOT a build/tick engine difference. Python now models Lag (`mywedge.compute_mywedge(lag=)` + `swing_*_asof`); **Python(lag=1)↔both NT exports = 100%** (Documents `--session eth`, Desktop `--session date`). NT8 `RegimeTracker.cs` default Lag 3→1, compiled + **deployed — PENDING USER F5** (when flat). Invariant: lag2==lag3==finalised (non-repaint). Repaint effect: 476/500 trend segments identical, 1.04% bar diffs, ~4 short direction-flip windows. **PARKED (user will revisit): Lag 1 vs Lag 2** (chart-match+repaint vs settled/non-repaint). See S124 block. Earlier (S123): outside-bar rule ported (`Swings()`/`Extends()`). **Outside-bar rule (9/22-23):** mywedge marks an outside bar as BOTH a swing high and low; if it extended the structure at both ends both swings stand, else it collapses to the extreme it LEFT ON (`bar_dir`). Validated on 4 hand-marked charts at once — 02-13 **Bull b9**, 12-26 **one Bear b21-53**, 05-19 **Bear b16**, 05-21 **unchanged Bull b28**; other 8 sessions byte-identical. Three rejected variants recorded in the regime-tracker block — do NOT retry (the third, a general minor-pivot filter, broke 14/14 sessions). **Minor pivots beyond outside bars: CLOSED 9/23, user said leave as is** — zero-length in-bar trends (05-06 b5 etc.) are an accepted artifact. **PARKED:** 02-13 late ChoCh ~b76 (outside-bar intrabar order) — tracker is deliberately **bar-only, do NOT resolve with ticks**. Page generators now in `regime_tracker/pages/` (near-duplicates; consolidate before the next batch). Safety tag `pre-nt8-merge-20260923`; stale worktree `C:\Users\Thomas-Code\wt-nt8` can be removed. **S127 2026-10-02: Indicator-Manager hide/show bug fixed in a NEW clone `RegimeTrackerV2.cs` (+ `DtDbScannerV2.cs`) — V1 untouched, still the one in use. See S127 block before next edit to either original.** |
+| 19 | **Regime tracker — BOS/ChoCh regime classifier (5m ES)** | 🔧 **WIP (Thomas-Code chat, 2026-10-13): Python review pipeline → Lag-aware (Python = base for the 4 C# copies)** · 🟢 LAG RECONCILE DONE (S124 2026-09-24) — PENDING USER F5 | **Lag=1 is canonical** (user decision). S123 export-diff was the Lag setting (Documents=Lag3 vs Desktop=Lag1), NOT a build/tick engine difference. Python now models Lag (`mywedge.compute_mywedge(lag=)` + `swing_*_asof`); **Python(lag=1)↔both NT exports = 100%** (Documents `--session eth`, Desktop `--session date`). NT8 `RegimeTracker.cs` default Lag 3→1, compiled + **deployed — PENDING USER F5** (when flat). Invariant: lag2==lag3==finalised (non-repaint). Repaint effect: 476/500 trend segments identical, 1.04% bar diffs, ~4 short direction-flip windows. **PARKED (user will revisit): Lag 1 vs Lag 2** (chart-match+repaint vs settled/non-repaint). See S124 block. Earlier (S123): outside-bar rule ported (`Swings()`/`Extends()`). **Outside-bar rule (9/22-23):** mywedge marks an outside bar as BOTH a swing high and low; if it extended the structure at both ends both swings stand, else it collapses to the extreme it LEFT ON (`bar_dir`). Validated on 4 hand-marked charts at once — 02-13 **Bull b9**, 12-26 **one Bear b21-53**, 05-19 **Bear b16**, 05-21 **unchanged Bull b28**; other 8 sessions byte-identical. Three rejected variants recorded in the regime-tracker block — do NOT retry (the third, a general minor-pivot filter, broke 14/14 sessions). **Minor pivots beyond outside bars: CLOSED 9/23, user said leave as is** — zero-length in-bar trends (05-06 b5 etc.) are an accepted artifact. **PARKED:** 02-13 late ChoCh ~b76 (outside-bar intrabar order) — tracker is deliberately **bar-only, do NOT resolve with ticks**. Page generators now in `regime_tracker/pages/` (near-duplicates; consolidate before the next batch). Safety tag `pre-nt8-merge-20260923`; stale worktree `C:\Users\Thomas-Code\wt-nt8` can be removed. **S127 2026-10-02: Indicator-Manager hide/show bug fixed in a NEW clone `RegimeTrackerV2.cs` (+ `DtDbScannerV2.cs`) — V1 untouched, still the one in use. See S127 block before next edit to either original.** **S138 2026-10-15: `RegimeTrackerBox` gains `IncludePriorSession` (matches Panel); Panel's `Lag` default restored 0→1 to match Box's canonical value. Compiled+deployed+committed (`41f138d`), PENDING user F5. See S138 block.** |
 | 22 | **BreakoutBoysLiteV3 — reworked manual entry engine (BUY/SELL auto-type + IBS toggle)** | 🟡 PENDING USER F5 + SIM TEST (2026-10-14) | NEW strategy; V1/V2 untouched = rollback. BUY/SELL auto-pick stop-limit vs limit at the SB level (never blocked); IBS on/off toggle + [-/+]; picked SB = place IMMEDIATELY (via `OnMarketData` — managed Enter from the button thread silently no-ops); SB marker stays while working + FOREVER on fill. **Sim-test: immediate fill, auto-type, two-tab routing, stop-side guard, marker-on-fill.** See the S-2026-10-14 block. |
-| 23 | **NT8 reload-crash hardening + SessionSRLevelsV9 polish + RegimeTrackerPanel perf** | 🟢 DONE, PENDING F5 (2026-10-14) | SR: EthFromPrimary (ETH H now exact from chart), OoD/OoW from Daily-RTH feed, Settlement=prior-day Daily-ETH, same-price merge, tab-aware buttons, lean feeds. RegimeTrackerPanel: CurrentSessionOnly+IncludePriorSession defaults, Lag=0. Crash: `ncd_io.py` share-delete + AddOn `_release_feed` trigger (`release_nt_feed.py`). **Recommend user sets chart Days-to-load ~15.** See the S-2026-10-14 block. |
+| 23 | **NT8 reload-crash hardening + SessionSRLevelsV9 polish + RegimeTrackerPanel perf** | 🟢 DONE, PENDING F5 (2026-10-14) | SR: EthFromPrimary (ETH H now exact from chart), OoD/OoW from Daily-RTH feed, Settlement=prior-day Daily-ETH, same-price merge, tab-aware buttons, lean feeds. RegimeTrackerPanel: CurrentSessionOnly+IncludePriorSession defaults, Lag=0 **(⚠ S138 2026-10-15: this Lag=0 default was a drift from the canonical Lag=1 — reverted back to 1, see row #19/S138 block)**. Crash: `ncd_io.py` share-delete + AddOn `_release_feed` trigger (`release_nt_feed.py`). **Recommend user sets chart Days-to-load ~15.** See the S-2026-10-14 block. |
 | 24 | **Shadow Stop panel 6-day gap (10-02/05/06/07/08 + 08-10)** | ✅ DONE (S136 2026-10-14) | Root cause = the 2026-10-09 git-revert incident (fixed at trade-data level in `eecb1aed` 2026-10-10, never documented). Re-ran `shadow_stop_monitor.py --backfill` — real P&L restored for all 6 days. Intraday DD for those days is **permanently unrecoverable** (no marks.csv archive; IB no longer has the now-expired 0DTE contract definitions) — shown honestly as `no marks`. See S136 block. |
 
 ---
