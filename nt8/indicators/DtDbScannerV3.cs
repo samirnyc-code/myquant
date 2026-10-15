@@ -119,6 +119,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 RearmSeconds      = 30;  // alert re-arm window
                 ShowDrawings      = true;
                 DeleteInvalidated = false; // true: remove a DT/DB's drawings when price invalidates it (new extreme beyond the peaks/troughs)
+                ShowLabel         = true;  // 'DT 72' / 'DB 64' text next to each pattern
                 ConfirmTriangleSize = 30;  // font size of the neckline-break triangle (~3x NT8's built-in triangle marker)
                 ShowDebugPrints   = true; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
             }
@@ -582,8 +583,9 @@ namespace NinjaTrader.NinjaScript.Indicators
             TrackDrawObj(Draw.Line(this, tag + "_l2", false, midAgo, mid.Price, bAgo, b.Price, c, DashStyleHelper.Solid, 2));
             TrackDrawObj(Draw.Line(this, tag + "_neck", false, midAgo, mid.Price, 0, mid.Price, c, DashStyleHelper.Dash, 2));
             TrackDrawObj(Draw.Line(this, tag + "_peaks", false, aAgo, a.Price, bAgo, b.Price, Brushes.Black, DashStyleHelper.Solid, 4)); // joins the two tops/bottoms
-            TrackDrawObj(Draw.Text(this, tag + "_txt", (isTop ? "DT " : "DB ") + score.ToString("F0"),
-                      bAgo, isTop ? b.Price + 10 * TickSize : b.Price - 10 * TickSize, c));
+            if (ShowLabel)
+                TrackDrawObj(Draw.Text(this, tag + "_txt", (isTop ? "DT " : "DB ") + score.ToString("F0"),
+                          bAgo, isTop ? b.Price + 10 * TickSize : b.Price - 10 * TickSize, c));
         }
 
         private void TrackDrawn(Pending p, string tag)
@@ -781,6 +783,10 @@ namespace NinjaTrader.NinjaScript.Indicators
         [NinjaScriptProperty]
         [Display(Name = "Delete invalidated DT/DB", Description = "Remove a pattern's drawings (lines, peak line, neckline, score label) when price makes a new extreme beyond its peaks/troughs before confirming. Expired patterns are kept.", Order = 17, GroupName = "3. Alerts")]
         public bool DeleteInvalidated { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Show DT/DB label", Description = "Show the 'DT 72' / 'DB 64' text (pattern type + score) next to each pattern.", Order = 18, GroupName = "3. Alerts")]
+        public bool ShowLabel { get; set; }
         #endregion
     }
 }
