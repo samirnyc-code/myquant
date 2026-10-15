@@ -666,19 +666,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// ActualSessionBegin/End (computed in NT8's own time context) silently
 			// produced a plausible-LOOKING but wrong in-session answer. Used to
 			// check whether THIS cell's own session (RTH or ETH -- whichever this
-			// engine's Bars was built with) is open right now. When it's NOT, the
-			// global live price is not this cell's own price -- it belongs to
-			// whichever OTHER session is actually trading -- so freeze on
-			// _lastClosePrice (this cell's own last bar close) instead of letting
-			// an out-of-session cell visibly move on a price that isn't really
-			// "its" price.
+			// engine's Bars was built with) is open right now. When it's NOT, this
+			// cell does NO calculation at all (per explicit instruction) -- not
+			// even a frozen-price pass through ComputePct -- it just returns
+			// whatever was last actually computed while the session was open.
+			// cache of the last value actually computed WHILE in session -- read
+			// directly (no recompute) whenever the session is closed, per the
+			// user's explicit instruction: no calculation outside this cell's own
+			// session, not even a frozen-price pass through the same formula.
+			private double _lastComputedPct = double.NaN;
+
 			public double CurrentPct(double livePrice, DateTime nowLocal)
 			{
 				DateTime sessBegin, sessEnd;
 				bool inSession = IsLiveInSession(nowLocal, out sessBegin, out sessEnd);
-				double price = inSession ? livePrice : _lastClosePrice;
-				if (double.IsNaN(price)) return double.NaN;
-				double pct = ComputePct(price);
+
+				if (!inSession) return _lastComputedPct;   // no computation, no log -- just the cached value
+
+				double pct = ComputePct(livePrice);
+				_lastComputedPct = pct;
 				// throttled live-read diagnostic: logs what OnRender actually used
 				// as "current price" for this engine, distinct from the bar-close
 				// rows ProcessBar writes. Event column carries the computed session
@@ -687,8 +693,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (_debugSink != null && (DateTime.UtcNow - _lastLiveLog).TotalSeconds >= 3)
 				{
 					_lastLiveLog = DateTime.UtcNow;
-					string evt = (inSession ? "LiveRead" : "LiveRead(frozen-outOfSession)")
-						+ "[sess=" + sessBegin.ToString("HH:mm", CultureInfo.InvariantCulture)
+					string evt = "LiveRead[sess=" + sessBegin.ToString("HH:mm", CultureInfo.InvariantCulture)
 						+ "-" + sessEnd.ToString("HH:mm", CultureInfo.InvariantCulture) + "]";
 					_debugSink(string.Join(",", new[]
 					{
@@ -697,7 +702,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						"",
 						evt,
 						_trend,
-						Fmt(price),
+						Fmt(livePrice),
 						_legSet ? Fmt(_leg) : "",
 						_cntSet ? Fmt(_counter) : "",
 						_rangeSet ? Fmt(_rangeLow) : "",

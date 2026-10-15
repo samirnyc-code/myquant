@@ -1,6 +1,25 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-14 (machine-time W. Europe) — **S136: Shadow Stop panel was
+**Last Updated:** 2026-10-14 (machine-time W. Europe) — **S137: NT8 `RegimeTrackerBox` —
+closed out the S134 session-staleness saga with real root causes, not more deprioritization.
+(1) Un-merged D/W back to separate RTH/ETH columns — S134's "byte-identical, so merge to one
+column" was a backward-looking data fact, not a live-update-timing guarantee; confirmed live
+that RTH-based series stall until RTH itself reopens while ETH-based ones keep advancing, so
+merging to RTH-only threw away the column that's actually current. (2) Found and fixed the
+REAL reason RTH cells kept moving outside RTH hours: `CurrentPct` fed every cell the same
+global live tick price regardless of session. Three-step fix chain, each verified wrong via
+the `DebugLog` CSV before moving to the next: `IsInSession()` alone → wrong; priming with
+`CalculateTradingDay` first → still wrong; switched to comparing `nowLocal` directly against
+`ActualSessionBegin`/`ActualSessionEnd` → still wrong until the REAL bug surfaced — `nowLocal`
+was `System.DateTime.Now` (this machine's own clock, already flagged repo-wide as mismatched
+to the user's real time) compared against NT8's own internal time context; switched to
+`NinjaTrader.Core.Globals.Now` → FIXED, user-confirmed. (3) Per explicit instruction, an
+out-of-session cell now does **zero** calculation (not even a frozen-price pass through the
+formula) — returns a cached last-in-session value directly. (4) `RegimeTrackerPanel` vs
+`RegimeTrackerBox` 2000t-ETH disagreement root-caused to two config mismatches (Lag 1 vs 0,
+RTH/ETH template vs none) — NOT a porting bug; user fixed their instance, code default
+changed `Lag 0→1` to match so it won't silently revert on next reload. ALL compiled+deployed+
+committed+pushed; user confirmed fixes live. See S137 block.** S136: Shadow Stop panel was
 silently missing 6 days (10-02/05/06/07/08 + 08-10). Root cause: the 2026-10-09
 git-revert data-loss incident (commit `eecb1aed`, 2026-10-10) — already fixed at the
 trade-data level back then (real trades recovered from archives, Oct-1 mis-dated legs
@@ -51,6 +70,69 @@ correct, but the bar-close event itself (leg/counter freshness) lags for these a
 Daily/Weekly series; a restart and two parameter changes didn't fix it, root cause
 undetermined, deprioritized as a minor staleness issue (the regime reading itself is
 accurate, just dated to the last bar NT8 delivered). See S134 block.** S133: NT8 `RegimeTrackerBox` — NEW multi-timeframe regime dashboard indicator. One box on the chart, rows = timeframes (editable: `2000t,5M,15M,60M,240M,D,W`), two columns RTH + ETH, each cell colored by Bull/Bear/Range. Flexible corner+X/Y offset and font size. Built, compile-checked, deployed, committed+pushed. GOTCHA fixed: the two trading-hours templates must be exact Trading Hours Manager names — `CME US Index Futures RTH` / `CME US Index Futures ETH` (NOT "CME RTH"/"CME ETH"; a bad name makes `AddDataSeries` throw in `OnStateChange` → indicator errors, draws nothing). See S133 block.** **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S137-nt8-regime-box-session-fixes (2026-10-14) — `RegimeTrackerBox`: un-merge + real session-aware fix
+
+**Trigger:** continuation of the S134 saga. S134 left two things deprioritized/unresolved:
+D/W collapsed to a single RTH-only column (on the theory RTH/ETH are interchangeable for
+Day/Week), and a staleness issue blamed on "needs the next session's tick." Both turned out
+to be wrong once actually tested against live behavior.
+
+**1. Un-merged D/W back to two columns (RTH + ETH).** S134's "RTH and ETH produce
+byte-identical Daily/Weekly bars" finding was true but answered the wrong question — it's a
+backward-looking fact about historical OHLC *values*, not a guarantee about live
+*update-timing*. Verified directly via the debug CSV: RTH-templated series stall until RTH
+itself reopens (its own "next session" tick), while ETH-templated intraday series kept
+advancing through the same window (fresh bars hours newer). Collapsing to RTH-only threw
+away the one column that was actually current. Reverted: `AddDataSeries` called twice again
+for D/W, `Cell.Merged` and the merged-cell render path removed as dead code.
+
+**2. Root-caused and fixed "RTH % moves during ETH hours."** User caught this directly on
+screen. Real cause: `CurrentPct` fed every cell (RTH and ETH alike) the same single global
+live tick price (`_livePrice`, from `OnMarketData`, which fires regardless of session) — an
+RTH cell's leg/counter correctly stayed frozen at RTH's last close, but the live price
+component kept moving with whichever session was ACTUALLY open. Fix chain, each step
+verified wrong via the debug CSV's new `[sess=HH:mm-HH:mm]` diagnostic tag before trying the
+next (no blind guesses):
+  - Added `IsInSession()` check → user confirmed still wrong (RTH showed "in session" with
+    RTH actually closed).
+  - Primed with `CalculateTradingDay()` first, same `IsInSession()` call → still wrong.
+  - Bypassed `IsInSession()` entirely, compared `nowLocal` directly against the computed
+    `ActualSessionBegin`/`ActualSessionEnd` → computed window (08:30–15:15) LOOKED correct
+    and was internally self-consistent, but user confirmed RTH was still actually closed.
+  - **Real root cause found:** `nowLocal` was `System.DateTime.Now` — this machine's own
+    Windows clock, already flagged project-wide (CLAUDE.md) as not matching the user's real
+    time — compared against NT8's own internal time context for session boundaries. Two
+    different clocks being compared as if they were one. Switched to
+    `NinjaTrader.Core.Globals.Now` (confirmed to exist via reflection) → user confirmed
+    fixed.
+  - Per explicit follow-up instruction ("the RTH column should not do any calculations
+    outside of RTH hours"), went further than freezing the *input*: an out-of-session cell
+    now skips `ComputePct` and the debug-log write entirely, returning a cached
+    `_lastComputedPct` from the last time it genuinely was in session — zero work done
+    out-of-session, not just an unchanging displayed number.
+
+**3. `RegimeTrackerPanel` vs `RegimeTrackerBox` 2000t-ETH disagreement — root-caused, not a
+porting bug.** Re-diffed the ported classifier logic (again) and it's still a faithful
+line-for-line copy. The actual cause, found by reading RegimeTrackerPanel's live Properties
+dialog: `Lag` mismatch (Panel=1 canonical, Box defaulted to 0 per an earlier explicit user
+request this session) and RTH/ETH template mismatch (Panel has no trading-hours selector at
+all — it inherits whatever the chart's own primary series uses, which turned out to be ETH).
+User fixed Lag on their instance and confirmed the chart is ETH-templated; the two indicators
+then agreed. Code default changed `Lag` 0→1 to match the established canonical value (same as
+RegimeTrackerV2) so a future remove+re-add doesn't silently revert the user's fix.
+
+**Also corrected, mid-thread:** gave a wrong first guess blaming a cross-chart comparison on
+`TempoStateStripes.cs` (a tempo/speed indicator with no "Range" state at all) before the user
+pointed at the actual `RegimeTrackerPanel` instance visible in their Indicators dialog —
+logged here as a reminder to verify against the user's own NT8 state (screenshots, dialogs)
+before asserting which indicator is in play, not just pattern-match from memory.
+
+**Status: all of the above compiled, deployed, committed, pushed, and user-confirmed fixed
+live** (not just "should work" — each fix was verified via the debug CSV or direct user
+confirmation before moving on). No open items from this thread.
 
 ---
 
