@@ -105,7 +105,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				SignalBarIBS  = 66.0;
 				ContinueMC    = false;
 				ContinueOnGap = false;
-				Lag           = 0;
+				// Lag=1: canonical value established in S124 ("matches the live chart"), reaffirmed
+				// in S137 when a Panel=1/Box=0 mismatch caused the two indicators to disagree on
+				// the same instrument/period. A later perf-focused session (S-2026-10-14) reset
+				// this Panel default to 0 without reconciling against that decision -- restored to
+				// 1 so Panel and Box ship with matching defaults (existing deployed instances keep
+				// whatever Lag they were set to; this only affects brand-new instances).
+				Lag           = 1;
 				ResetOnNewSession  = true;
 				WeeklyResetOnly    = false;
 				CurrentSessionOnly = true;    // default ON: skip historical calc (O(n^2) swing rescan over the full lookback) — the 37.6s Utilization cost.

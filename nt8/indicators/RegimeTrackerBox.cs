@@ -168,6 +168,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ResetOnNewSession  = true;
 				WeeklyResetOnly    = false;
 				CurrentSessionOnly = true;
+				// matches RegimeTrackerPanel's IncludePriorSession (same name/semantics/default):
+				// with CurrentSessionOnly, compute the last TWO sessions as one continuous stretch
+				// (no reset at the roll) so the current session inherits the prior session's ending
+				// regime, instead of restarting from RANGE at every session open.
+				IncludePriorSession = true;
 
 				// box layout
 				Corner       = RegimeBoxCorner.TopRight;
@@ -286,7 +291,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						wedge,
 						Opens[c.Bip], Highs[c.Bip], Lows[c.Bip], Closes[c.Bip], Times[c.Bip],
 						BarsArray[c.Bip], Lag, resetSession, WeeklyResetOnly,
-						CurrentSessionOnly && resetSession,
+						CurrentSessionOnly && resetSession, IncludePriorSession,
 						label, DebugLog ? (Action<string>)(row => { lock (_debugLock) { _debugRows.Add(row); } }) : null);
 
 					_byBip[c.Bip] = c;
@@ -562,7 +567,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			private readonly TimeSeries      _time;
 			private readonly Bars _bars;
 			private readonly int  _lag;
-			private readonly bool _resetOnSession, _weeklyResetOnly, _sessionSkip;
+			private readonly bool _resetOnSession, _weeklyResetOnly, _sessionSkip, _includePriorSession;
 
 			private string _trend = RANGE;
 			private List<int> _zzIdx, _seqIdx;  private List<char> _zzKind, _seqKind;  private List<double> _zzPrice, _seqPrice;
@@ -606,11 +611,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			public RegimeEngine(My.MyWedge wedge, ISeries<double> open, ISeries<double> high,
 				ISeries<double> low, ISeries<double> close, TimeSeries time, Bars bars,
 				int lag, bool resetOnSession, bool weeklyResetOnly, bool sessionSkip,
-				string label, Action<string> debugSink)
+				bool includePriorSession, string label, Action<string> debugSink)
 			{
 				_wedge = wedge; _open = open; _high = high; _low = low; _close = close; _time = time;
 				_bars = bars; _lag = lag; _resetOnSession = resetOnSession;
 				_weeklyResetOnly = weeklyResetOnly; _sessionSkip = sessionSkip;
+				_includePriorSession = includePriorSession;
 				_label = label; _debugSink = debugSink;
 
 				_zzIdx = new List<int>(); _zzKind = new List<char>(); _zzPrice = new List<double>();
@@ -737,7 +743,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (_wedge == null) return;
 
 				if (_sessionSkip && _cutoffBar < 0)
-					_cutoffBar = FindCurrentSessionStartBar();
+					_cutoffBar = FindSessionStartBar(_includePriorSession ? 1 : 0);
 
 				if (!(_sessionSkip && currentBar < _cutoffBar))
 					_wedge.Update();
@@ -751,17 +757,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 			}
 
-			private int FindCurrentSessionStartBar()
+			// Start bar of the session `sessionsBack` sessions before the current (last) one.
+			// 0 = current session start; 1 = prior session start (so current+prior get computed).
+			// Ported verbatim from RegimeTrackerPanel's FindSessionStartBar.
+			private int FindSessionStartBar(int sessionsBack)
 			{
 				if (_bars == null || _bars.Count == 0) return 0;
 				var si = new Data.SessionIterator(_bars);
-				int lastNewSessionBar = 0;
+				var starts = new List<int>();
 				for (int b = 0; b < _bars.Count; b++)
 				{
 					DateTime t = _bars.GetTime(b);
-					if (si.IsNewSession(t, true)) { lastNewSessionBar = b; si.GetNextSession(t, true); }
+					if (si.IsNewSession(t, true))
+					{
+						starts.Add(b);
+						si.GetNextSession(t, true);
+					}
 				}
-				return lastNewSessionBar;
+				if (starts.Count == 0) return 0;
+				int idx = starts.Count - 1 - Math.Max(0, sessionsBack);
+				return idx < 0 ? 0 : starts[idx];
 			}
 
 			private void ProcessBar(int i, int barsAgo)
@@ -772,13 +787,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 					DateTime t = _time[barsAgo];
 					if (_sessionIt.IsNewSession(t, true))
 					{
+						// "Current + prior session" mode (_sessionSkip + _includePriorSession) runs
+						// the two sessions as ONE continuous stretch: never reset at the session
+						// boundary, and never advance the cutoff past the prior-session start --
+						// that's what carries the prior regime into the current session. Ported
+						// verbatim from RegimeTrackerPanel's ProcessBar.
+						bool continuous = _sessionSkip && _includePriorSession;
 						DateTime weekStart = t.Date.AddDays(-(int)t.Date.DayOfWeek);
-						if (_resetOnSession && (!_weeklyResetOnly || weekStart != _weekAnchor))
+						if (!continuous && _resetOnSession && (!_weeklyResetOnly || weekStart != _weekAnchor))
 						{
 							ResetRegimeState();
 							_weekAnchor = weekStart;
 						}
-						if (_sessionSkip && i > _cutoffBar) _cutoffBar = i;
+						if (_sessionSkip && !_includePriorSession && i > _cutoffBar) _cutoffBar = i;
 						_sessionIt.GetNextSession(t, true);
 					}
 				}
@@ -1035,6 +1056,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty] [Display(Name = "Reset on new session (intraday only)", GroupName = "2 Regime", Order = 1)] public bool ResetOnNewSession { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Weekly reset only (Sunday ETH start)", GroupName = "2 Regime", Order = 2)] public bool WeeklyResetOnly { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Only calculate current session (cheaper; intraday only)", GroupName = "2 Regime", Order = 3)] public bool CurrentSessionOnly { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Include prior session (current + last = 2 sessions, continuous across the roll)", GroupName = "2 Regime", Order = 4)] public bool IncludePriorSession { get; set; }
 
 		[NinjaScriptProperty] [Range(1, 10000)] [Display(Name = "LookBack", GroupName = "3 MyWedge", Order = 0)] public int LookBack { get; set; }
 		[NinjaScriptProperty] [Display(Name = "ShowW2L", GroupName = "3 MyWedge", Order = 1)] public bool ShowW2L { get; set; }
