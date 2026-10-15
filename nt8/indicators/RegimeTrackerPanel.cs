@@ -130,8 +130,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else if (State == State.Configure)
 			{
+				// Suffixed by Timeframe so multiple RegimeTrackerPanel instances on the same
+				// instrument (e.g. one per chart tab) don't share -- and silently clobber --
+				// the same diagnostic file. CONFIRMED happening: two separate Timeframe=5M
+				// instances found in the live workspace, each independently overwriting the
+				// other's debug CSV every ~2s, making the file look like it kept "resetting"
+				// when it was actually just alternating between two different live instances.
 				_errPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-					string.Format("regime_tracker_panel_errors_{0}.log", Instrument != null ? Instrument.MasterInstrument.Name : "unknown"));
+					string.Format("regime_tracker_panel_errors_{0}_{1}.log",
+						Instrument != null ? Instrument.MasterInstrument.Name : "unknown", InstanceTag()));
 
 				FreezeIf(BullBrush); FreezeIf(BearBrush); FreezeIf(TransitionBrush);
 				_bullShade  = MakeShade(BullBrush, ShadeOpacity);
@@ -185,7 +192,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				_debugRows = new List<string>();
 				_debugPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-					string.Format("regime_tracker_panel_debug_{0}.csv", Instrument != null ? Instrument.MasterInstrument.Name : "unknown"));
+					string.Format("regime_tracker_panel_debug_{0}_{1}.csv",
+						Instrument != null ? Instrument.MasterInstrument.Name : "unknown", InstanceTag()));
 				if (DebugLog)
 					_debugRows.Add("WallClock,Source,BarsInProgress,CurrentBar,EngineBip,CurrentRegime,BarRegimeCount,ChartBarsNull,BarsNull,RenderTargetNull,Bip0Calls,Bip1Calls,Note");
 
@@ -277,6 +285,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (val <= 0) return false;
 			tf.Value = val;
 			return true;
+		}
+
+		// Short, filesystem-safe per-instance tag for the diagnostic file names: Timeframe
+		// (readable) + this instance's own object hash (disambiguates two chart tabs that
+		// happen to use the IDENTICAL Timeframe, which Timeframe alone can't tell apart).
+		private string InstanceTag()
+		{
+			string tf = string.IsNullOrWhiteSpace(Timeframe) ? "primary" : Timeframe.Replace(" ", "");
+			return tf + "_" + (GetHashCode() & 0xFFFF).ToString("x4");
 		}
 
 		private void LogError(string where, Exception ex)

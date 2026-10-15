@@ -212,6 +212,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private static readonly WMColor CtOn  = WMColor.FromRgb(0, 140, 0);
 		private static readonly WMColor CtOff = WMColor.FromRgb(80, 80, 80);
 
+		// diagnostic-only: Daily-chart date/value trail for the HOY/LOY/COY-via-hidden-RTH-
+		// series path (S139). Low frequency (fires only on a session roll, not per tick) so a
+		// plain AppendAllText per row is fine -- no batching/flush-timer needed.
+		private string _dbgPath;
+		private void LogDbg(string row)
+		{
+			if (!DebugLog) return;
+			try
+			{
+				if (_dbgPath == null)
+					_dbgPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+						string.Format("sessionsrlevels_debug_{0}.csv", Instrument != null ? Instrument.MasterInstrument.Name : "unknown"));
+				File.AppendAllText(_dbgPath, row + "\r\n");
+			}
+			catch { }
+		}
+
 		private struct LevelDef
 		{
 			public bool enabled; public string label; public double price;
@@ -235,6 +252,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RthTemplateName     = "CME US Index Futures RTH";
 				FullTemplateNameHint = "CME US Index Futures ETH";
 				EthFromPrimary      = true;   // ETH levels off THIS chart's bars (exact + no 5-min ETH feed); turn off only on RTH-only charts
+				DebugLog            = false;
 				LabelFontSize       = 11;
 				ShowPriceInLabel    = true;
 				ExtendBarsRight     = 10;
@@ -447,11 +465,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// Still record date -> bar index so HandleRthSeries/HandleEthSeries (driven by
 				// their OWN hidden series, unaffected by the primary's period) can anchor their
 				// lines/historical segments to the right bar on THIS chart.
-				DateTime td = _dayIter.GetTradingDay(Time[0]);
+				//
+				// Resolve the day via the RTH template (_rthIter), NOT _dayIter (which is bound
+				// to the PRIMARY's own template -- typically ETH/Globex on a chart like this).
+				// _dayIter.GetTradingDay would compute "which GLOBEX trading day", a different
+				// day boundary than the hidden RTH-hours series' own dates (Times[_rthBip][0]
+				// .Date, which HandleRthSeries keys everything by) -- using the wrong one here
+				// is exactly the kind of mismatch that silently shifts HOY/LOY/COY onto the
+				// wrong day. Falls back to _dayIter only if the RTH template failed to load.
+				DateTime td = _rthOk ? _rthIter.GetTradingDay(ConvertToRthTz(Time[0])) : _dayIter.GetTradingDay(Time[0]);
 				_curTradingDay = td;
 				_curWeekStart  = MondayOf(td);
 				_curMonthKey   = td.Year * 12 + td.Month;
 				_dailyPrimaryBarByDate[td] = CurrentBar;
+				LogDbg(string.Format("PrimaryBar,{0:yyyy-MM-dd HH:mm:ss},rawTime={1:yyyy-MM-dd HH:mm:ss},rthDay={2:yyyy-MM-dd},bar={3}",
+					DateTime.Now, Time[0], td, CurrentBar));
 				return;
 			}
 
@@ -683,6 +711,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_priorRthHigh = prevHigh;  _priorRthHighStartBar  = prevHighBar;
 				_priorRthLow  = prevLow;   _priorRthLowStartBar   = prevLowBar;
 				_priorRthClose = prevClose; _priorRthCloseStartBar = prevCloseBar;
+
+				LogDbg(string.Format("RthRoll,{0:yyyy-MM-dd HH:mm:ss},prevDate={1:yyyy-MM-dd},newRthBarDate={2:yyyy-MM-dd},H={3},L={4},C={5},O={6},anchorBar={7},anchorFound={8}",
+					DateTime.Now, prevDate, d, prevHigh, prevLow, prevClose, prevOpen, prevHighBar, _dailyPrimaryBarByDate.ContainsKey(prevDate)));
 
 				double prevWeekOpen, prevMonthOpen;
 				if (!_rthWeekOpenBy.TryGetValue(MondayOf(prevDate), out prevWeekOpen)) prevWeekOpen = prevOpen;
@@ -1581,6 +1612,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		[Display(Name = "ETH levels from THIS chart (ETH/Globex charts)", Order = 2, GroupName = "00 Session Templates", Description = "ON (default): compute ETH overnight H/L + ETH opens + ETH close from this chart's own bars — exact tick match, and NO hidden 5-min ETH feed (much lighter). Use ON for an ETH/Globex chart with overnight bars; turn OFF on an RTH-only chart to fall back to the hidden ETH feed.")]
 		public bool EthFromPrimary { get; set; }
+
+		[Display(Name = "Debug log (writes Documents\\sessionsrlevels_debug_<instrument>.csv)", Order = 3, GroupName = "00 Session Templates",
+			Description = "Investigative only: logs the Daily-chart date/bar resolution and HOY/LOY/COY source values every time the hidden RTH series rolls to a new session.")]
+		public bool DebugLog { get; set; }
 
 		[Range(6, 24)]
 		[Display(Name = "Label font size", Order = 2, GroupName = "01 Display")]
