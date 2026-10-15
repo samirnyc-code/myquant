@@ -161,6 +161,35 @@ value side.
 user F5** (when flat) + visual confirmation on the actual "Daily Globex" chart that HOY/LOY/COY,
 OoD/OoW/OoM, ETH H/L, Settlement, and the historical multi-session segments are back.
 
+**Follow-up, same session: levels appeared after F5 but HOY/LOY/COY were on the wrong day,
+"HoLW" wrong week.** Root cause: my Daily-chart date resolution used `_dayIter` (bound to the
+PRIMARY chart's own trading-hours template — "Daily Globex," i.e. ETH/Globex) to decide which
+trading day a primary bar belongs to, then used THAT date to look up values from the hidden
+RTH-hours series — but the Globex trading-day boundary and the RTH trading-day boundary are
+different concepts and can legitimately disagree. Fixed: resolve the day via `_rthIter` (the
+RTH template's own iterator, already used elsewhere in this file for RTH boundary work)
+instead, matching the day boundary the hidden RTH series itself uses. Also added an opt-in
+`DebugLog` property (`Documents\sessionsrlevels_debug_<instrument>.csv`) that logs the date
+resolution + HOY/LOY/COY source values on every session roll — **not yet verified against
+live data**, only reasoned from code; flag this if the day is STILL wrong after the next F5,
+and check that CSV before trying another fix blind. Compiled clean, deployed, committed
+(`a57777e`).
+
+**Also this session, separate thread: `RegimeTrackerPanel` "disappearing" report (from earlier
+today) — found the diagnostic data itself was unreliable, not that the panel was actually
+broken.** User's live workspace has **two separate `RegimeTrackerPanel` instances with
+`Timeframe=5M`** (same settings, different chart tabs) both writing to the SAME shared debug
+CSV (keyed only by instrument name, `regime_tracker_panel_debug_ES.csv`) — each instance's own
+~2s flush timer was overwriting the other's data, making the file look like it kept
+"resetting" every 10-30 min when it was actually just alternating between two live, healthy
+instances. This undermined everything read from that file earlier in the session (no gaps, no
+errors were reported — that part may still be true, but can't be trusted as specifically about
+the 2k-tick chart's panel given the clobbering). **Fixed:** debug/error file names now include
+a per-instance tag (Timeframe + the instance's own object hash), so each chart's panel gets an
+isolated log going forward. **Still open:** no confirmed root cause yet for the user's reported
+visual "not working" on the 2k chart specifically — need the user to F5 (new filenames) and
+reproduce, then read the correctly-isolated per-instance log instead of guessing further.
+
 ---
 
 ## S138-nt8-regime-box-panel-parity (2026-10-15) — `RegimeTrackerBox` gains IncludePriorSession; Lag default reconciled with Panel
