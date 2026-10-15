@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
+using System.Xml.Serialization;
 using NinjaTrader.Cbi;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
@@ -120,6 +121,13 @@ namespace NinjaTrader.NinjaScript.Indicators
                 ShowDrawings      = true;
                 DeleteInvalidated = false; // true: remove a DT/DB's drawings when price invalidates it (new extreme beyond the peaks/troughs)
                 ShowLabel         = true;  // 'DT 72' / 'DB 64' text next to each pattern
+                DtLegBrush        = Brushes.Firebrick;    // peak -> valley -> peak legs of a DT
+                DbLegBrush        = Brushes.SeaGreen;     // trough -> peak -> trough legs of a DB
+                LegDashStyle      = DashStyleHelper.Solid;
+                LegWidth          = 2;
+                PeakLineBrush     = Brushes.Black;        // line joining the two tops/bottoms
+                PeakLineDashStyle = DashStyleHelper.Solid;
+                PeakLineWidth     = 4;
                 ConfirmTriangleSize = 30;  // font size of the neckline-break triangle (~3x NT8's built-in triangle marker)
                 ShowDebugPrints   = true; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
             }
@@ -137,7 +145,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 else
                 {
                     tickInterval = 0;
-                    Print("DtDbScannerV3 WARNING: this is not a Tick chart (BarsPeriodType = "
+                    if (ShowDebugPrints)
+                        Print("DtDbScannerV3 WARNING: this is not a Tick chart (BarsPeriodType = "
                           + BarsPeriod.BarsPeriodType + "). It will still run, but it is designed for tick charts.");
                 }
             }
@@ -579,10 +588,11 @@ namespace NinjaTrader.NinjaScript.Indicators
             int midAgo = CurrentBar - mid.Bar;
             int bAgo   = CurrentBar - b.Bar;
 
-            TrackDrawObj(Draw.Line(this, tag + "_l1", false, aAgo, a.Price, midAgo, mid.Price, c, DashStyleHelper.Solid, 2));
-            TrackDrawObj(Draw.Line(this, tag + "_l2", false, midAgo, mid.Price, bAgo, b.Price, c, DashStyleHelper.Solid, 2));
+            Brush leg = isTop ? DtLegBrush : DbLegBrush;
+            TrackDrawObj(Draw.Line(this, tag + "_l1", false, aAgo, a.Price, midAgo, mid.Price, leg, LegDashStyle, LegWidth));
+            TrackDrawObj(Draw.Line(this, tag + "_l2", false, midAgo, mid.Price, bAgo, b.Price, leg, LegDashStyle, LegWidth));
             TrackDrawObj(Draw.Line(this, tag + "_neck", false, midAgo, mid.Price, 0, mid.Price, c, DashStyleHelper.Dash, 2));
-            TrackDrawObj(Draw.Line(this, tag + "_peaks", false, aAgo, a.Price, bAgo, b.Price, Brushes.Black, DashStyleHelper.Solid, 4)); // joins the two tops/bottoms
+            TrackDrawObj(Draw.Line(this, tag + "_peaks", false, aAgo, a.Price, bAgo, b.Price, PeakLineBrush, PeakLineDashStyle, PeakLineWidth)); // joins the two tops/bottoms
             if (ShowLabel)
                 TrackDrawObj(Draw.Text(this, tag + "_txt", (isTop ? "DT " : "DB ") + score.ToString("F0"),
                           bAgo, isTop ? b.Price + 10 * TickSize : b.Price - 10 * TickSize, c));
@@ -661,7 +671,6 @@ namespace NinjaTrader.NinjaScript.Indicators
         private void FireAlert(string id, Priority priority, string msg, Brush back)
         {
             Alert(id, priority, msg, "", RearmSeconds, back, Brushes.White);
-            Print(Time[0] + "  " + msg);
         }
 
         // label used in every alert/drawing — the chart's own tick interval
@@ -787,6 +796,38 @@ namespace NinjaTrader.NinjaScript.Indicators
         [NinjaScriptProperty]
         [Display(Name = "Show DT/DB label", Description = "Show the 'DT 72' / 'DB 64' text (pattern type + score) next to each pattern.", Order = 18, GroupName = "3. Alerts")]
         public bool ShowLabel { get; set; }
+
+        [XmlIgnore]
+        [Display(Name = "DT leg color", Description = "Color of the peak -> valley -> peak lines of a double top.", Order = 1, GroupName = "5. Lines")]
+        public Brush DtLegBrush { get; set; }
+        [Browsable(false)]
+        public string DtLegBrushSerialize { get { return Serialize.BrushToString(DtLegBrush); } set { DtLegBrush = Serialize.StringToBrush(value); } }
+
+        [XmlIgnore]
+        [Display(Name = "DB leg color", Description = "Color of the trough -> peak -> trough lines of a double bottom.", Order = 2, GroupName = "5. Lines")]
+        public Brush DbLegBrush { get; set; }
+        [Browsable(false)]
+        public string DbLegBrushSerialize { get { return Serialize.BrushToString(DbLegBrush); } set { DbLegBrush = Serialize.StringToBrush(value); } }
+
+        [Display(Name = "Leg style", Description = "Dash style of the peak/valley lines (DT and DB).", Order = 3, GroupName = "5. Lines")]
+        public DashStyleHelper LegDashStyle { get; set; }
+
+        [Range(1, 20)]
+        [Display(Name = "Leg width", Description = "Width of the peak/valley lines (DT and DB).", Order = 4, GroupName = "5. Lines")]
+        public int LegWidth { get; set; }
+
+        [XmlIgnore]
+        [Display(Name = "Peak line color", Description = "Color of the line joining the two tops (DT) / two bottoms (DB).", Order = 5, GroupName = "5. Lines")]
+        public Brush PeakLineBrush { get; set; }
+        [Browsable(false)]
+        public string PeakLineBrushSerialize { get { return Serialize.BrushToString(PeakLineBrush); } set { PeakLineBrush = Serialize.StringToBrush(value); } }
+
+        [Display(Name = "Peak line style", Description = "Dash style of the line joining the two tops/bottoms.", Order = 6, GroupName = "5. Lines")]
+        public DashStyleHelper PeakLineDashStyle { get; set; }
+
+        [Range(1, 20)]
+        [Display(Name = "Peak line width", Description = "Width of the line joining the two tops/bottoms.", Order = 7, GroupName = "5. Lines")]
+        public int PeakLineWidth { get; set; }
         #endregion
     }
 }
