@@ -1,6 +1,14 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-16 (machine-time W. Europe) — **S140: Trade Playbook (separate repo,
+**Last Updated:** 2026-10-16 (machine-time W. Europe) — **S141: 2026-10-15 ClaudeTrackerV2
+trade-loss incident — root-caused + fixed + monitored, plus a large Trade Playbook Journal
+build on top. 3 trades silently lost to a mid-session strategy reload; recovered them, fixed
+the reload-state bug + 2 related gaps (periodic drift, multi-chart-same-instrument race),
+added a health file + on-chart toolbar light + desk_watchdog alert, archived raw execution
+logs so this is reconstructable automatically next time, then shipped a big round of Journal
+UI (filters, setup-led header, hero screenshot, reorderable sections+templates). See S141
+block — READ IT before touching ClaudeTrackerV2.cs, ClaudeTrackerHealthLight.cs, or
+trade-playbook's Journal.** S140: Trade Playbook (separate repo,
 `Desktop\trade-playbook`) — Journal rating 1-5 → A/B/C/F across schema/API/UI/analytics (old
 numeric grades retired, not remapped, per explicit user choice) + a reusable pop-out/zoom
 pattern (`src/components/Zoomable.tsx`) applied to every stat tile and every collapsible
@@ -102,6 +110,165 @@ correct, but the bar-close event itself (leg/counter freshness) lags for these a
 Daily/Weekly series; a restart and two parameter changes didn't fix it, root cause
 undetermined, deprioritized as a minor staleness issue (the regime reading itself is
 accurate, just dated to the last bar NT8 delivered). See S134 block.** S133: NT8 `RegimeTrackerBox` — NEW multi-timeframe regime dashboard indicator. One box on the chart, rows = timeframes (editable: `2000t,5M,15M,60M,240M,D,W`), two columns RTH + ETH, each cell colored by Bull/Bear/Range. Flexible corner+X/Y offset and font size. Built, compile-checked, deployed, committed+pushed. GOTCHA fixed: the two trading-hours templates must be exact Trading Hours Manager names — `CME US Index Futures RTH` / `CME US Index Futures ETH` (NOT "CME RTH"/"CME ETH"; a bad name makes `AddDataSeries` throw in `OnStateChange` → indicator errors, draws nothing). See S133 block.** **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S141-claudetracker-incident-and-journal-build (2026-10-16) — reload-loss incident fixed+monitored; big Journal UI build
+
+**Spans two repos.** NT8 `.cs` + `pipeline_health.py`/`desk_watchdog.py` are **myquant**
+(this repo). Everything else (filters, header, screenshots, reorderable sections, execution-
+log archive, settings, security fix) is **`Desktop\trade-playbook`** (separate repo, Next.js/
+Prisma/Neon). Commit hashes below are tagged `[myquant]` or `[tp]` accordingly.
+
+### Part 1 — the incident
+
+User's NT8 Output log showed `ClaudeTrackerV2` getting disabled+reloaded mid-session
+("Loaded. Resuming from trade #0") right after a trade's `INITIAL_STOP` locked, before its
+final exit fill arrived. `activeTrade`/`activeStudy` are plain in-memory fields — a reload
+wipes them, and `HandleExitExecution`'s `if (activeTrade == null) return;` then silently
+drops the next fill for that position. Result: **2 trades stuck OPEN forever** (final exit
+never recorded) and **1 trade never tracked at all** (its entry landed in the same kind of
+gap — zero files on disk). Confirmed via `G:\My Drive\!NT Tracker Export\ES\2026-10-15\` —
+the 2 stuck trades had `EntryStudy.csv`+screenshots up through the Target1 partial but no
+`Events.csv`/`TradeSummary.csv`; the 3rd trade's folder didn't exist at all.
+
+**Recovery:** reconstructed all 3 from the user's own NT8 execution-history export (pasted
+screenshot) + the partial on-disk data, scripted + POSTed to the journal ingest API
+(`trade-playbook/scripts/recover_20261015_trades.py`, committed for the record). `[tp]
+c7370d4`.
+
+### Part 2 — root-cause fixes (ClaudeTrackerV2.cs, compiled clean, deployed, PENDING F5)
+
+1. **`ReconcileOpenPosition()`** — on `State.Realtime` startup, checks the broker's actual
+   `Position` (reliable because `StartBehavior=AdoptAccountPosition`) and picks it back up if
+   nothing's tracking it, instead of blindly starting at "trade #0". `[myquant] 77743f22`.
+2. **Periodic drift self-check** — same check now also runs every ~30s while live (not just
+   at startup), both directions: broker-has-position-we-don't-track → reconcile;
+   we-think-we're-tracking-but-broker-is-flat → force-close with best-available data rather
+   than leave it stuck. Also writes `ClaudeTracker_Health.json` every cycle (freshness alone
+   proves the check loop is alive — `ErrorHandling=IgnoreAllErrors` can hide a frozen
+   strategy) and a full raw-execution-log CSV (`ExecutionLog_<date>.csv`, straight from
+   `Account.Executions`, independent of ClaudeTracker's own derived state — the exact ground
+   truth the recovery above needed and didn't have on file). `[myquant] 7272321a`.
+3. **Multi-chart ownership arbitration** — user confirmed the actual setup: ES runs on BOTH
+   an RTH chart and an ETH chart simultaneously, both with `ClaudeTrackerV2` attached.
+   Without a fix, both instances independently process every fill, both write the same
+   trade's files, and both seed `dailyTradeCounter` from disk at startup — real risk of two
+   trades colliding onto one TradeID. Fixed with in-process ownership (plain C# `static`
+   dict, shared across instances of the same type in one NT8 process — no file lock needed):
+   one instance claims a per-instrument lock + heartbeat and does all the work; the other
+   goes fully passive until the heartbeat goes stale, then takes over (reconciling against
+   live position, same as a normal startup). Net effect for this RTH+ETH pair: the ETH chart
+   (ticks around the clock) becomes the de-facto permanent owner; RTH is pure standby/
+   failover. Also closes a possible cross-thread race (`OnAccountExecutionUpdate` can fire on
+   a different thread than `OnBarUpdate`) via a real `lock`. `[myquant] bca3de73`.
+4. **Owner/reload-time/today's-P&L in the health file** — `ownerChart` (instrument + bar
+   type + session template string) + `ownerStartedAt`, read by the toolbar light to show
+   which chart is the active owner and how long it's been running since the last reload.
+   `[myquant] f12ad0b7`.
+
+### Part 3 — monitoring (so a recurrence isn't silent again)
+
+- **`ClaudeTrackerHealthLight.cs`** (new indicator, deliberately separate from
+  `ClaudeTrackerV2.cs` itself — that strategy has documented history of a severe NT8-wide lag
+  incident from chart-drawing code, see `trade-playbook`'s `JournalApp.tsx` comment on it).
+  First version was a tiny `Draw.TextFixed` corner overlay — user correctly called out "there
+  IS a way to inject into NT8's own UI, check docs/forums" when I claimed otherwise. Verified
+  via NinjaTrader's own help docs (`AddOnBase.OnWindowCreated`) AND, more concretely, found a
+  **working proof already installed on this machine**: BidAskFlow's "BAF IndicatorManagerUI"
+  (`Custom\Indicators\IndicatorManager.cs`) injects a WPF `Button` directly into a chart
+  window's own `MainMenu` toolbar collection. Rebuilt on that exact pattern: a real toolbar
+  button (not a corner label), color-coded, click opens a popup with status detail,
+  owner/standby, last-reload time, and today's running gross P&L (quote-aware CSV column
+  reader, not a hardcoded index). Reflected the real `NinjaTrader.Core.dll`/
+  `NinjaTrader.Gui.dll` on this machine to confirm exact signatures before writing code,
+  not forum guesswork. `[myquant] 7272321a` (first version) `f12ad0b7` (rebuilt+enriched).
+  True Control-Center-chrome injection (vs. a chart's own toolbar) remains unverified/
+  unbuilt if ever wanted later.
+- **`pipeline_health.py`**: new `check_claude_tracker_trades()` — reads the health file +
+  independently scans for the stuck-open signature (EntryStudy.csv, no TradeSummary.csv,
+  stale). Wired into `CHECKS`, so it automatically feeds the existing `status_light.py`
+  always-on-top widget + Mission Control `/health` — `check_journal_uploader` alone would
+  NOT have caught 10/15 (the uploader ran fine all day; the lost trades' files simply never
+  existed for it to find). `[myquant] 7272321a`. Also fixed, same session: `check_l1_tape`
+  was reporting BAD/red after the user intentionally disabled the "MyQuant L1 Recorder
+  Watchdog" task — now reads that task's own Disabled state and reports IDLE "paused"
+  instead. `[myquant] cbdf4b55`.
+- **`desk_watchdog.py`**: notify-only path (no auto-restart possible — ClaudeTracker runs
+  inside NT8, not a Python process with a Scheduled Task) pushing `notify()` — desktop toast
+  + email + Telegram, all three, already wired — when `check_claude_tracker_trades()` goes
+  BAD. Same `COOLDOWN_S` as the existing 5 auto-restart components. `[myquant] 0563d8f0`.
+- `status_light.py` was running STALE code from before this session's `pipeline_health.py`
+  changes (classic "stale process after code change" — matches the existing memory of the
+  same name) — killed the venv-launcher+system-python-worker pair and relaunched twice
+  (once per `pipeline_health.py` edit) so the live widget actually reflects the new checks.
+
+### Part 4 — Thomas re-handoff
+
+New `trade-playbook/docs/thomas-update-2026-10-16.md` — 3 files to resend
+(`ClaudeTrackerV2.cs`, `ClaudeTrackerHealthLight.cs` [new], `journal_uploader.py`), explicit
+about what needs NO action (the web app itself; the desk-pipeline monitoring scripts don't
+apply to his setup). `[tp] 7f3f33e`.
+
+### Part 5 — trade-playbook Journal build (same session, same repo, unrelated to the incident)
+
+A long sequence of UI/data fixes and features, roughly in order:
+
+- **Timezone correctness**: Thomas's NT8/PC run Berlin time, not Chicago — his uploader was
+  misreading his CSV timestamps; added `nt8_timezone` override. Separately, the Journal's own
+  DISPLAY was rendering every timestamp in the viewer's own browser/OS timezone instead of a
+  fixed zone — fixed to always show Exchange Time (America/Chicago) via `src/lib/time.ts`
+  helpers (`fmtDT`, `dateKeyCT`), applied everywhere including Analytics' hour/day-of-week
+  breakdown and the Daily P&L chart (both were bucketing by raw UTC date, producing phantom
+  "next day" bars for late-evening CT trades). `[tp] db84873` + several follow-ups.
+- **Journal UI tiles**: sidebar widened, fonts bumped (several rounds per user feedback —
+  "bigger", "still too small", etc.), lightbox scroll-zoom fixed (React's synthetic
+  `onWheel` was silently passive in some browsers — replaced with a native non-passive
+  listener), tile layout flipped to lead with the SETUP name instead of instrument (desk
+  trades ES almost exclusively), P&L moved onto the setup line. `[tp]` several commits
+  86d4867→b5dd6eb.
+- **Bulk delete + a real security fix**: multi-select delete for trades; found and fixed
+  that EITHER trader could delete the OTHER's trades (server had no ownership check) —
+  `DELETE /api/journal/:id` now verifies `Trade.ownerName` against the session, client hides
+  the delete affordance for trades you don't own. `[tp] c5cf6f8` + `5cf22b4`.
+- **Theme**: was silently following each viewer's own OS dark/light setting (Samir and
+  Thomas could see different themes on the same screen) → removed, then added back as one
+  manual per-browser toggle per user request. `[tp] 8f9b545` + `04b312d`.
+- **Settings**: adjustable font-size sliders with save/apply/delete NAMED templates
+  (per-browser); auto-save every N minutes (default 5) wired into every editor with a
+  draft/dirty/Save pattern app-wide. `[tp] 35ebf56`.
+- **Execution-log archival + reconciliation** (direct response to the incident, see Part 3
+  above for the NT8-side export): new `ExecutionLog` DB model, `POST /api/ingest/execution-
+  log`, a new "Execution Logs" tab to browse/download raw fills by date, and `GET /api/
+  ingest/trades-summary` (ingest-secret auth, not session — a scheduled script has no
+  browser login) + `scripts/reconcile_trades.py`, which independently reconstructs trades
+  from the raw log and flags anything missing from the Journal or stuck OPEN. `[tp] 5639ad5`.
+- **Rating scale + pop-out/zoom** — see S140 block directly below this one (same day, a
+  different/parallel session; not re-summarized here).
+- **Final round, same session**: `UNCLASSIFIED` filter chip (no setup linked); date filter
+  (defaults to today, Chicago-day bucketed); Trade Detail header now leads with the setup
+  name in the sidebar's accent gold, before instrument/direction; a large first-screenshot
+  preview sits right under the header (separate from the existing Screenshots grid further
+  down); new shared `src/lib/layoutOrder.ts` + `SectionTemplateBar` component — drag-to-
+  rearrange + named templates (same per-browser model as the font-size templates), applied
+  to ALL 8 Trade Detail sections as whole reorderable cards (plus the Summary section's 9
+  tiles independently reorderable within it) AND all 7 Analytics sections the same way
+  (Equity curve + Drawdown lost their hardcoded 2-column pairing as part of this — they're
+  independent reorderable cards now like everything else). `[tp] 63e428d`.
+
+### Open / next
+
+- **PENDING USER F5** (flat first) on BOTH `ClaudeTrackerV2.cs` and
+  `ClaudeTrackerHealthLight.cs` — none of Part 2/3's protections are live until this happens.
+  Deployed to the Custom folder already.
+- **Never root-caused**: why the chart kept reloading repeatedly throughout the 10/15
+  session in the first place (BreakoutBoysLiteV3 disabled/enabled in lockstep with
+  ClaudeTrackerV2 every time, same instance-ID churn pattern — looks like the whole chart
+  was reloading, not a per-strategy crash). The fixes above make a reload non-destructive;
+  they don't explain what was causing them that day. Worth investigating if it recurs.
+- **Thomas**: files sent per Part 4; not yet confirmed he's run F5 on his end.
+- Did NOT attempt true Control-Center-chrome injection for the health light (only the
+  chart's own toolbar) — flagged to the user as a possible future ask, not started.
 
 ---
 
@@ -1452,7 +1619,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 14 | Playbook-only backtest (trade what the gexlog playbook says) | ✅ DONE (S116-gexlog) | `gexlog_playbook_parse.py` (327/327 scenarios) + `gexlog_playbook_bt.py` (TD 1-min, 106d Apr–Sep): touch −$43.0k / hold15 +$5.5k / cross15 +$0.4k — sign flips on the trigger reading; no robust edge; rows in backtest_full/playbook_bt_rows.csv |
 | 17 | Trade plan w/ Thomas (setup inventory → regime/risk → trade log/journal) | 🛑 PAUSED (S118 9/15, USER CALLED STOP — lost confidence in the analysis) | `docs/living/trade_plan/`: `setup_inventory.md` (v1–v2 + evidence ranking, all sources) · `apex_account_analysis.md` · `apex_rulebook.md`. Deep-dived REGIME-2E: edge REAL but lumpy (top-10=55% of net), short-side-heavy, regime-favorable; PF~1.5–1.8. Built + deployed NT8 `Regime2ESetups.cs` (indicator) + `Regime2EStrategy.cs` (OnePerDay/gates/visuals; signal-parity 96.8%/regime 100% vs python) — PENDING user F5 + Sim101 forward test. Apex study: site scraped via Playwright (`scripts/apex_fetch_pages.py`; Cloudflare 403s WebFetch). **⚠ Analysis iterated messily across many turns — user halted, deemed it unreliable.** VERIFIED rules in `apex_rulebook.md` (verbatim+sources): legacy FULL DD = INTRADAY trailing (eval+funded, NOT EOD); needs MES fractional sizing (10 MES=1ES blows; ≤8 MES survives); **2 PA rules (30% MAE, 5:1 RR) NEVER modeled ⇒ ALL funded sims PROVISIONAL/likely-worse; eval sims valid**. Standing take: hold-to-EOD book wants a STATIC-DD firm (TPT), not Apex trailing. NEXT (only if resumed): model 30% MAE+5:1 in ONE clean funded sim; resolve §H open Qs w/ Apex FIRST |
 | 18 | **Wyckoff 2.0 discretionary toolset + full-tape recording DB** | 🟢 ACTIVE (S121-wyckoff-tools 9/16, leglab) — **CONTINUE HERE** | **DB LIVE**: L1 tape+BBO recorder `L1TapeRecorderAddOn.cs` running on **ES 12-26** (ES-only per user; ~90% quote, self-healing) + nightly rollover + watchdog tasks + `check_l1_tape` tile. Footprint pipeline RETIRED (L1 reconstructs it). **Stage-1 tools built** (VP engine+NT8 drawer PENDING F5, Weis wave, VWAP-readable). **`wyckoff_marker.py` = the interactive HTML Wyckoff marker** (click-box+snap, auto events from box, box-free bull/bear/transition trend engine, multi-day, S/R+21EMA, flex-renko). Renko+wicks+**Sierra flex_renko**; NT8 `FlexRenkoBarsType.cs` deployed — **RESOLVED (S122): it's in Data Series → Type, NOT the Chart-Style dropdown; not a compile error (type + strings byte-verified in the DLL)**. **FINDING: 9/15 low = SPRING of overnight low.** NEXT: Stage-2 (TR-Box + retro event engine) + Stage-3 (OF trigger panel); VWAP host-exporter; marker threshold calibration (user marks AR/springs); optional ChoCH volume/spread confirm. **READ S121-wyckoff-tools BLOCK.** |
-| 20 | **Trade Playbook + Journal (separate repo `trade-playbook`)** | 🟡 PENDING F5 (S125 2026-10-01) | Live at https://trade-playbook-ten.vercel.app. Autostart uploader task **registered + verified running** on this machine (`TradePlaybookUploader`). Thomas onboarding **approved, GO** — web app auto-updates for him, only local files are snapshots. April historical trades: **decided, never importing them.** **ONLY remaining item: F5 ClaudeTrackerV2** (performance-incident drawing-code revert + Name fix + MAE/MFE columns + configurable export path, all in one recompile — see S125 block). |
+| 20 | **Trade Playbook + Journal (separate repo `trade-playbook`)** | 🟡 PENDING F5 (S141 2026-10-16) | Live at https://trade-playbook-ten.vercel.app. **S141 (2026-10-16): 2026-10-15 trade-loss incident** — ClaudeTrackerV2 lost 3 trades to a mid-session reload (recovered); root-caused + fixed (reload-reconcile + periodic drift check + multi-chart ownership arbitration, since ES runs on both an RTH and ETH chart with ClaudeTrackerV2 on both); added `ClaudeTracker_Health.json` + raw execution-log export + a chart-toolbar health-light indicator + a `pipeline_health.py`/`status_light.py`/`desk_watchdog.py` check+alert; archived execution logs into the app + `reconcile_trades.py`. **PENDING USER F5** on both `ClaudeTrackerV2.cs` and new `ClaudeTrackerHealthLight.cs` — see S141 block, do NOT re-touch without reading it first. Also same session: a large Journal UI round (filters, setup-led header, hero screenshot, drag-reorderable sections+templates) and a real security fix (either trader could delete the other's trades — now ownership-checked). Thomas re-handoff doc at `trade-playbook/docs/thomas-update-2026-10-16.md` (3 files to resend). Autostart uploader task **registered + verified running** on this machine (`TradePlaybookUploader`). April historical trades: **decided, never importing them.** |
 | 21 | DtDbScanner (DT/DB tick-chart scanner) — add + backtest/walk-forward | ⛔ CLOSED (S126 2026-10-02) — NO mechanical edge | Indicator added (`nt8/indicators/DtDbScanner.cs`), full-history walk-forward + stop/target sweep + freq gate: only 1500t/2000t ever trade >=3/day, both net losers OOS (1500t PF 0.92 -$96.9k; 2000t PF 0.93 -$45.1k). User closed it — discretionary use only, do not resume unasked. See S126 block |
 | 19 | **Regime tracker — BOS/ChoCh regime classifier (5m ES)** | 🔧 **WIP (Thomas-Code chat, 2026-10-13): Python review pipeline → Lag-aware (Python = base for the 4 C# copies)** · 🟢 LAG RECONCILE DONE (S124 2026-09-24) — PENDING USER F5 | **Lag=1 is canonical** (user decision). S123 export-diff was the Lag setting (Documents=Lag3 vs Desktop=Lag1), NOT a build/tick engine difference. Python now models Lag (`mywedge.compute_mywedge(lag=)` + `swing_*_asof`); **Python(lag=1)↔both NT exports = 100%** (Documents `--session eth`, Desktop `--session date`). NT8 `RegimeTracker.cs` default Lag 3→1, compiled + **deployed — PENDING USER F5** (when flat). Invariant: lag2==lag3==finalised (non-repaint). Repaint effect: 476/500 trend segments identical, 1.04% bar diffs, ~4 short direction-flip windows. **PARKED (user will revisit): Lag 1 vs Lag 2** (chart-match+repaint vs settled/non-repaint). See S124 block. Earlier (S123): outside-bar rule ported (`Swings()`/`Extends()`). **Outside-bar rule (9/22-23):** mywedge marks an outside bar as BOTH a swing high and low; if it extended the structure at both ends both swings stand, else it collapses to the extreme it LEFT ON (`bar_dir`). Validated on 4 hand-marked charts at once — 02-13 **Bull b9**, 12-26 **one Bear b21-53**, 05-19 **Bear b16**, 05-21 **unchanged Bull b28**; other 8 sessions byte-identical. Three rejected variants recorded in the regime-tracker block — do NOT retry (the third, a general minor-pivot filter, broke 14/14 sessions). **Minor pivots beyond outside bars: CLOSED 9/23, user said leave as is** — zero-length in-bar trends (05-06 b5 etc.) are an accepted artifact. **PARKED:** 02-13 late ChoCh ~b76 (outside-bar intrabar order) — tracker is deliberately **bar-only, do NOT resolve with ticks**. Page generators now in `regime_tracker/pages/` (near-duplicates; consolidate before the next batch). Safety tag `pre-nt8-merge-20260923`; stale worktree `C:\Users\Thomas-Code\wt-nt8` can be removed. **S127 2026-10-02: Indicator-Manager hide/show bug fixed in a NEW clone `RegimeTrackerV2.cs` (+ `DtDbScannerV2.cs`) — V1 untouched, still the one in use. See S127 block before next edit to either original.** **S138 2026-10-15: `RegimeTrackerBox` gains `IncludePriorSession` (matches Panel); Panel's `Lag` default restored 0→1 to match Box's canonical value. Compiled+deployed+committed (`41f138d`), PENDING user F5. See S138 block.** |
 | 22 | **BreakoutBoysLiteV3 — reworked manual entry engine (BUY/SELL auto-type + IBS toggle)** | 🟡 PENDING USER F5 + SIM TEST (2026-10-15) | NEW strategy; V1/V2 untouched = rollback. BUY/SELL auto-pick stop-limit vs limit at the SB level (never blocked); IBS on/off toggle + [-/+]; picked SB = place IMMEDIATELY (via `OnMarketData` — managed Enter from the button thread silently no-ops); SB marker stays while working + FOREVER on fill. **⚠ 2026-10-15: LMT L BB/S SA weren't actually getting the immediate-placement path (only BUY/SELL were) — fixed, committed `626d0b5`.** **2026-10-15: BARS button removed (user+Thomas) — `_maxBarsAlive` fixed at default, OFS now full-row, committed `d920baf`.** **Sim-test: immediate fill for BOTH auto-type AND LMT, auto-type selection, two-tab routing, stop-side guard, marker-on-fill.** See the S-2026-10-14 block. |
