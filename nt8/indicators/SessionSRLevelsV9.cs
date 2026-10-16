@@ -1279,14 +1279,32 @@ namespace NinjaTrader.NinjaScript.Indicators
 					rthWeekStart  = FirstBarOfCurrentPeriod(1);
 					rthMonthStart = FirstBarOfCurrentPeriod(2);
 				}
+				// 2026-10-16: OoD/OoW/OoM RTH went stale mid-session — _rthSeriesLastDate (and
+				// therefore _rthOpenToday/_rthOpenThisWeek/_rthOpenThisMonth) only ever update
+				// when HandleRthSeries actually runs, which depends on the hidden RTH data
+				// series continuing to deliver bars. If that subscription silently stops
+				// (a feed hiccup, independent of the primary chart's own live data — this
+				// platform had plenty of instability today), these fields freeze at whatever
+				// day they last confirmed and nothing in the old code could ever detect or
+				// show that — it just kept drawing an old day's open as if it were today's,
+				// with no indication anything was wrong. Fail safe instead: only draw these
+				// three if _rthSeriesLastDate is actually today's date (checked against the
+				// live clock, not cached state); otherwise suppress them rather than show a
+				// stale price with no warning. A real reload (which re-subscribes the hidden
+				// series from scratch) is still required to recover the line itself.
+				bool rthOpenFresh = _rthSeriesLastDate == Core.Globals.Now.Date;
+
 				// OoD RTH stops at the end of its RTH session (_rthLastBar) on an intraday chart — doesn't spill into the following ETH session.
-				Add(list, ROoD_Enabled, ROoD_Label, _rthOpenToday,    ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, rthOpenStart, rthLastBarEff);
-				Add(list, ROoW_Enabled, ROoW_Label, _rthOpenThisWeek, ROoW_Color, ROoW_Opacity, ROoW_Style, ROoW_Thickness, 0, rthWeekStart);
+				Add(list, ROoD_Enabled && rthOpenFresh, ROoD_Label, _rthOpenToday,    ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, rthOpenStart, rthLastBarEff);
+				Add(list, ROoW_Enabled && rthOpenFresh, ROoW_Label, _rthOpenThisWeek, ROoW_Color, ROoW_Opacity, ROoW_Style, ROoW_Thickness, 0, rthWeekStart);
 				// RTH OoM: manual override wins when a price is set and its month == the current month
 				double rOoM = _rthOpenThisMonth; int rOoMBar = rthMonthStart;
 				if (ROoM_ManualPrice != 0 && MonthKeyOf(ROoM_ManualMonth) == _curMonthKey)
 				{ rOoM = ROoM_ManualPrice; rOoMBar = ChartBars.FromIndex; }
-				Add(list, ROoM_Enabled, ROoM_Label, rOoM, ROoM_Color, ROoM_Opacity, ROoM_Style, ROoM_Thickness, 0, rOoMBar);
+				Add(list, ROoM_Enabled && (rthOpenFresh || ROoM_ManualPrice != 0), ROoM_Label, rOoM, ROoM_Color, ROoM_Opacity, ROoM_Style, ROoM_Thickness, 0, rOoMBar);
+				if (!rthOpenFresh && DebugLog)
+					LogDbg(string.Format("RthOpenStale,{0:yyyy-MM-dd HH:mm:ss},lastConfirmedDay={1:yyyy-MM-dd},today={2:yyyy-MM-dd}",
+						Core.Globals.Now, _rthSeriesLastDate, Core.Globals.Now.Date));
 			}
 			if (_ethVisible)
 			{
