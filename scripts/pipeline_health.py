@@ -30,6 +30,10 @@ L1_DIR = ROOT / "data" / "l1_tape"
 CATALOG = ROOT / "data" / "_catalog"
 NT8 = Path(os.environ["USERPROFILE"]) / "Documents" / "NinjaTrader 8"
 JOURNAL_STATE = Path.home() / "AppData" / "Local" / "TradePlaybookJournal" / "uploader_state.json"
+# Must match ClaudeTrackerV2.cs's ExportRootFolder default AND journal_uploader.py's
+# DEFAULT_ROOT — all three (strategy, uploader, this check) have to agree on where the
+# day's trade folders/health file/execution log actually land.
+CT_EXPORT_ROOT = Path("G:/My Drive/!NT Tracker Export")
 
 OK, WARN, BAD, IDLE = "ok", "warn", "bad", "idle"
 RANK = {OK: 0, IDLE: 1, WARN: 2, BAD: 3}
@@ -572,6 +576,84 @@ def _check_journal_uploader_uncached() -> dict:
     return _chk("Journal uploader", OK, detail)
 
 
+def check_claude_tracker_trades() -> dict:
+    """ClaudeTrackerV2's own trade-tracking integrity — not the uploader, the NT8 strategy
+    ITSELF. 2026-10-15: a chart reload wiped the strategy's in-memory trade state mid-session;
+    the uploader kept running fine the whole time (nothing for it to catch — the files for
+    the lost trades just never got written), so check_journal_uploader stayed green all day
+    while 2 trades sat stuck OPEN forever and a 3rd never got tracked at all. Two kinds of
+    evidence, both from files ClaudeTrackerV2 itself writes (not process state):
+
+      1. ClaudeTracker_Health.json — the strategy's own periodic self-check (added after the
+         incident). Stale during market hours = the health-check loop itself stopped running
+         (frozen/crashed strategy, ErrorHandling=IgnoreAllErrors can hide this from NT8's own
+         UI). A "drift_*" status = it caught and auto-corrected a mismatch THIS session —
+         worth surfacing even though it self-healed, because it means something upstream is
+         flaky.
+      2. Direct file-system scan for a trade folder with an EntryStudy.csv but no matching
+         TradeSummary.csv, stale for a while — the exact signature of the 2 stuck-OPEN trades
+         that incident produced. Catches it even without the health file (e.g. an older
+         ClaudeTracker build, or before this check existed).
+    """
+    return _cached("claude_tracker_trades", 30, _check_claude_tracker_trades_uncached)
+
+
+def _check_claude_tracker_trades_uncached() -> dict:
+    now = chicago_now()
+    mkt = market_state(now)
+    today = now.date().isoformat()
+    day_dirs = [d for d in (CT_EXPORT_ROOT / "ES", CT_EXPORT_ROOT / "MES") if (d / today).is_dir()]
+
+    if not day_dirs:
+        if mkt == "open":
+            return _chk("ClaudeTracker trades", IDLE, "no trade folder yet today (no trades taken)")
+        return _chk("ClaudeTracker trades", IDLE, f"market {mkt} - nothing expected")
+
+    # 1. health file freshness + last self-reported status
+    health_states, newest_age = [], float("inf")
+    for d in day_dirs:
+        hf = d / today / "ClaudeTracker_Health.json"
+        if hf.exists():
+            age = _age(hf)
+            newest_age = min(newest_age, age)
+            try:
+                health_states.append(json.loads(hf.read_text()))
+            except Exception:
+                pass
+
+    # 2. stuck-open scan: EntryStudy.csv with no sibling TradeSummary.csv, stale
+    STUCK_THRESHOLD_SEC = 600  # 10 min with zero file activity on an "open" trade
+    stuck = []
+    for d in day_dirs:
+        for trade_dir in (d / today).iterdir():
+            if not trade_dir.is_dir() or trade_dir.name.endswith("_MASTER"):
+                continue
+            entry_study = next(trade_dir.glob("*_EntryStudy.csv"), None)
+            summary = next(trade_dir.glob("*_TradeSummary.csv"), None)
+            if entry_study and not summary:
+                age = _age(entry_study)
+                if age > STUCK_THRESHOLD_SEC:
+                    stuck.append((trade_dir.name, age))
+
+    if stuck:
+        names = ", ".join(f"{n} ({_fmt_age(a)})" for n, a in stuck)
+        return _chk("ClaudeTracker trades", BAD,
+                    f"{len(stuck)} trade(s) stuck OPEN with no activity: {names}", stuck=len(stuck))
+
+    drifts = [h for h in health_states if str(h.get("status", "")).startswith("drift_")]
+    if drifts:
+        kinds = ", ".join(sorted(set(h["status"] for h in drifts)))
+        return _chk("ClaudeTracker trades", WARN,
+                    f"self-corrected a drift this session ({kinds}) - see NT8 Output for detail")
+
+    if mkt == "open" and newest_age > 180:
+        return _chk("ClaudeTracker trades", WARN,
+                    f"health file stale {_fmt_age(newest_age)} - self-check loop may have stopped"
+                    if newest_age != float("inf") else "no health file yet - strategy may predate this check")
+
+    return _chk("ClaudeTracker trades", OK, "no stuck/dropped trades detected")
+
+
 def check_chain() -> dict:
     """0DTE SPXW chain recorder — the intraday per-strike NBBO tape (cannot be re-collected).
     A fresh, growing chain_<today>.csv during the session is proof it's recording. Pages
@@ -597,8 +679,8 @@ def check_chain() -> dict:
 # desk moved to L1 capture (S120). The L1 tape tile REPLACES the old L2 depth tile here. The
 # function stays defined for any tool that still imports it directly (e.g. nt8_watchdog).
 CHECKS = [check_l1_tape, check_contract, check_nt8, check_tick_db, check_journal_uploader,
-          check_archive, check_ib_gateway, check_options_sim, check_dashboard, check_disk,
-          check_chain, check_tasks]
+          check_claude_tracker_trades, check_archive, check_ib_gateway, check_options_sim,
+          check_dashboard, check_disk, check_chain, check_tasks]
 
 
 def health() -> dict:

@@ -249,6 +249,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         private int dailyTradeCounter = 0;
         private readonly HashSet<string> processedExecutions = new HashSet<string>();
         private long globalSequence = 0;
+        private DateTime lastHealthCheckTime = DateTime.MinValue;
+        private static readonly TimeSpan HealthCheckInterval = TimeSpan.FromSeconds(30);
 
         #endregion
 
@@ -344,6 +346,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             UpdateOpenTradeExcursions();
             TryLockInitialStop();
             TryLockTargets();
+            RunHealthCheck();
         }
 
         #endregion
@@ -590,6 +593,119 @@ namespace NinjaTrader.NinjaScript.Strategies
                 + "tracking it — a prior reload lost it. Recovering as " + tradeId
                 + " (original entry time and any stop/risk history before the reload are unrecoverable).");
         }
+
+        #region Health check
+
+        // Runs every ~30s of wall time (throttled off OnBarUpdate, which fires far more
+        // often than that under Calculate.OnEachTick — no need to check this on every tick).
+        // Two things, every cycle:
+        //   1. Does activeTrade (what we think) still match Position (what the broker
+        //      knows)? Catches the SAME class of bug ReconcileOpenPosition fixes at
+        //      startup, but for drift that happens WITHOUT a full reload — some other
+        //      exception swallowed mid-session, not just "Loaded. Resuming from trade #0".
+        //   2. Write a heartbeat file regardless of outcome — pipeline_health.py reads
+        //      its freshness as proof this code is still running at all (a frozen/crashed
+        //      strategy with ErrorHandling=IgnoreAllErrors can sit there doing nothing and
+        //      never tell anyone — a stale heartbeat is itself the alarm).
+        private void RunHealthCheck()
+        {
+            DateTime now = Core.Globals.Now;
+            if (now - lastHealthCheckTime < HealthCheckInterval) return;
+            lastHealthCheckTime = now;
+
+            bool brokerHasPosition = Position != null && Position.MarketPosition != MarketPosition.Flat;
+            bool trackerThinksOpen = activeTrade != null;
+            string status = "ok";
+            string detail = trackerThinksOpen
+                ? "tracking " + activeTrade.TradeID + " (" + activeTrade.Direction + " " + activeTrade.CurrentQty + ")"
+                : "flat, nothing tracked";
+
+            if (!trackerThinksOpen && brokerHasPosition)
+            {
+                status = "drift_recovered";
+                detail = "broker shows an open position with nothing tracking it — reconciling";
+                Print("[ClaudeTracker] HEALTH: " + detail);
+                ReconcileOpenPosition();
+            }
+            else if (trackerThinksOpen && !brokerHasPosition)
+            {
+                status = "drift_forceclosed";
+                detail = "tracking " + activeTrade.TradeID + " but broker is FLAT — a closing fill "
+                    + "was lost somewhere; force-closing with best-available data (PnL/exit fields "
+                    + "may be incomplete for the missed fill)";
+                Print("[ClaudeTracker] HEALTH WARNING: " + detail);
+                activeTrade.LastExitMechanism = activeTrade.LastExitMechanism ?? "Market";
+                activeTrade.LastExitLabel     = "ForceClosed_HealthCheck";
+                int sessionBar, sessionLastBar;
+                GetBarInfo(now, out sessionBar, out sessionLastBar);
+                CloseTrade(now, sessionBar);
+            }
+
+            WriteHealthFile(status, detail);
+            WriteExecutionLog();
+        }
+
+        private void WriteHealthFile(string status, string detail)
+        {
+            try
+            {
+                DateTime now = Core.Globals.Now;
+                string path = Path.Combine(MastersFolder(now), "ClaudeTracker_Health.json");
+                string json = "{"
+                    + "\"status\":" + JsonStr(status) + ","
+                    + "\"detail\":" + JsonStr(detail) + ","
+                    + "\"instrument\":" + JsonStr(Instrument.FullName) + ","
+                    + "\"checkedAt\":\"" + now.ToString("yyyy-MM-dd HH:mm:ss", INV) + "\","
+                    + "\"brokerPosition\":" + (Position != null ? Position.Quantity * (Position.MarketPosition == MarketPosition.Short ? -1 : 1) : 0)
+                    + "}";
+                File.WriteAllText(path, json);
+            }
+            catch (Exception ex) { Print("[ClaudeTracker] health file write failed: " + ex.Message); }
+        }
+
+        // Full-snapshot rewrite of today's raw fills for this account+instrument, straight
+        // from the broker's own Execution records — not ClaudeTracker's derived trade state.
+        // This is the ground truth the 2026-10-15 recovery relied on (manually pasted from
+        // NT8's UI); keeping it on file automatically means next time that reconstruction
+        // takes a script run, not a trading session's worth of screenshots and guesswork.
+        private void WriteExecutionLog()
+        {
+            try
+            {
+                if (Account == null) return;
+                DateTime now = Core.Globals.Now;
+                var todays = Account.Executions
+                    .Where(e => e.Instrument != null && e.Instrument.FullName == Instrument.FullName
+                        && e.Time.Date == now.Date)
+                    .OrderBy(e => e.Time)
+                    .ToList();
+                if (todays.Count == 0) return;
+
+                string path = Path.Combine(MastersFolder(now), "ExecutionLog_" + now.ToString("yyyy-MM-dd", INV) + ".csv");
+                using (StreamWriter sw = new StreamWriter(path, false))
+                {
+                    sw.WriteLine("Instrument,Action,Quantity,Price,Time,OrderName,OrderId,ExecutionId,MarketPosition,Account");
+                    foreach (Execution e in todays)
+                    {
+                        Order o = e.Order;
+                        sw.WriteLine(string.Join(",",
+                            Csv(e.Instrument.FullName),
+                            Csv(o != null ? o.OrderAction.ToString() : ""),
+                            Csv(e.Quantity.ToString(INV)),
+                            Csv(F2(e.Price)),
+                            Csv(e.Time.ToString("yyyy-MM-dd HH:mm:ss.fff", INV)),
+                            Csv(o != null ? (o.Name ?? "") : ""),
+                            Csv(o != null ? o.Id.ToString(INV) : ""),
+                            Csv(e.ExecutionId ?? ""),
+                            Csv(e.MarketPosition.ToString()),
+                            Csv(Account.Name ?? "")));
+                    }
+                }
+            }
+            catch (Exception ex) { Print("[ClaudeTracker] execution log write failed: " + ex.Message); }
+        }
+
+        #endregion
 
         private void HandleAddExecution(Execution ex, Order o, int signedQty, int positionBefore, int positionAfter)
         {
@@ -1588,6 +1704,15 @@ if (name.StartsWith("TARGET"))
         {
             if (s == null) s = string.Empty;
             return "\"" + s.Replace("\"", "\"\"") + "\"";
+        }
+
+        // ClaudeTracker_Health.json is the only JSON this file writes — everything else is
+        // CSV, which is why there's no general JSON library dependency here, just this one
+        // minimal escaper (backslash and quote, the two that break a JSON string literal).
+        private string JsonStr(string s)
+        {
+            if (s == null) s = string.Empty;
+            return "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
         }
 
         private void DebugPrint(string message)
