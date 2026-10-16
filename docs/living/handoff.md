@@ -284,6 +284,93 @@ re-deployed to the Custom folder. **PENDING ANOTHER USER F5.**
 @ 7793.25, -7pt stop on remainder @ 7785.25) still shows as 3 fake trades in the
 Journal (`ES_12-26_20261016_084742_LONG_T1`/`_084958_SHORT_T2`/`_085123_SHORT_T3`).
 Not yet fixed — ask user before touching (delete+reingest vs. manual correction).
+**RESOLVED same session** — see recovery script + Part 6.5 below.
+
+### Part 6.5 — the debounce fix didn't hold either: duplicate-instance bug, then full removal
+
+Grace+debounce (above) never actually ran — `ClaudeTracker_Health.json`'s `ownerStartedAt`
+stayed frozen at `09:14:21` through every reload/recompile/disable-enable/remove-readd
+attempted that session, and a later trade (`..._093719_LONG_T4`) still got force-closed
+seconds after entry — timing impossible under the debounce logic, proving the running
+instance was never actually replaced. User's own NT8 Output log confirmed why: **every**
+action for that trade was logged TWICE (two `ENTRY written`, two `ENTRY_ADD`, two
+screenshots, two `HEALTH` checks, ms apart) — two instances of the strategy simultaneously
+active, the ownership-arbitration lock from S141 Part 2 not holding (root cause never
+found). Stopgap: disabled `CloseTrade()` entirely in the health-check path — detect +
+`Print` only, never fabricate a close. `[myquant] 812c47d`.
+
+Corrected the first trade's Journal record for real (merged the 3 fakes back into one
+`-$300` trade via `trade-playbook/scripts/recover_20261016_chopped_trade.py`, same
+ingest-secret pattern as the 10/15 recovery — upserts onto T1's own ID so its real
+screenshots stay attached, re-attaches T2/T3's real fill-moment screenshots under new
+labels, deletes the two fake records). Verified via `/api/ingest/trades-summary`.
+
+User then did a **full NT8 platform restart** (separately, to chase a parallel
+`SessionSRLevelsV9` OoD-RTH staleness bug — see Part 7) — confirmed via a fresh
+`ownerStartedAt` timestamp that this cleared whatever was keeping the zombie instance
+alive. But the SAME class of false-positive drift detection resurfaced on the very next
+real trade (broker's own Position panel showed a genuine open Short 2 @ 7735.75 while the
+health check reported "broker reads FLAT" — confirmed false via screenshot) — reload
+timing (ownership re-claimed 12s before that entry) is suspected but not proven.
+
+**Final decision (user): remove the entire drift-check system, not just the auto-close
+action.** `RunHealthCheck()` is now a pure heartbeat — writes the health file + raw
+execution log every ~30s, no `activeTrade`-vs-`Position` comparison, no reconciliation, no
+alerting. `consecutiveFlatMismatches` field deleted. `ReconcileOpenPosition()` stays, but
+ONLY at startup/ownership-takeover (not periodic) — that's the original, still-valid fix
+for the real 10/15 stuck-trade incident, unrelated to today's false-positive problem.
+`ClaudeTrackerHealthLight.cs` updated to match — pure liveness light (loop alive / owner
+chart / trades taken+recorded), no trade-correctness judgment, no P&L (removed earlier
+same session — it summed `GrossPnLCurrency` off locally-corrupted CSVs, real number that
+session was -$1,362.50 gross vs the +$50 it showed). `[myquant] 6f280bb`.
+
+**OPEN:** why two instances could simultaneously hold "ownership" was never root-caused.
+The static in-process lock added in S141 Part 2 is still in the code; it just isn't
+trusted to prevent duplicate processing anymore — the periodic check that would have
+caught/alerted on that condition is gone per the above decision. Known residual risk:
+duplicate trade-folder writes could recur without any alert if the same condition repeats.
+Remaining 7 corrupted local trade folders from today (G-drive export, not the production
+DB — T4-T6/0916/0927/0928/0937) not yet corrected — no urgency, SIM only, ground truth
+intact in `ExecutionLog_2026-10-16.csv` for whenever this gets done.
+
+### Part 7 — SessionSRLevelsV9: OoD RTH — stale hidden series, then wrong-series precision bug, then historical-path gap
+
+Same day, parallel to Part 6.5. **Symptom:** `OoD RTH` (and only that level — HOY/LOY/COY/
+Settlement all fine, those don't share its data path on an intraday primary) showed a
+visibly wrong, stale price.
+
+1. **Root cause 1 (confirmed via NT8's own on-disk historical cache, not guessed):** the
+   hidden Daily-period auxiliary series this indicator depends on for `_rthOpenToday`
+   (`AddDataSeries(..., BarsPeriodType.Day, RthTemplateName)`) stopped delivering a bar for
+   the current trading day — `db/cache/CME US Index Futures RTH.../MINUTE+TICK/ES 12-26`
+   had live, updating data; nothing existed for `DAY`. The indicator's own debug trail
+   (`DebugLog` → `Documents\sessionsrlevels_debug_ES.csv`) showed the daily rollover
+   history replaying cleanly back to 2025, stopping dead after a transition INTO 10/15 —
+   never into 10/16, even after a full platform restart. NT8-side gap specific to Daily
+   bars on a non-default Trading Hours template.
+2. First patch (fail-safe: suppress instead of show-stale) shipped, then a from-primary
+   approximate fallback shipped — **user explicitly rejected the approximation**, wanted
+   the exact print only.
+3. **Real fix:** added a SECOND hidden series, same RTH template, at 1-MINUTE granularity
+   (`_rthMinBip`/`HandleRthOpenPrecise`) — proven viable since the existing 5-min ETH
+   hidden series uses the identical mechanism with no issue. A 1-min bar's Open is the
+   exact first-trade price of the session, same guarantee as a 1-tick bar, not an
+   approximation.
+4. **Self-inflicted bug caught the same session:** the new series' `AddDataSeries` call was
+   positioned between two existing calls without updating the BarsInProgress index-
+   resolution formula to match — silently cross-wired `_rthMinBip` with `_ethDayBip`
+   whenever both are added (this user has Settlement enabled, so always). Fixed by moving
+   the call to match the formula's assumed order, with a comment tying the two together so
+   they can't drift apart silently again.
+5. **Final gap:** live value fixed, but `Hist_OoD` (past-day historical segments) still fell
+   through to the OLD contaminated source (`_rthOpenByDay`/`s.o`, both only ever written by
+   the broken Daily series) — user caught this directly ("OoD RTH is using the OoD ETH
+   level"), diagnosed without a screenshot (user declined). Added
+   `_rthOpenByDayPrecise`, a day-keyed dict populated by the SAME reliable 1-min series;
+   `DrawHistorical` now tries it first. `[myquant]` eca302c → da2cbee → b9304a8 → 06fda07.
+
+**Confirmed working** (user, after the historical-path fix): both live and historical OoD
+RTH correct.
 
 ### Part 6 — manual screenshot upload (same session, continuation, `trade-playbook`)
 
@@ -1663,7 +1750,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 14 | Playbook-only backtest (trade what the gexlog playbook says) | ✅ DONE (S116-gexlog) | `gexlog_playbook_parse.py` (327/327 scenarios) + `gexlog_playbook_bt.py` (TD 1-min, 106d Apr–Sep): touch −$43.0k / hold15 +$5.5k / cross15 +$0.4k — sign flips on the trigger reading; no robust edge; rows in backtest_full/playbook_bt_rows.csv |
 | 17 | Trade plan w/ Thomas (setup inventory → regime/risk → trade log/journal) | 🛑 PAUSED (S118 9/15, USER CALLED STOP — lost confidence in the analysis) | `docs/living/trade_plan/`: `setup_inventory.md` (v1–v2 + evidence ranking, all sources) · `apex_account_analysis.md` · `apex_rulebook.md`. Deep-dived REGIME-2E: edge REAL but lumpy (top-10=55% of net), short-side-heavy, regime-favorable; PF~1.5–1.8. Built + deployed NT8 `Regime2ESetups.cs` (indicator) + `Regime2EStrategy.cs` (OnePerDay/gates/visuals; signal-parity 96.8%/regime 100% vs python) — PENDING user F5 + Sim101 forward test. Apex study: site scraped via Playwright (`scripts/apex_fetch_pages.py`; Cloudflare 403s WebFetch). **⚠ Analysis iterated messily across many turns — user halted, deemed it unreliable.** VERIFIED rules in `apex_rulebook.md` (verbatim+sources): legacy FULL DD = INTRADAY trailing (eval+funded, NOT EOD); needs MES fractional sizing (10 MES=1ES blows; ≤8 MES survives); **2 PA rules (30% MAE, 5:1 RR) NEVER modeled ⇒ ALL funded sims PROVISIONAL/likely-worse; eval sims valid**. Standing take: hold-to-EOD book wants a STATIC-DD firm (TPT), not Apex trailing. NEXT (only if resumed): model 30% MAE+5:1 in ONE clean funded sim; resolve §H open Qs w/ Apex FIRST |
 | 18 | **Wyckoff 2.0 discretionary toolset + full-tape recording DB** | 🟢 ACTIVE (S121-wyckoff-tools 9/16, leglab) — **CONTINUE HERE** | **DB LIVE**: L1 tape+BBO recorder `L1TapeRecorderAddOn.cs` running on **ES 12-26** (ES-only per user; ~90% quote, self-healing) + nightly rollover + watchdog tasks + `check_l1_tape` tile. Footprint pipeline RETIRED (L1 reconstructs it). **Stage-1 tools built** (VP engine+NT8 drawer PENDING F5, Weis wave, VWAP-readable). **`wyckoff_marker.py` = the interactive HTML Wyckoff marker** (click-box+snap, auto events from box, box-free bull/bear/transition trend engine, multi-day, S/R+21EMA, flex-renko). Renko+wicks+**Sierra flex_renko**; NT8 `FlexRenkoBarsType.cs` deployed — **RESOLVED (S122): it's in Data Series → Type, NOT the Chart-Style dropdown; not a compile error (type + strings byte-verified in the DLL)**. **FINDING: 9/15 low = SPRING of overnight low.** NEXT: Stage-2 (TR-Box + retro event engine) + Stage-3 (OF trigger panel); VWAP host-exporter; marker threshold calibration (user marks AR/springs); optional ChoCH volume/spread confirm. **READ S121-wyckoff-tools BLOCK.** |
-| 20 | **Trade Playbook + Journal (separate repo `trade-playbook`)** | 🔴 LIVE BUG FIXED, PENDING F5 — see S141 Part 5.5 (2026-10-16) | **2026-10-16 same-day: the S141 reload-fix itself chopped a real trade into 3 fakes** (health-check force-closed on a single stale Position read, 5s after a genuine entry) — root-caused from `ExecutionLog_2026-10-16.csv`, fixed (grace window + 2-consecutive-read debounce before force-close), compile-checked, redeployed `[myquant] d8e6f65`. **PENDING ANOTHER F5.** Today's real trade (Long 2 ES, scale +1pt/stop -7pt) still shows as 3 fake trades in the Journal — not yet corrected, ask user first. Live at https://trade-playbook-ten.vercel.app. **S141 (2026-10-16): 2026-10-15 trade-loss incident** — ClaudeTrackerV2 lost 3 trades to a mid-session reload (recovered); root-caused + fixed (reload-reconcile + periodic drift check + multi-chart ownership arbitration, since ES runs on both an RTH and ETH chart with ClaudeTrackerV2 on both); added `ClaudeTracker_Health.json` + raw execution-log export + a chart-toolbar health-light indicator + a `pipeline_health.py`/`status_light.py`/`desk_watchdog.py` check+alert; archived execution logs into the app + `reconcile_trades.py`. **PENDING USER F5** on both `ClaudeTrackerV2.cs` and new `ClaudeTrackerHealthLight.cs` — see S141 block, do NOT re-touch without reading it first. Also same session: a large Journal UI round (filters, setup-led header, hero screenshot, drag-reorderable sections+templates), a real security fix (either trader could delete the other's trades — now ownership-checked), and **manual screenshot upload** (+ Add screenshot / remove, backup path for when the recorder misses one — `[tp] 8270eba`, pushed to `main`, Vercel production confirmed Ready). Thomas re-handoff doc at `trade-playbook/docs/thomas-update-2026-10-16.md` (3 files to resend). Autostart uploader task **registered + verified running** on this machine (`TradePlaybookUploader`). April historical trades: **decided, never importing them.** |
+| 20 | **Trade Playbook + Journal (separate repo `trade-playbook`)** | 🟢 DONE, drift-check REMOVED per user decision (2026-10-16 EOD) | Live at https://trade-playbook-ten.vercel.app. **2026-10-16 FINAL STATE** — read S141 Parts 5.5/6/6.5/7 in full before touching `ClaudeTrackerV2.cs`, `ClaudeTrackerHealthLight.cs`, or `SessionSRLevelsV9.cs` again. Short version: this morning's reload-fix (periodic drift-check + auto-close) itself chopped real trades into fakes, repeatedly, across multiple reload attempts (root cause: a duplicate-instance bug — two chart instances simultaneously "owner" — never fully root-caused despite a full NT8 restart). **User's final call: removed the entire drift-check system, not just the auto-close** — `RunHealthCheck()` is now pure heartbeat (health file + raw execution log every ~30s), no comparison/reconciliation/alerting. `ReconcileOpenPosition()` kept but ONLY at startup/ownership-takeover (the original valid 10/15 fix, unrelated to today's problem). `ClaudeTrackerHealthLight.cs` is now a pure liveness light (loop alive / owner chart / trades taken+recorded) — no P&L (removed, was reading locally-corrupted data), no drift status. `[myquant] 6f280bb` final. First chopped trade corrected in production DB via `recover_20261016_chopped_trade.py` (real: -$300). **7 more local-only corrupted trade folders from today not yet corrected** (SIM only, no urgency, ground truth intact in `ExecutionLog_2026-10-16.csv`). Separately same day: `SessionSRLevelsV9`'s OoD RTH went stale (NT8-side Daily-bar delivery gap on a custom session template, confirmed via on-disk cache) — fixed with a dedicated precise 1-min series for both live AND historical paths, `[myquant] 06fda07` final, user-confirmed working. Also same session: large Journal UI round, a real security fix (cross-trader delete), and **manual screenshot upload** (`[tp] 8270eba`, prod confirmed Ready). Thomas re-handoff doc at `trade-playbook/docs/thomas-update-2026-10-16.md`. April historical trades: decided, never importing them. |
 | 21 | DtDbScanner (DT/DB tick-chart scanner) — add + backtest/walk-forward | ⛔ CLOSED (S126 2026-10-02) — NO mechanical edge | Indicator added (`nt8/indicators/DtDbScanner.cs`), full-history walk-forward + stop/target sweep + freq gate: only 1500t/2000t ever trade >=3/day, both net losers OOS (1500t PF 0.92 -$96.9k; 2000t PF 0.93 -$45.1k). User closed it — discretionary use only, do not resume unasked. See S126 block |
 | 19 | **Regime tracker — BOS/ChoCh regime classifier (5m ES)** | 🔧 **WIP (Thomas-Code chat, 2026-10-13): Python review pipeline → Lag-aware (Python = base for the 4 C# copies)** · 🟢 LAG RECONCILE DONE (S124 2026-09-24) — PENDING USER F5 | **Lag=1 is canonical** (user decision). S123 export-diff was the Lag setting (Documents=Lag3 vs Desktop=Lag1), NOT a build/tick engine difference. Python now models Lag (`mywedge.compute_mywedge(lag=)` + `swing_*_asof`); **Python(lag=1)↔both NT exports = 100%** (Documents `--session eth`, Desktop `--session date`). NT8 `RegimeTracker.cs` default Lag 3→1, compiled + **deployed — PENDING USER F5** (when flat). Invariant: lag2==lag3==finalised (non-repaint). Repaint effect: 476/500 trend segments identical, 1.04% bar diffs, ~4 short direction-flip windows. **PARKED (user will revisit): Lag 1 vs Lag 2** (chart-match+repaint vs settled/non-repaint). See S124 block. Earlier (S123): outside-bar rule ported (`Swings()`/`Extends()`). **Outside-bar rule (9/22-23):** mywedge marks an outside bar as BOTH a swing high and low; if it extended the structure at both ends both swings stand, else it collapses to the extreme it LEFT ON (`bar_dir`). Validated on 4 hand-marked charts at once — 02-13 **Bull b9**, 12-26 **one Bear b21-53**, 05-19 **Bear b16**, 05-21 **unchanged Bull b28**; other 8 sessions byte-identical. Three rejected variants recorded in the regime-tracker block — do NOT retry (the third, a general minor-pivot filter, broke 14/14 sessions). **Minor pivots beyond outside bars: CLOSED 9/23, user said leave as is** — zero-length in-bar trends (05-06 b5 etc.) are an accepted artifact. **PARKED:** 02-13 late ChoCh ~b76 (outside-bar intrabar order) — tracker is deliberately **bar-only, do NOT resolve with ticks**. Page generators now in `regime_tracker/pages/` (near-duplicates; consolidate before the next batch). Safety tag `pre-nt8-merge-20260923`; stale worktree `C:\Users\Thomas-Code\wt-nt8` can be removed. **S127 2026-10-02: Indicator-Manager hide/show bug fixed in a NEW clone `RegimeTrackerV2.cs` (+ `DtDbScannerV2.cs`) — V1 untouched, still the one in use. See S127 block before next edit to either original.** **S138 2026-10-15: `RegimeTrackerBox` gains `IncludePriorSession` (matches Panel); Panel's `Lag` default restored 0→1 to match Box's canonical value. Compiled+deployed+committed (`41f138d`), PENDING user F5. See S138 block.** |
 | 22 | **BreakoutBoysLiteV3 — reworked manual entry engine (BUY/SELL auto-type + IBS toggle)** | 🟡 PENDING USER F5 + SIM TEST (2026-10-15) | NEW strategy; V1/V2 untouched = rollback. BUY/SELL auto-pick stop-limit vs limit at the SB level (never blocked); IBS on/off toggle + [-/+]; picked SB = place IMMEDIATELY (via `OnMarketData` — managed Enter from the button thread silently no-ops); SB marker stays while working + FOREVER on fill. **⚠ 2026-10-15: LMT L BB/S SA weren't actually getting the immediate-placement path (only BUY/SELL were) — fixed, committed `626d0b5`.** **2026-10-15: BARS button removed (user+Thomas) — `_maxBarsAlive` fixed at default, OFS now full-row, committed `d920baf`.** **Sim-test: immediate fill for BOTH auto-type AND LMT, auto-type selection, two-tab routing, stop-side guard, marker-on-fill.** See the S-2026-10-14 block. |
