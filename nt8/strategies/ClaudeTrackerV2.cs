@@ -1409,22 +1409,23 @@ if (name.StartsWith("TARGET"))
                     {
                         await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
 
-                        // 2026-10-16: capture whichever chart window currently has focus, not
-                        // always this instance's own hosting chart. Lets ClaudeTrackerV2 run on
-                        // just ONE chart (avoiding the duplicate-instance processing bug from
-                        // running it on several) while still screenshotting whatever chart the
-                        // user actually traded from — they're never in two trades at once, so
-                        // the active window at fill time IS the chart that matters. Falls back
-                        // to this instance's own chart if nothing is active (e.g. the fill came
-                        // from an auto-strategy while focus was on Control Center).
-                        NinjaTrader.Gui.Chart.Chart chartWindow = null;
-                        foreach (System.Windows.Window w in System.Windows.Application.Current.Windows)
-                        {
-                            NinjaTrader.Gui.Chart.Chart c = w as NinjaTrader.Gui.Chart.Chart;
-                            if (c != null && w.IsActive) { chartWindow = c; break; }
-                        }
-                        if (chartWindow == null)
-                            chartWindow = System.Windows.Window.GetWindow(ChartControl) as NinjaTrader.Gui.Chart.Chart;
+                        // 2026-10-16: REVERTED the focused-window lookup added earlier today.
+                        // It enumerated Application.Current.Windows from inside this chart's own
+                        // Dispatcher — NT8 runs each chart window on its OWN UI thread, so
+                        // touching a window that belongs to a different chart's thread threw
+                        // "The calling thread cannot access this object because a different
+                        // thread owns it." on every single screenshot attempt. That exception
+                        // pattern is what got the strategy disabled by NT8 itself mid-session
+                        // (confirmed: "Disabling NinjaScript strategy" in the Output log right
+                        // after repeated occurrences), which is also the likely cause of a missed
+                        // exit fill the same session — nothing was left running to catch it.
+                        // Back to the one thing that's actually safe to touch from here: this
+                        // instance's own hosting chart, obtained via the SAME dispatcher thread
+                        // we're already running on. Means running on only ONE chart no longer
+                        // guarantees an accurate screenshot if you trade from a different chart —
+                        // a real limitation, but nowhere near as bad as disabling the strategy.
+                        NinjaTrader.Gui.Chart.Chart chartWindow =
+                            System.Windows.Window.GetWindow(ChartControl) as NinjaTrader.Gui.Chart.Chart;
                         if (chartWindow == null) { Print("[ClaudeTracker] Screenshot: no chart window"); return; }
 
                         RenderTargetBitmap sc = chartWindow.GetScreenshot(ShareScreenshotType.Chart);
