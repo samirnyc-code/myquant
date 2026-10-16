@@ -252,6 +252,28 @@ namespace NinjaTrader.NinjaScript.Strategies
         private DateTime lastHealthCheckTime = DateTime.MinValue;
         private static readonly TimeSpan HealthCheckInterval = TimeSpan.FromSeconds(30);
 
+        // Ownership: two chart instances of this same strategy on the SAME instrument
+        // (e.g. an RTH chart + an ETH chart, both ES, both running ClaudeTrackerV2 — a
+        // real setup, confirmed 2026-10-16) both subscribe to the same Account.Executions
+        // events independently. Without this, both would process every fill, both would
+        // write the same trade's files at the same time, and both seed dailyTradeCounter
+        // from disk independently — two different trades could even collide onto the same
+        // TradeID. `static` fields ARE shared across instances of the same NinjaScript
+        // type within one NT8 process (ordinary C#/.NET behavior), so this needs no file
+        // lock — a plain in-memory claim, keyed per instrument, with a heartbeat so a dead
+        // owner's claim expires and the other instance can take over automatically.
+        private static readonly Dictionary<string, InstrumentOwner> instrumentOwners = new Dictionary<string, InstrumentOwner>();
+        private static readonly object ownerLock = new object();
+        private static readonly TimeSpan OwnershipTimeout = TimeSpan.FromSeconds(90);
+        private readonly Guid myInstanceId = Guid.NewGuid();
+        private bool isOwner = false;
+
+        private class InstrumentOwner
+        {
+            public Guid InstanceId;
+            public DateTime LastHeartbeat;
+        }
+
         #endregion
 
         #region User parameters
@@ -343,6 +365,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State != State.Realtime) return;
             if (CurrentBar < 1) return;
+            if (!ClaimOwnership()) return; // another chart instance on this instrument is active; standby
             UpdateOpenTradeExcursions();
             TryLockInitialStop();
             TryLockTargets();
@@ -360,6 +383,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Order o = e.Order;
                 if (o == null || o.Instrument == null || Instrument == null) return;
                 if (o.Instrument.FullName != Instrument.FullName) return;
+                if (!ClaimOwnership()) return; // standby instance — leave this event for the owner
                 if (activeTrade == null) return;
                 if (IsStopOrder(o)) { double sp = o.StopPrice; if (sp > 0) HandleStopUpdate(sp, o); }
                 else if (IsTargetOrder(o) && (o.Name ?? string.Empty).Trim().ToUpperInvariant().StartsWith("TARGET"))
@@ -383,6 +407,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Order o = ex != null ? ex.Order : null;
                 if (ex == null || o == null || o.Instrument == null || Instrument == null) return;
                 if (o.Instrument.FullName != Instrument.FullName) return;
+                // Checked BEFORE the duplicate-execution guard, not after: processedExecutions
+                // is per-instance, so a standby instance seeing this fill for the first time
+                // must still back off here rather than fall through to HandleExecution.
+                if (!ClaimOwnership()) return;
                 if (IsDuplicateExecution(ex, o)) return;
                 int signedQty = GetSignedQty(o.OrderAction, ex.Quantity);
                 if (signedQty == 0) return;
@@ -593,6 +621,58 @@ namespace NinjaTrader.NinjaScript.Strategies
                 + "tracking it — a prior reload lost it. Recovering as " + tradeId
                 + " (original entry time and any stop/risk history before the reload are unrecoverable).");
         }
+
+        #region Ownership
+
+        // Call before ANY trade-processing or file-writing path (execution handlers,
+        // OnBarUpdate's health check). Returns true if THIS instance should act. A
+        // non-owner does nothing at all for this instrument — no file writes, no trade
+        // processing — until the current owner's heartbeat goes stale (it got disabled/
+        // reloaded/its chart stopped ticking), at which point this instance claims it and
+        // immediately reconciles against the broker's live position, same as a normal
+        // startup — so taking over picks up whatever was already in flight instead of
+        // starting blind.
+        private bool ClaimOwnership()
+        {
+            string key = Instrument.FullName;
+            DateTime now = Core.Globals.Now;
+            bool justClaimed = false;
+
+            lock (ownerLock)
+            {
+                InstrumentOwner owner;
+                bool haveOwner = instrumentOwners.TryGetValue(key, out owner);
+
+                if (!haveOwner || (now - owner.LastHeartbeat) > OwnershipTimeout)
+                {
+                    bool takeover = haveOwner && owner.InstanceId != myInstanceId;
+                    instrumentOwners[key] = new InstrumentOwner { InstanceId = myInstanceId, LastHeartbeat = now };
+                    if (!isOwner)
+                    {
+                        isOwner = true;
+                        justClaimed = true;
+                        Print("[ClaudeTracker] " + (takeover ? "TAKEOVER: previous owner for " + key + " went stale — claiming it"
+                            : "Claimed ownership of " + key) + " (another chart instance running the same instrument is now on standby).");
+                    }
+                }
+                else if (owner.InstanceId == myInstanceId)
+                {
+                    owner.LastHeartbeat = now;
+                    isOwner = true;
+                }
+                else
+                {
+                    if (isOwner)
+                        Print("[ClaudeTracker] Lost ownership of " + key + " to another instance — going to standby.");
+                    isOwner = false;
+                }
+            }
+
+            if (justClaimed) ReconcileOpenPosition();
+            return isOwner;
+        }
+
+        #endregion
 
         #region Health check
 
