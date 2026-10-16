@@ -29,11 +29,15 @@ using NinjaTrader.NinjaScript;
 // Click the button for the full detail (trades taken/recorded today, raw status
 // text) — the toolbar button itself only has room for a color + short label.
 //
-// GREEN  health file fresh, status "ok"
-// AMBER  self-corrected a drift this session (worth noticing even though it
-//        healed itself), OR health file is a little stale
-// RED    health file missing/very stale during market hours — the self-check
-//        loop itself may have stopped (frozen/crashed strategy)
+// 2026-10-16: pure liveness light, nothing else — ClaudeTrackerV2's own drift
+// detection/auto-close was removed entirely (proved unreliable live). This no
+// longer reflects any judgment about trade correctness, only whether the
+// strategy loop is actually running.
+//
+// GREEN  health file fresh — the strategy loop is alive
+// AMBER  health file a little stale
+// RED    health file missing/very stale during market hours — the loop
+//        itself may have stopped (frozen/crashed strategy)
 // GREY   no trade folder yet today / outside market hours — nothing expected
 
 namespace NinjaTrader.NinjaScript.Indicators
@@ -192,7 +196,6 @@ namespace NinjaTrader.NinjaScript.Indicators
                 DateTime.TryParse(ExtractJsonField(json, "ownerStartedAt"), out ownerStartedAt);
 
                 if (ageSec > 300) { color = Brushes.Red; detail = "STALE " + (ageSec / 60.0).ToString("F0") + "m — self-check loop may have stopped. " + rawDetail; }
-                else if (status.StartsWith("drift_")) { color = Brushes.Orange; detail = "Self-corrected a drift this session: " + rawDetail; }
                 else if (ageSec > 90) { color = Brushes.Orange; detail = "Health file " + ageSec.ToString("F0") + "s old. " + rawDetail; }
                 else { color = Brushes.LimeGreen; detail = rawDetail; }
             }

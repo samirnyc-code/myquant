@@ -252,20 +252,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         private long globalSequence = 0;
         private DateTime lastHealthCheckTime = DateTime.MinValue;
         private static readonly TimeSpan HealthCheckInterval = TimeSpan.FromSeconds(30);
-        // How many consecutive health-check cycles found the tracker "open" but the
-        // broker "flat" before force-closing. 2026-10-16: a single flat read fired
-        // seconds after a genuine fresh entry (Position hadn't synced yet after a
-        // reload) and force-closed a real trade with no exit fill behind it
-        // (WeightedAvgExitPrice=0.00 proved it was phantom). Once activeTrade went
-        // null, the REAL subsequent Target/Stop fills for that same position got
-        // misread as brand-new entries (HandleExecution keys off activeTrade, not
-        // Position) and force-closed again the same way — one real trade fragmented
-        // into three fake ones. Requiring 2 consecutive disagreeing reads (~60s+,
-        // since every fresh entry also resets the health-check clock below) absorbs
-        // a single stale/racy Position read without reintroducing the 10/15
-        // stuck-forever failure mode (that one needed this check to EVER fire to be
-        // fixed — it does, just not on the first blip).
-        private int consecutiveFlatMismatches = 0;
 
         // Ownership: two chart instances of this same strategy on the SAME instrument
         // (e.g. an RTH chart + an ETH chart, both ES, both running ClaudeTrackerV2 — a
@@ -555,11 +541,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             DebugPrint("ENTRY written for " + tradeId + " [" + entryType + "] at " + F2(ex.Price));
             RequestScreenshot("ENTRY", ex.Time, tradeId, ex.Time);
 
-            // Give the broker's own Position object a full health-check interval to
-            // catch up before the next check is even allowed to look at it — see
-            // consecutiveFlatMismatches comment above (2026-10-16 incident).
             lastHealthCheckTime = Core.Globals.Now;
-            consecutiveFlatMismatches = 0;
         }
 
         // Synthesizes a minimal activeTrade/activeStudy from the broker's own
@@ -693,11 +675,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (justClaimed)
             {
                 ReconcileOpenPosition();
-                // Same grace window as a fresh entry (see consecutiveFlatMismatches
-                // comment) — a just-claimed instance's own Position read deserves a
-                // beat to settle before the health check is allowed to act on it.
                 lastHealthCheckTime = now;
-                consecutiveFlatMismatches = 0;
             }
             return isOwner;
         }
@@ -717,53 +695,27 @@ namespace NinjaTrader.NinjaScript.Strategies
         //      its freshness as proof this code is still running at all (a frozen/crashed
         //      strategy with ErrorHandling=IgnoreAllErrors can sit there doing nothing and
         //      never tell anyone — a stale heartbeat is itself the alarm).
+        // 2026-10-16: removed the drift check entirely (not just the auto-close action) —
+        // user call. It compared activeTrade against Position every cycle and either
+        // reconciled or (until the same session) auto-closed on a mismatch; proved twice
+        // live that a mismatch can fire on a perfectly healthy trade when ownership
+        // arbitration between chart instances doesn't hold, and even alert-only it was
+        // noise the user didn't want. This function is now ONLY a heartbeat — proof the
+        // strategy loop is alive — plus the raw execution-log snapshot. No comparison, no
+        // reconciliation, no alerting. A genuinely stuck-open trade (the original 10/15
+        // failure mode) now relies solely on ReconcileOpenPosition at startup/ownership
+        // takeover, not a periodic check.
         private void RunHealthCheck()
         {
             DateTime now = Core.Globals.Now;
             if (now - lastHealthCheckTime < HealthCheckInterval) return;
             lastHealthCheckTime = now;
 
-            bool brokerHasPosition = Position != null && Position.MarketPosition != MarketPosition.Flat;
-            bool trackerThinksOpen = activeTrade != null;
-            string status = "ok";
-            string detail = trackerThinksOpen
+            string detail = activeTrade != null
                 ? "tracking " + activeTrade.TradeID + " (" + activeTrade.Direction + " " + activeTrade.CurrentQty + ")"
                 : "flat, nothing tracked";
 
-            if (!trackerThinksOpen && brokerHasPosition)
-            {
-                consecutiveFlatMismatches = 0;
-                status = "drift_recovered";
-                detail = "broker shows an open position with nothing tracking it — reconciling";
-                Print("[ClaudeTracker] HEALTH: " + detail);
-                ReconcileOpenPosition();
-            }
-            else if (trackerThinksOpen && !brokerHasPosition)
-            {
-                // 2026-10-16: DISABLED auto-close. Proved live, twice today, that this
-                // branch fires on a healthy, fully-tracked trade when TWO instances of
-                // this strategy are simultaneously active (duplicate ENTRY/ENTRY_ADD/
-                // screenshot log lines, milliseconds apart — the ownership arbitration
-                // that's supposed to prevent that isn't holding). Detect and ALERT only;
-                // never fabricate a close. A real stuck-open trade (the 10/15 failure
-                // mode) now needs a human to close it — worse than instant auto-recovery,
-                // but never worse than silently corrupting a trade that was never
-                // actually lost, which this branch did twice today. Do not re-enable
-                // CloseTrade() here until the duplicate-instance root cause is found and
-                // fixed — see docs/living/handoff.md S141 Part 5.5 addendum.
-                consecutiveFlatMismatches++;
-                status = "flat_mismatch_ALERT_ONLY";
-                detail = "tracking " + activeTrade.TradeID + " but broker reads FLAT (mismatch #"
-                    + consecutiveFlatMismatches + ") — auto-close is DISABLED (2026-10-16 incident); "
-                    + "check manually, do not trust this to self-heal";
-                Print("[ClaudeTracker] HEALTH WARNING (no action taken): " + detail);
-            }
-            else
-            {
-                consecutiveFlatMismatches = 0;
-            }
-
-            WriteHealthFile(status, detail);
+            WriteHealthFile("running", detail);
             WriteExecutionLog();
         }
 
