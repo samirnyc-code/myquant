@@ -51,7 +51,6 @@ namespace NinjaTrader.NinjaScript.Indicators
         private int tradesRecorded = 0;
         private string ownerChart = "";
         private DateTime ownerStartedAt = DateTime.MinValue;
-        private double todayGrossPnl = 0;
 
         [NinjaScriptProperty]
         [Display(Name = "Export Root Folder", Order = 1, GroupName = "Parameters",
@@ -161,7 +160,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             Brush color;
             string status, detail;
-            tradesTaken = 0; tradesRecorded = 0; todayGrossPnl = 0;
+            tradesTaken = 0; tradesRecorded = 0;
 
             if (Directory.Exists(dayDir))
             {
@@ -172,8 +171,6 @@ namespace NinjaTrader.NinjaScript.Indicators
                     var summaries = Directory.GetFiles(dir, "*_TradeSummary.csv");
                     if (summaries.Length == 0) continue;
                     tradesRecorded++;
-                    double pnl;
-                    if (TryReadCsvColumn(summaries[0], "GrossPnLCurrency", out pnl)) todayGrossPnl += pnl;
                 }
             }
 
@@ -256,13 +253,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             menu.Items.Add(new MenuItem { Header = "Trades recorded (closed) today: " + tradesRecorded, IsEnabled = false });
             if (tradesTaken > tradesRecorded)
                 menu.Items.Add(new MenuItem { Header = (tradesTaken - tradesRecorded) + " still open / unrecorded", IsEnabled = false, Foreground = Brushes.OrangeRed });
-            menu.Items.Add(new MenuItem
-            {
-                Header = "Today's P&L (gross): " + (todayGrossPnl >= 0 ? "+$" : "-$") + Math.Abs(todayGrossPnl).ToString("F2"),
-                IsEnabled = false,
-                Foreground = todayGrossPnl >= 0 ? Brushes.LimeGreen : Brushes.OrangeRed,
-                FontWeight = FontWeights.SemiBold,
-            });
             menu.Items.Add(new Separator());
             var refreshItem = new MenuItem { Header = "Refresh now" };
             refreshItem.Click += (s, e) => { lastStatus = null; Refresh(); };
@@ -284,43 +274,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             start += needle.Length;
             int end = json.IndexOf("\"", start, StringComparison.Ordinal);
             return end > start ? json.Substring(start, end - start) : "";
-        }
-
-        // TradeSummary.csv is always one header row + one data row, every field quoted
-        // (ClaudeTrackerV2.cs's own Csv() helper). Quote-aware split so a field value
-        // can't be mistaken for a column boundary, then look the named column up by
-        // index — avoids hardcoding a column position that would break silently if
-        // ClaudeTrackerV2.cs's schema ever reorders fields.
-        private bool TryReadCsvColumn(string path, string columnName, out double value)
-        {
-            value = 0;
-            try
-            {
-                string[] lines = File.ReadAllLines(path);
-                if (lines.Length < 2) return false;
-                string[] header = SplitCsvLine(lines[0]);
-                string[] row = SplitCsvLine(lines[1]);
-                int idx = Array.IndexOf(header, columnName);
-                if (idx < 0 || idx >= row.Length) return false;
-                return double.TryParse(row[idx], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out value);
-            }
-            catch { return false; }
-        }
-
-        private string[] SplitCsvLine(string line)
-        {
-            var fields = new System.Collections.Generic.List<string>();
-            bool inQuotes = false;
-            var cur = new System.Text.StringBuilder();
-            for (int i = 0; i < line.Length; i++)
-            {
-                char c = line[i];
-                if (c == '"') { inQuotes = !inQuotes; continue; }
-                if (c == ',' && !inQuotes) { fields.Add(cur.ToString()); cur.Clear(); continue; }
-                cur.Append(c);
-            }
-            fields.Add(cur.ToString());
-            return fields.ToArray();
         }
     }
 }
