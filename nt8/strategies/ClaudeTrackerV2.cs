@@ -740,29 +740,23 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (trackerThinksOpen && !brokerHasPosition)
             {
+                // 2026-10-16: DISABLED auto-close. Proved live, twice today, that this
+                // branch fires on a healthy, fully-tracked trade when TWO instances of
+                // this strategy are simultaneously active (duplicate ENTRY/ENTRY_ADD/
+                // screenshot log lines, milliseconds apart — the ownership arbitration
+                // that's supposed to prevent that isn't holding). Detect and ALERT only;
+                // never fabricate a close. A real stuck-open trade (the 10/15 failure
+                // mode) now needs a human to close it — worse than instant auto-recovery,
+                // but never worse than silently corrupting a trade that was never
+                // actually lost, which this branch did twice today. Do not re-enable
+                // CloseTrade() here until the duplicate-instance root cause is found and
+                // fixed — see docs/living/handoff.md S141 Part 5.5 addendum.
                 consecutiveFlatMismatches++;
-                if (consecutiveFlatMismatches < 2)
-                {
-                    status = "flat_mismatch_pending";
-                    detail = "tracking " + activeTrade.TradeID + " but broker reads FLAT — confirming "
-                        + "before force-close (" + consecutiveFlatMismatches + "/2, ~" + (int)HealthCheckInterval.TotalSeconds
-                        + "s apart)";
-                    Print("[ClaudeTracker] HEALTH: " + detail);
-                }
-                else
-                {
-                    status = "drift_forceclosed";
-                    detail = "tracking " + activeTrade.TradeID + " but broker is FLAT across 2 consecutive "
-                        + "checks — a closing fill was lost somewhere; force-closing with best-available "
-                        + "data (PnL/exit fields may be incomplete for the missed fill)";
-                    Print("[ClaudeTracker] HEALTH WARNING: " + detail);
-                    activeTrade.LastExitMechanism = activeTrade.LastExitMechanism ?? "Market";
-                    activeTrade.LastExitLabel     = "ForceClosed_HealthCheck";
-                    int sessionBar, sessionLastBar;
-                    GetBarInfo(now, out sessionBar, out sessionLastBar);
-                    CloseTrade(now, sessionBar);
-                    consecutiveFlatMismatches = 0;
-                }
+                status = "flat_mismatch_ALERT_ONLY";
+                detail = "tracking " + activeTrade.TradeID + " but broker reads FLAT (mismatch #"
+                    + consecutiveFlatMismatches + ") — auto-close is DISABLED (2026-10-16 incident); "
+                    + "check manually, do not trust this to self-heal";
+                Print("[ClaudeTracker] HEALTH WARNING (no action taken): " + detail);
             }
             else
             {
