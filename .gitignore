@@ -85,6 +85,7 @@ data/depth/
 
 # ORATS API token (paid credential — never commit)
 scratchpad/orats_token.txt
+.next/
 data/orats/
 
 # Strategy-name decode key for anonymized vendor reports — private, regenerable

@@ -1,6 +1,21 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-15 (machine-time W. Europe) — **S139: NT8 `SessionSRLevelsV9` — fixed
+**Last Updated:** 2026-10-16 (machine-time W. Europe) — **S140: Trade Playbook (separate repo,
+`Desktop\trade-playbook`) — Journal rating 1-5 → A/B/C/F across schema/API/UI/analytics (old
+numeric grades retired, not remapped, per explicit user choice) + a reusable pop-out/zoom
+pattern (`src/components/Zoomable.tsx`) applied to every stat tile and every collapsible
+section/card in the Journal and its Analytics view (ctrl/cmd+scroll or +/-/reset to zoom; the
+native inline collapse toggle and the Analytics tile drag-reorder are untouched). Real bug hit
+and fixed along the way: `patch()` applied the server's response to local state only AFTER the
+PUT round-trip resolved, so an unrelated re-render (the 20s "last import" tick) landing first
+could repaint a select/dropdown back to its pre-edit value — looked exactly like saves were
+silently failing even though Vercel's request logs showed every PUT returning 200. Fixed with
+an optimistic local update (apply immediately, reconcile with the server response, roll back
+only on a real failure). Shipped branch → Vercel preview (user-verified) → merged to `main` →
+production deploy confirmed Ready. Could not run a full local/browser test myself — this
+sandbox has no `DATABASE_URL`/`AUTH_SECRET` for that repo and `vercel env pull` is
+classifier-blocked from exposing them; relied on `tsc`/`next build` + the user's own preview
+check instead. See S140 block.** S139: NT8 `SessionSRLevelsV9` — fixed
 a real, confirmed gap: its RTH/ETH session levels never computed on a Daily-period primary
 chart (the "Daily Globex" tab) because the value computation lived entirely inside the
 primary's `OnBarUpdate`, gated `!Bars.BarsType.IsIntraday → return`. User's saved workspace
@@ -87,6 +102,54 @@ correct, but the bar-close event itself (leg/counter freshness) lags for these a
 Daily/Weekly series; a restart and two parameter changes didn't fix it, root cause
 undetermined, deprioritized as a minor staleness issue (the regime reading itself is
 accurate, just dated to the last bar NT8 delivered). See S134 block.** S133: NT8 `RegimeTrackerBox` — NEW multi-timeframe regime dashboard indicator. One box on the chart, rows = timeframes (editable: `2000t,5M,15M,60M,240M,D,W`), two columns RTH + ETH, each cell colored by Bull/Bear/Range. Flexible corner+X/Y offset and font size. Built, compile-checked, deployed, committed+pushed. GOTCHA fixed: the two trading-hours templates must be exact Trading Hours Manager names — `CME US Index Futures RTH` / `CME US Index Futures ETH` (NOT "CME RTH"/"CME ETH"; a bad name makes `AddDataSeries` throw in `OnStateChange` → indicator errors, draws nothing). See S133 block.** **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S140-trade-playbook-journal-rating-popout (2026-10-16) — Journal rating → A/B/C/F + pop-out/zoom everywhere
+
+**Repo:** `Desktop\trade-playbook` (separate git repo, NOT myquant — Next.js/Prisma/Neon desk
+journal app). Branch `journal-ratings-popout` → merged to `main`.
+
+**Rating scale:** replaced the 1-5 numeric execution grade with A/B/C/F across the stack
+(Prisma schema `rating Int?` → `String?`, API validation in
+`src/app/api/journal/[id]/route.ts`, the trade-detail dropdown, Analytics "Breakdown" grouping
+label). Per explicit user decision, existing numeric ratings are **retired, not remapped** —
+`mapTrade()` only accepts "A"/"B"/"C"/"F" and reads anything else (a stale stringified 1-5,
+left behind by the Int→Text column cast) back as unrated.
+
+**Pop-out/zoom:** new `src/components/Zoomable.tsx` — `PopTile` (click a stat tile → larger
+centered copy; safe to duplicate-render since tiles are pure display, no internal state) and
+`PopSection` (adds a small expand icon to a `<details>` section/card's header; pops the SAME
+children into a centered modal via conditional single-render — never both places at once — so
+forms/checkboxes/selects/textareas inside are never duplicated, and the native inline collapse
+toggle is untouched). Applied to every Journal `TradeDetail` section (Summary, Per-leg
+breakdown, Playbook link & grading, Requirements checklist, Fills, Stop/target timeline,
+Screenshots, Notes) and every `JournalAnalytics` card (Summary tiles, Equity curve, Drawdown,
+R-multiple distribution, Daily P&L, Followed the plan, Breakdown table), plus each individual
+stat tile in both. Zoom: ctrl/cmd+scroll or +/-/reset buttons; plain scroll still scrolls tall
+content normally (doesn't fight the zoom gesture).
+
+**Real bug hit + fixed:** user reported "can't save" on the first preview. Traced via Vercel's
+request logs (not guesswork) — every `PUT /api/journal/[id]` call returned 200, so the server
+write always succeeded. Root cause was client-side: `patch()` in `JournalApp.tsx` only applied
+the server's response to local state AFTER the round-trip resolved; if JournalApp's 20s
+"last import" tick (`setInterval(() => setNowTick(...), 20000)`) re-rendered first, the stale
+server-sourced trade object would repaint over the just-made selection — LOOKING like the save
+silently failed even though it hadn't. Fixed with an optimistic local update (apply the edit to
+state immediately, reconcile with the server's authoritative response, roll back only on a real
+failure) + one line of server-side rating-save logging as a backstop. User confirmed fixed on
+the next preview.
+
+**Deploy:** pushed branch → Vercel preview (SSO-gated to the user's Vercel account, user
+verified it there) → merged to `main` → production deploy confirmed Ready
+(`trade-playbook-7xleyk3z5...`). Thomas sees this on his next normal login — no branch/preview
+gate for him.
+
+**Environment note for future sessions:** this sandbox has no `DATABASE_URL`/`AUTH_SECRET` for
+trade-playbook, and `vercel env pull` is blocked by the auto-mode classifier specifically
+because it would expose Vercel-redacted secret values — did not attempt to work around that.
+Verified correctness via `tsc --noEmit` + `next build` + the user's own browser check on a
+Vercel preview deploy instead of a local Playwright run.
 
 ---
 
