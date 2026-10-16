@@ -93,6 +93,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double   _ethHigh, _ethLow, _ethCloseLast;
 		private bool     _rthOpenCapturedToday;
 		private bool     _weekAwaitingRthOpen, _monthAwaitingRthOpen;
+		// 2026-10-16: fallback for when the hidden RTH-hours Daily series (HandleRthSeries,
+		// the normal source of _rthOpenToday) goes stale — confirmed live that day that its
+		// own historical+live data can stop advancing independent of the primary chart's own
+		// feed, which keeps ticking fine. This is the primary's own straddling bar's Open at
+		// the RTH-open anchor bar — NOT exact on a tick/volume chart (that bar can start
+		// before the true 08:30 print, so its Open is a pre-open tick, which is exactly why
+		// HandleRthSeries was built as the precise source in the first place) but close, and
+		// always available since it only depends on the primary's own live data. Used ONLY
+		// when the precise value is confirmed stale — see rthOpenFresh in GetLevelDefs.
+		private double   _rthOpenApproxFromPrimary = double.NaN;
 
 		// bar index of the running RTH/ETH high/low PRINT (updated only when a new
 		// extreme is actually made) + the most recent bar processed in that session —
@@ -555,6 +565,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_curTradingDay        = tradingDay;
 				_haveRth              = false;
 				_rthOpenCapturedToday = false;
+				_rthOpenApproxFromPrimary = double.NaN;
 				_primaryDayOpenBar    = CurrentBar;   // first bar of this chart's trading day = its session open
 				_curDayHigh = High[0]; _curDayLow = Low[0]; _curDayStartBar = CurrentBar;   // reset current-day H/L
 
@@ -623,8 +634,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					// Only the START BAR (anchor) comes from the primary chart. The OPEN PRICE
 					// (OoD/OoW/OoM) comes from the RTH-hours series via HandleRthSeries — on a
-					// tick/volume chart this straddle bar's Open[0] is a pre-open tick.
+					// tick/volume chart this straddle bar's Open[0] is a pre-open tick. Captured
+					// here anyway as a fallback for when that series goes stale (2026-10-16) —
+					// imprecise but always available, better than showing nothing.
 					_rthOpenStartBar      = CurrentBar;
+					_rthOpenApproxFromPrimary = Open[0];
 					_rthOpenCapturedToday = true;
 					if (_weekAwaitingRthOpen)  { _rthWeekStartBar  = CurrentBar; _weekAwaitingRthOpen  = false; }
 					if (_monthAwaitingRthOpen) { _rthMonthStartBar = CurrentBar; _monthAwaitingRthOpen = false; }
@@ -1294,8 +1308,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// series from scratch) is still required to recover the line itself.
 				bool rthOpenFresh = _rthSeriesLastDate == Core.Globals.Now.Date;
 
+				// Stale precise value -> fall back to the primary chart's own straddle-bar
+				// Open (always available, imprecise on a tick/volume chart — see
+				// _rthOpenApproxFromPrimary comment) rather than showing nothing. Label says
+				// "approx" so it's never mistaken for the precise value.
+				bool rthOpenApproxAvailable = !double.IsNaN(_rthOpenApproxFromPrimary);
+				double roodPrice = rthOpenFresh ? _rthOpenToday : _rthOpenApproxFromPrimary;
+				string roodLabel = rthOpenFresh ? ROoD_Label : ROoD_Label + " (approx)";
+
 				// OoD RTH stops at the end of its RTH session (_rthLastBar) on an intraday chart — doesn't spill into the following ETH session.
-				Add(list, ROoD_Enabled && rthOpenFresh, ROoD_Label, _rthOpenToday,    ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, rthOpenStart, rthLastBarEff);
+				Add(list, ROoD_Enabled && (rthOpenFresh || rthOpenApproxAvailable), roodLabel, roodPrice, ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, rthOpenStart, rthLastBarEff);
 				Add(list, ROoW_Enabled && rthOpenFresh, ROoW_Label, _rthOpenThisWeek, ROoW_Color, ROoW_Opacity, ROoW_Style, ROoW_Thickness, 0, rthWeekStart);
 				// RTH OoM: manual override wins when a price is set and its month == the current month
 				double rOoM = _rthOpenThisMonth; int rOoMBar = rthMonthStart;
