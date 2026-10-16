@@ -216,15 +216,40 @@ def _tail_mix_l1(path, nbytes: int = 60_000):
         return 0, 0
 
 
+def _l1_recorder_paused() -> bool:
+    """True if "MyQuant L1 Recorder Watchdog" is Disabled in Task Scheduler — the
+    actual mechanism used to intentionally stop L1 recording (confirmed 2026-10-16:
+    that task + "MyQuant L1 Rollover" were disabled on purpose, and check_l1_tape
+    had no way to tell that apart from a crash). Evidence-based like everything
+    else here: reads the task's own state rather than a manually-toggled flag file
+    someone has to remember to set/clear."""
+    return _cached("l1_paused", 300, _l1_recorder_paused_uncached)
+
+
+def _l1_recorder_paused_uncached() -> bool:
+    ps = ("(Get-ScheduledTask -TaskName 'MyQuant L1 Recorder Watchdog' "
+          "-ErrorAction SilentlyContinue).State")
+    try:
+        out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive",
+                              "-WindowStyle", "Hidden", "-Command", ps],
+                             capture_output=True, text=True, timeout=15,
+                             creationflags=_NOWIN).stdout.strip()
+        return out == "Disabled"
+    except Exception:
+        return False
+
+
 def check_l1_tape() -> dict:
     """Live L1 tape + best-bid/ask recorder (L1TapeRecorderAddOn) — the Wyckoff-2.0 DB.
 
     Reports IDLE 'not started' until the recorder has ever written a file, so it does NOT
     false-alarm before the AddOn is F5'd. Once files exist, it behaves like check_depth:
     BAD if stalled while the market is open, and BAD if the tail is TAPE-ONLY (the bid/ask
-    subscription is down)."""
+    subscription is down) — UNLESS the watchdog task itself is disabled, meaning someone
+    stopped it on purpose, in which case staleness is expected and this reports IDLE."""
     now = chicago_now()
     mkt = market_state(now)
+    paused = _l1_recorder_paused()
     files = []
     for d in (-1, 0, 1):
         day = (now.date() + dt.timedelta(days=d)).isoformat()
@@ -233,12 +258,16 @@ def check_l1_tape() -> dict:
     if not L1_DIR.exists() or not any(L1_DIR.glob("ES*_l1_*.csv")):
         return _chk("L1 tape", IDLE, "recorder not started (deploy + F5 L1TapeRecorderAddOn)")
     if not files:
+        if paused:
+            return _chk("L1 tape", IDLE, "paused (watchdog task disabled)")
         return _chk("L1 tape", BAD if mkt == "open" else IDLE,
                     "no file for today" if mkt == "open" else f"market {mkt}")
     mb = sum(f.stat().st_size for f in files) / 1e6
     age = min(_age(f) for f in files)
     if mkt in ("closed", "halt"):
         return _chk("L1 tape", IDLE, f"{mb:,.0f}MB - market {mkt}", mb=round(mb, 1))
+    if paused:
+        return _chk("L1 tape", IDLE, f"{mb:,.0f}MB, paused {_fmt_age(age)} ago (watchdog task disabled)", mb=round(mb, 1))
     if age > 180:
         return _chk("L1 tape", BAD, f"STALLED {_fmt_age(age)} - data being lost", mb=round(mb, 1))
     quote, tape = _tail_mix_l1(files[-1])
