@@ -1408,8 +1408,23 @@ if (name.StartsWith("TARGET"))
                     try
                     {
                         await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
-                        NinjaTrader.Gui.Chart.Chart chartWindow =
-                            System.Windows.Window.GetWindow(ChartControl) as NinjaTrader.Gui.Chart.Chart;
+
+                        // 2026-10-16: capture whichever chart window currently has focus, not
+                        // always this instance's own hosting chart. Lets ClaudeTrackerV2 run on
+                        // just ONE chart (avoiding the duplicate-instance processing bug from
+                        // running it on several) while still screenshotting whatever chart the
+                        // user actually traded from — they're never in two trades at once, so
+                        // the active window at fill time IS the chart that matters. Falls back
+                        // to this instance's own chart if nothing is active (e.g. the fill came
+                        // from an auto-strategy while focus was on Control Center).
+                        NinjaTrader.Gui.Chart.Chart chartWindow = null;
+                        foreach (System.Windows.Window w in System.Windows.Application.Current.Windows)
+                        {
+                            NinjaTrader.Gui.Chart.Chart c = w as NinjaTrader.Gui.Chart.Chart;
+                            if (c != null && w.IsActive) { chartWindow = c; break; }
+                        }
+                        if (chartWindow == null)
+                            chartWindow = System.Windows.Window.GetWindow(ChartControl) as NinjaTrader.Gui.Chart.Chart;
                         if (chartWindow == null) { Print("[ClaudeTracker] Screenshot: no chart window"); return; }
 
                         RenderTargetBitmap sc = chartWindow.GetScreenshot(ShareScreenshotType.Chart);
