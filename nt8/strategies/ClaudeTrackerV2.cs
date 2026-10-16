@@ -252,6 +252,20 @@ namespace NinjaTrader.NinjaScript.Strategies
         private long globalSequence = 0;
         private DateTime lastHealthCheckTime = DateTime.MinValue;
         private static readonly TimeSpan HealthCheckInterval = TimeSpan.FromSeconds(30);
+        // How many consecutive health-check cycles found the tracker "open" but the
+        // broker "flat" before force-closing. 2026-10-16: a single flat read fired
+        // seconds after a genuine fresh entry (Position hadn't synced yet after a
+        // reload) and force-closed a real trade with no exit fill behind it
+        // (WeightedAvgExitPrice=0.00 proved it was phantom). Once activeTrade went
+        // null, the REAL subsequent Target/Stop fills for that same position got
+        // misread as brand-new entries (HandleExecution keys off activeTrade, not
+        // Position) and force-closed again the same way — one real trade fragmented
+        // into three fake ones. Requiring 2 consecutive disagreeing reads (~60s+,
+        // since every fresh entry also resets the health-check clock below) absorbs
+        // a single stale/racy Position read without reintroducing the 10/15
+        // stuck-forever failure mode (that one needed this check to EVER fire to be
+        // fixed — it does, just not on the first blip).
+        private int consecutiveFlatMismatches = 0;
 
         // Ownership: two chart instances of this same strategy on the SAME instrument
         // (e.g. an RTH chart + an ETH chart, both ES, both running ClaudeTrackerV2 — a
@@ -540,6 +554,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             WriteEntryStudy(activeStudy);
             DebugPrint("ENTRY written for " + tradeId + " [" + entryType + "] at " + F2(ex.Price));
             RequestScreenshot("ENTRY", ex.Time, tradeId, ex.Time);
+
+            // Give the broker's own Position object a full health-check interval to
+            // catch up before the next check is even allowed to look at it — see
+            // consecutiveFlatMismatches comment above (2026-10-16 incident).
+            lastHealthCheckTime = Core.Globals.Now;
+            consecutiveFlatMismatches = 0;
         }
 
         // Synthesizes a minimal activeTrade/activeStudy from the broker's own
@@ -670,7 +690,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
 
-            if (justClaimed) ReconcileOpenPosition();
+            if (justClaimed)
+            {
+                ReconcileOpenPosition();
+                // Same grace window as a fresh entry (see consecutiveFlatMismatches
+                // comment) — a just-claimed instance's own Position read deserves a
+                // beat to settle before the health check is allowed to act on it.
+                lastHealthCheckTime = now;
+                consecutiveFlatMismatches = 0;
+            }
             return isOwner;
         }
 
@@ -704,6 +732,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (!trackerThinksOpen && brokerHasPosition)
             {
+                consecutiveFlatMismatches = 0;
                 status = "drift_recovered";
                 detail = "broker shows an open position with nothing tracking it — reconciling";
                 Print("[ClaudeTracker] HEALTH: " + detail);
@@ -711,16 +740,33 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (trackerThinksOpen && !brokerHasPosition)
             {
-                status = "drift_forceclosed";
-                detail = "tracking " + activeTrade.TradeID + " but broker is FLAT — a closing fill "
-                    + "was lost somewhere; force-closing with best-available data (PnL/exit fields "
-                    + "may be incomplete for the missed fill)";
-                Print("[ClaudeTracker] HEALTH WARNING: " + detail);
-                activeTrade.LastExitMechanism = activeTrade.LastExitMechanism ?? "Market";
-                activeTrade.LastExitLabel     = "ForceClosed_HealthCheck";
-                int sessionBar, sessionLastBar;
-                GetBarInfo(now, out sessionBar, out sessionLastBar);
-                CloseTrade(now, sessionBar);
+                consecutiveFlatMismatches++;
+                if (consecutiveFlatMismatches < 2)
+                {
+                    status = "flat_mismatch_pending";
+                    detail = "tracking " + activeTrade.TradeID + " but broker reads FLAT — confirming "
+                        + "before force-close (" + consecutiveFlatMismatches + "/2, ~" + (int)HealthCheckInterval.TotalSeconds
+                        + "s apart)";
+                    Print("[ClaudeTracker] HEALTH: " + detail);
+                }
+                else
+                {
+                    status = "drift_forceclosed";
+                    detail = "tracking " + activeTrade.TradeID + " but broker is FLAT across 2 consecutive "
+                        + "checks — a closing fill was lost somewhere; force-closing with best-available "
+                        + "data (PnL/exit fields may be incomplete for the missed fill)";
+                    Print("[ClaudeTracker] HEALTH WARNING: " + detail);
+                    activeTrade.LastExitMechanism = activeTrade.LastExitMechanism ?? "Market";
+                    activeTrade.LastExitLabel     = "ForceClosed_HealthCheck";
+                    int sessionBar, sessionLastBar;
+                    GetBarInfo(now, out sessionBar, out sessionLastBar);
+                    CloseTrade(now, sessionBar);
+                    consecutiveFlatMismatches = 0;
+                }
+            }
+            else
+            {
+                consecutiveFlatMismatches = 0;
             }
 
             WriteHealthFile(status, detail);
