@@ -93,16 +93,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double   _ethHigh, _ethLow, _ethCloseLast;
 		private bool     _rthOpenCapturedToday;
 		private bool     _weekAwaitingRthOpen, _monthAwaitingRthOpen;
-		// 2026-10-16: fallback for when the hidden RTH-hours Daily series (HandleRthSeries,
-		// the normal source of _rthOpenToday) goes stale — confirmed live that day that its
-		// own historical+live data can stop advancing independent of the primary chart's own
-		// feed, which keeps ticking fine. This is the primary's own straddling bar's Open at
-		// the RTH-open anchor bar — NOT exact on a tick/volume chart (that bar can start
-		// before the true 08:30 print, so its Open is a pre-open tick, which is exactly why
-		// HandleRthSeries was built as the precise source in the first place) but close, and
-		// always available since it only depends on the primary's own live data. Used ONLY
-		// when the precise value is confirmed stale — see rthOpenFresh in GetLevelDefs.
-		private double   _rthOpenApproxFromPrimary = double.NaN;
 
 		// bar index of the running RTH/ETH high/low PRINT (updated only when a new
 		// extreme is actually made) + the most recent bar processed in that session —
@@ -149,6 +139,28 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool     _rthSeriesAdded;
 		private int      _ethBip = -1, _rthBip = -1;   // actual BarsInProgress index of each hidden series
 		private DateTime _rthSeriesLastDate = Core.Globals.MinDate;
+
+		// 2026-10-16: the Daily-period RTH series above (_rthBip) stopped delivering a bar
+		// for the current trading day mid-session — confirmed via NT8's own on-disk
+		// historical cache (complete days archived fine through the prior day; nothing ever
+		// built for today on this specific Daily+custom-template combination) and via the
+		// debug trail (RthRoll never recorded a transition into today, even after a full
+		// platform restart). That's an NT8-side gap specific to Daily bars on a non-default
+		// Trading Hours template; the SAME template at Minute granularity has no such
+		// problem (the existing 5-min ETH hidden series below proves it, and NT8's own
+		// MINUTE/TICK cache folders for this instrument+template were actively updating).
+		// Dedicated 1-min RTH-hours series purely for OoD RTH's precise open price — kept
+		// separate and minimal (added only when ROoD_Enabled, not the broader needRth) so it
+		// doesn't reintroduce the historical bar-count cost that was the original reason
+		// OoD's source was moved off a 1-min series onto Daily in the first place. A 1-min
+		// bar's Open is the price of the first trade in that bar, same as a 1-tick bar's
+		// Open would be, since the session genuinely resets exactly at the RTH open on an
+		// RTH-templated series — exact, not an approximation.
+		private bool     _rthMinSeriesAdded;
+		private int      _rthMinBip = -1;
+		private SessionIterator _rthMinDayIter;
+		private DateTime _rthOpenPreciseDay = Core.Globals.MinDate;
+		private double   _rthOpenPrecise = double.NaN;
 
 		// ── Settlement = close of the Daily ETH chart. Read it STRAIGHT from a hidden Daily
 		// ETH series (same template as the chart) rather than reconstructing it from 1-min bars,
@@ -384,6 +396,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_rthSeriesLastDate = Core.Globals.MinDate; _rthSeriesWeek = Core.Globals.MinDate; _rthSeriesMonthKey = -1;
 				_rthOpenByDay.Clear(); _rthWeekOpenBy.Clear(); _rthMonthOpenBy.Clear();
 
+				// Dedicated 1-min RTH series for OoD RTH's precise open — see field comment.
+				// Scoped to ROoD_Enabled specifically (not needRth) to stay minimal.
+				_rthMinSeriesAdded = false;
+				if (ROoD_Enabled && !string.IsNullOrEmpty(RthTemplateName))
+				{
+					try
+					{
+						AddDataSeries(Instrument.FullName,
+							new BarsPeriod { BarsPeriodType = BarsPeriodType.Minute, Value = 1 },
+							RthTemplateName);
+						_rthMinSeriesAdded = true;
+					}
+					catch (Exception ex) { Print("SessionSRLevelsV9: could not add 1-min RTH data series '" + RthTemplateName + "': " + ex.Message); }
+				}
+				_rthOpenPreciseDay = Core.Globals.MinDate; _rthOpenPrecise = double.NaN;
+
 				// Hidden DAILY ETH series: the authoritative source for Settlement (the Daily ETH
 				// bar close). Same ETH template as the chart, Day period.
 				_ethDaySeriesAdded = false;
@@ -401,10 +429,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_ethDaySessIter = null; _settleByDay.Clear();
 
 				// Resolve each hidden series' BarsInProgress index in the order they were added
-				// (primary = 0, ETH 1-min, RTH 1-min, Daily ETH). Stays correct if any is skipped.
-				{ int bip = 1; _ethBip = _ethSeriesAdded ? bip++ : -1; _rthBip = _rthSeriesAdded ? bip++ : -1; _ethDayBip = _ethDaySeriesAdded ? bip++ : -1; }
+				// (primary = 0, ETH 5-min, RTH Daily, Daily ETH, RTH 1-min). Stays correct if any is skipped.
+				{ int bip = 1; _ethBip = _ethSeriesAdded ? bip++ : -1; _rthBip = _rthSeriesAdded ? bip++ : -1; _ethDayBip = _ethDaySeriesAdded ? bip++ : -1; _rthMinBip = _rthMinSeriesAdded ? bip++ : -1; }
 
-				_ethDayIter = null; _rthBarsIter = null; _rthMembershipIter = null; _ethLocked = false;
+				_ethDayIter = null; _rthBarsIter = null; _rthMembershipIter = null; _rthMinDayIter = null; _ethLocked = false;
 				_ethCurTradingDay = Core.Globals.MinDate; _ethCurWeekStart = Core.Globals.MinDate; _ethCurMonthKey = -1;
 				_primaryDayOpenBar = _primaryWeekOpenBar = _primaryMonthOpenBar = -1;
 				_curDayHigh = _curDayLow = double.NaN; _curDayStartBar = -1;
@@ -439,6 +467,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				if (_ethDaySeriesAdded && _ethDayBip >= 0 && BarsArray.Length > _ethDayBip)
 					_ethDaySessIter = new SessionIterator(BarsArray[_ethDayBip]);
+
+				if (_rthMinSeriesAdded && _rthMinBip >= 0 && BarsArray.Length > _rthMinBip)
+					_rthMinDayIter = new SessionIterator(BarsArray[_rthMinBip]);
 
 				try
 				{
@@ -477,6 +508,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (_ethBip >= 0 && BarsInProgress == _ethBip) { HandleEthSeries(); return; }
 			if (_rthBip >= 0 && BarsInProgress == _rthBip) { HandleRthSeries(); return; }
 			if (_ethDayBip >= 0 && BarsInProgress == _ethDayBip) { HandleEthDailySeries(); return; }
+			if (_rthMinBip >= 0 && BarsInProgress == _rthMinBip) { HandleRthOpenPrecise(); return; }
 			if (BarsInProgress != 0) return;
 			if (CurrentBar < 0) return;
 			if (!Bars.BarsType.IsIntraday)
@@ -565,7 +597,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_curTradingDay        = tradingDay;
 				_haveRth              = false;
 				_rthOpenCapturedToday = false;
-				_rthOpenApproxFromPrimary = double.NaN;
 				_primaryDayOpenBar    = CurrentBar;   // first bar of this chart's trading day = its session open
 				_curDayHigh = High[0]; _curDayLow = Low[0]; _curDayStartBar = CurrentBar;   // reset current-day H/L
 
@@ -634,11 +665,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					// Only the START BAR (anchor) comes from the primary chart. The OPEN PRICE
 					// (OoD/OoW/OoM) comes from the RTH-hours series via HandleRthSeries — on a
-					// tick/volume chart this straddle bar's Open[0] is a pre-open tick. Captured
-					// here anyway as a fallback for when that series goes stale (2026-10-16) —
-					// imprecise but always available, better than showing nothing.
+					// tick/volume chart this straddle bar's Open[0] is a pre-open tick.
 					_rthOpenStartBar      = CurrentBar;
-					_rthOpenApproxFromPrimary = Open[0];
 					_rthOpenCapturedToday = true;
 					if (_weekAwaitingRthOpen)  { _rthWeekStartBar  = CurrentBar; _weekAwaitingRthOpen  = false; }
 					if (_monthAwaitingRthOpen) { _rthMonthStartBar = CurrentBar; _monthAwaitingRthOpen = false; }
@@ -708,6 +736,27 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 			}
 			_ethCloseLast = Closes[_ethBip][0];
+		}
+
+		// 2026-10-16: precise OoD RTH open, sourced from the dedicated 1-min RTH series
+		// instead of the Daily one below (which stopped delivering a bar for the current
+		// day — see field comment on _rthMinBip). Same exact-open logic as HandleRthSeries
+		// (the series resets at the session start, so bar 0's Open IS the RTH open), just on
+		// a series/mechanism proven to still be receiving live data. GetTradingDay is called
+		// on _rthMinDayIter specifically because it's Bars-bound (SessionIterator built from
+		// a TradingHours object instead does NOT support GetTradingDay and throws — see the
+		// warning on _rthBarsIter's usage above).
+		private void HandleRthOpenPrecise()
+		{
+			if (!_rthMinSeriesAdded || _rthMinDayIter == null || _rthMinBip < 0 || CurrentBars[_rthMinBip] < 0) return;
+
+			DateTime t;
+			try { t = _rthMinDayIter.GetTradingDay(Times[_rthMinBip][0]); }
+			catch { return; }
+
+			if (t == _rthOpenPreciseDay) return;
+			_rthOpenPreciseDay = t;
+			_rthOpenPrecise    = Opens[_rthMinBip][0];
 		}
 
 		// RTH session OPENS from the hidden DAILY RTH-hours series. Because that series RESETS
@@ -1308,16 +1357,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// series from scratch) is still required to recover the line itself.
 				bool rthOpenFresh = _rthSeriesLastDate == Core.Globals.Now.Date;
 
-				// Stale precise value -> fall back to the primary chart's own straddle-bar
-				// Open (always available, imprecise on a tick/volume chart — see
-				// _rthOpenApproxFromPrimary comment) rather than showing nothing. Label says
-				// "approx" so it's never mistaken for the precise value.
-				bool rthOpenApproxAvailable = !double.IsNaN(_rthOpenApproxFromPrimary);
-				double roodPrice = rthOpenFresh ? _rthOpenToday : _rthOpenApproxFromPrimary;
-				string roodLabel = rthOpenFresh ? ROoD_Label : ROoD_Label + " (approx)";
+				// 2026-10-16: OoD RTH's price now comes from the dedicated 1-min series
+				// (_rthOpenPrecise/_rthOpenPreciseDay, set by HandleRthOpenPrecise) instead of
+				// the Daily series above, which stopped delivering a bar for the current day.
+				// Exact — bar 0 of that series opens precisely on the RTH open, same guarantee
+				// the Daily series was meant to provide, just on a mechanism still receiving
+				// live data. If it's not confirmed for today either, suppress rather than show
+				// any approximation — no silent wrong number, and no guessed one either.
+				bool roodPreciseFresh = _rthOpenPreciseDay == Core.Globals.Now.Date;
+				Add(list, ROoD_Enabled && roodPreciseFresh, ROoD_Label, _rthOpenPrecise, ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, rthOpenStart, rthLastBarEff);
+				if (!roodPreciseFresh && DebugLog)
+					LogDbg(string.Format("RthOpenPreciseStale,{0:yyyy-MM-dd HH:mm:ss},lastConfirmedDay={1:yyyy-MM-dd},today={2:yyyy-MM-dd}",
+						Core.Globals.Now, _rthOpenPreciseDay, Core.Globals.Now.Date));
 
-				// OoD RTH stops at the end of its RTH session (_rthLastBar) on an intraday chart — doesn't spill into the following ETH session.
-				Add(list, ROoD_Enabled && (rthOpenFresh || rthOpenApproxAvailable), roodLabel, roodPrice, ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, rthOpenStart, rthLastBarEff);
 				Add(list, ROoW_Enabled && rthOpenFresh, ROoW_Label, _rthOpenThisWeek, ROoW_Color, ROoW_Opacity, ROoW_Style, ROoW_Thickness, 0, rthWeekStart);
 				// RTH OoM: manual override wins when a price is set and its month == the current month
 				double rOoM = _rthOpenThisMonth; int rOoMBar = rthMonthStart;
