@@ -49,6 +49,9 @@ namespace NinjaTrader.NinjaScript.Indicators
         private string lastDetail = "";
         private int tradesTaken = 0;
         private int tradesRecorded = 0;
+        private string ownerChart = "";
+        private DateTime ownerStartedAt = DateTime.MinValue;
+        private double todayGrossPnl = 0;
 
         [NinjaScriptProperty]
         [Display(Name = "Export Root Folder", Order = 1, GroupName = "Parameters",
@@ -158,7 +161,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             Brush color;
             string status, detail;
-            tradesTaken = 0; tradesRecorded = 0;
+            tradesTaken = 0; tradesRecorded = 0; todayGrossPnl = 0;
 
             if (Directory.Exists(dayDir))
             {
@@ -166,7 +169,11 @@ namespace NinjaTrader.NinjaScript.Indicators
                 {
                     if (Directory.GetFiles(dir, "*_EntryStudy.csv").Length == 0) continue;
                     tradesTaken++;
-                    if (Directory.GetFiles(dir, "*_TradeSummary.csv").Length > 0) tradesRecorded++;
+                    var summaries = Directory.GetFiles(dir, "*_TradeSummary.csv");
+                    if (summaries.Length == 0) continue;
+                    tradesRecorded++;
+                    double pnl;
+                    if (TryReadCsvColumn(summaries[0], "GrossPnLCurrency", out pnl)) todayGrossPnl += pnl;
                 }
             }
 
@@ -176,6 +183,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     && !(now.DayOfWeek == DayOfWeek.Sunday && now.Hour < 17);
                 color = marketLikelyOpen ? Brushes.Gray : Brushes.DimGray;
                 status = "no_file"; detail = "No health file yet today.";
+                ownerChart = ""; ownerStartedAt = DateTime.MinValue;
             }
             else
             {
@@ -183,6 +191,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 string json = File.ReadAllText(healthPath);
                 status = ExtractJsonField(json, "status");
                 string rawDetail = ExtractJsonField(json, "detail");
+                ownerChart = ExtractJsonField(json, "ownerChart");
+                DateTime.TryParse(ExtractJsonField(json, "ownerStartedAt"), out ownerStartedAt);
 
                 if (ageSec > 300) { color = Brushes.Red; detail = "STALE " + (ageSec / 60.0).ToString("F0") + "m — self-check loop may have stopped. " + rawDetail; }
                 else if (status.StartsWith("drift_")) { color = Brushes.Orange; detail = "Self-corrected a drift this session: " + rawDetail; }
@@ -205,6 +215,16 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (chartWindow != null) chartWindow.Dispatcher.InvokeAsync(ShowMenu);
         }
 
+        // Same formula ClaudeTrackerV2.cs uses for its ChartLabel() — the health file's
+        // "ownerChart" field was written using that exact string, so comparing against
+        // THIS chart's own version of the same formula is how we tell owner vs standby
+        // without any direct link between the indicator and strategy instances.
+        private string ChartLabel()
+        {
+            string th = TradingHours != null ? TradingHours.Name : "?";
+            return Instrument.MasterInstrument.Name + " " + BarsPeriod.ToString() + " [" + th + "]";
+        }
+
         private void ShowMenu()
         {
             if (btn == null) return;
@@ -213,10 +233,36 @@ namespace NinjaTrader.NinjaScript.Indicators
             menu.Items.Add(new MenuItem { Header = "Status: " + lastStatus, IsEnabled = false, FontWeight = FontWeights.Bold });
             menu.Items.Add(new MenuItem { Header = string.IsNullOrEmpty(lastDetail) ? "(no detail)" : lastDetail, IsEnabled = false });
             menu.Items.Add(new Separator());
+
+            if (!string.IsNullOrEmpty(ownerChart))
+            {
+                bool isThisChartTheOwner = ownerChart == ChartLabel();
+                menu.Items.Add(new MenuItem
+                {
+                    Header = isThisChartTheOwner ? "This chart IS the active owner" : "STANDBY — owner is: " + ownerChart,
+                    IsEnabled = false,
+                    Foreground = isThisChartTheOwner ? Brushes.LimeGreen : Brushes.Gray,
+                });
+                if (ownerStartedAt != DateTime.MinValue)
+                {
+                    TimeSpan up = Core.Globals.Now - ownerStartedAt;
+                    string upStr = up.TotalHours >= 1 ? up.TotalHours.ToString("F1") + "h" : up.TotalMinutes.ToString("F0") + "m";
+                    menu.Items.Add(new MenuItem { Header = "Owner running since " + ownerStartedAt.ToString("HH:mm:ss") + " (" + upStr + " ago — last reload)", IsEnabled = false });
+                }
+                menu.Items.Add(new Separator());
+            }
+
             menu.Items.Add(new MenuItem { Header = "Trades taken today: " + tradesTaken, IsEnabled = false });
             menu.Items.Add(new MenuItem { Header = "Trades recorded (closed) today: " + tradesRecorded, IsEnabled = false });
             if (tradesTaken > tradesRecorded)
                 menu.Items.Add(new MenuItem { Header = (tradesTaken - tradesRecorded) + " still open / unrecorded", IsEnabled = false, Foreground = Brushes.OrangeRed });
+            menu.Items.Add(new MenuItem
+            {
+                Header = "Today's P&L (gross): " + (todayGrossPnl >= 0 ? "+$" : "-$") + Math.Abs(todayGrossPnl).ToString("F2"),
+                IsEnabled = false,
+                Foreground = todayGrossPnl >= 0 ? Brushes.LimeGreen : Brushes.OrangeRed,
+                FontWeight = FontWeights.SemiBold,
+            });
             menu.Items.Add(new Separator());
             var refreshItem = new MenuItem { Header = "Refresh now" };
             refreshItem.Click += (s, e) => { lastStatus = null; Refresh(); };
@@ -238,6 +284,43 @@ namespace NinjaTrader.NinjaScript.Indicators
             start += needle.Length;
             int end = json.IndexOf("\"", start, StringComparison.Ordinal);
             return end > start ? json.Substring(start, end - start) : "";
+        }
+
+        // TradeSummary.csv is always one header row + one data row, every field quoted
+        // (ClaudeTrackerV2.cs's own Csv() helper). Quote-aware split so a field value
+        // can't be mistaken for a column boundary, then look the named column up by
+        // index — avoids hardcoding a column position that would break silently if
+        // ClaudeTrackerV2.cs's schema ever reorders fields.
+        private bool TryReadCsvColumn(string path, string columnName, out double value)
+        {
+            value = 0;
+            try
+            {
+                string[] lines = File.ReadAllLines(path);
+                if (lines.Length < 2) return false;
+                string[] header = SplitCsvLine(lines[0]);
+                string[] row = SplitCsvLine(lines[1]);
+                int idx = Array.IndexOf(header, columnName);
+                if (idx < 0 || idx >= row.Length) return false;
+                return double.TryParse(row[idx], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out value);
+            }
+            catch { return false; }
+        }
+
+        private string[] SplitCsvLine(string line)
+        {
+            var fields = new System.Collections.Generic.List<string>();
+            bool inQuotes = false;
+            var cur = new System.Text.StringBuilder();
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+                if (c == '"') { inQuotes = !inQuotes; continue; }
+                if (c == ',' && !inQuotes) { fields.Add(cur.ToString()); cur.Clear(); continue; }
+                cur.Append(c);
+            }
+            fields.Add(cur.ToString());
+            return fields.ToArray();
         }
     }
 }

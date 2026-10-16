@@ -247,6 +247,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private SessionStudy activeStudy;
         private string outputRoot;
         private int dailyTradeCounter = 0;
+        private DateTime instanceStartedAt = DateTime.MinValue; // when THIS instance last (re)loaded
         private readonly HashSet<string> processedExecutions = new HashSet<string>();
         private long globalSequence = 0;
         private DateTime lastHealthCheckTime = DateTime.MinValue;
@@ -327,6 +328,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     sessionIterator      = new SessionIterator(Bars);
     dailyTradeCounter    = CountTodaysTrades();
+    instanceStartedAt    = Core.Globals.Now;
     if (Account != null)
     {
         Account.OrderUpdate     += OnAccountOrderUpdate;
@@ -725,6 +727,17 @@ namespace NinjaTrader.NinjaScript.Strategies
             WriteExecutionLog();
         }
 
+        // Human-readable identifier for THIS chart (instrument + bar type + session
+        // template) — e.g. "ES 2000 Tick [CME US Index Futures ETH]". Lets anyone
+        // reading the health file (or the toolbar button's popup) tell which of
+        // possibly several chart instances on the same instrument is the active
+        // owner, without needing anything beyond the file itself.
+        private string ChartLabel()
+        {
+            string th = TradingHours != null ? TradingHours.Name : "?";
+            return Instrument.MasterInstrument.Name + " " + BarsPeriod.ToString() + " [" + th + "]";
+        }
+
         private void WriteHealthFile(string status, string detail)
         {
             try
@@ -736,7 +749,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                     + "\"detail\":" + JsonStr(detail) + ","
                     + "\"instrument\":" + JsonStr(Instrument.FullName) + ","
                     + "\"checkedAt\":\"" + now.ToString("yyyy-MM-dd HH:mm:ss", INV) + "\","
-                    + "\"brokerPosition\":" + (Position != null ? Position.Quantity * (Position.MarketPosition == MarketPosition.Short ? -1 : 1) : 0)
+                    + "\"brokerPosition\":" + (Position != null ? Position.Quantity * (Position.MarketPosition == MarketPosition.Short ? -1 : 1) : 0) + ","
+                    + "\"ownerChart\":" + JsonStr(ChartLabel()) + ","
+                    + "\"ownerStartedAt\":\"" + instanceStartedAt.ToString("yyyy-MM-dd HH:mm:ss", INV) + "\""
                     + "}";
                 File.WriteAllText(path, json);
             }
