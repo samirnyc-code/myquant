@@ -161,6 +161,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private SessionIterator _rthMinDayIter;
 		private DateTime _rthOpenPreciseDay = Core.Globals.MinDate;
 		private double   _rthOpenPrecise = double.NaN;
+		// Day -> precise RTH open, same source as _rthOpenPrecise, for Hist_OoD's per-day
+		// lookup in DrawHistorical. 2026-10-16: without this, the historical path still fell
+		// back through _rthOpenByDay (old broken series) to s.o (= _rthOpenToday at push
+		// time, ALSO only ever written by the old broken series) — so even after fixing the
+		// LIVE value, history kept reading a source that was never actually fixed. This gives
+		// history its own clean path to the same reliable 1-min series, independent of that
+		// entire old/contaminated chain.
+		private readonly Dictionary<DateTime, double> _rthOpenByDayPrecise = new Dictionary<DateTime, double>();
 
 		// ── Settlement = close of the Daily ETH chart. Read it STRAIGHT from a hidden Daily
 		// ETH series (same template as the chart) rather than reconstructing it from 1-min bars,
@@ -428,6 +436,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					catch (Exception ex) { Print("SessionSRLevelsV9: could not add 1-min RTH data series '" + RthTemplateName + "': " + ex.Message); }
 				}
 				_rthOpenPreciseDay = Core.Globals.MinDate; _rthOpenPrecise = double.NaN;
+				_rthOpenByDayPrecise.Clear();
 
 				// Resolve each hidden series' BarsInProgress index in the EXACT order their
 				// AddDataSeries calls appear above (primary = 0, ETH 5-min, RTH Daily, Daily
@@ -764,6 +773,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (t == _rthOpenPreciseDay) return;
 			_rthOpenPreciseDay = t;
 			_rthOpenPrecise    = Opens[_rthMinBip][0];
+			_rthOpenByDayPrecise[t] = _rthOpenPrecise;
+			TrimOldestDate(_rthOpenByDayPrecise, 90);
 		}
 
 		// RTH session OPENS from the hidden DAILY RTH-hours series. Because that series RESETS
@@ -1186,7 +1197,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// This day's own levels. Opens come from the RTH-hours series (keyed by date),
 				// NOT the primary chart. Same-price levels get merged below into one line + label.
 				double oD, oW, oM;
-				bool hasOD = _rthOpenByDay.TryGetValue(s.date, out oD);
+				// Precise 1-min-series source tried FIRST (see _rthOpenByDayPrecise comment —
+				// 2026-10-16: the old _rthOpenByDay / s.o fallback chain below is only ever
+				// written by the Daily RTH series that stopped updating, so history kept
+				// reading a stale/wrong source even after the live value was fixed).
+				bool hasOD = _rthOpenByDayPrecise.TryGetValue(s.date, out oD);
+				if (!hasOD) hasOD = _rthOpenByDay.TryGetValue(s.date, out oD);
 				bool hasOW = _rthWeekOpenBy.TryGetValue(MondayOf(s.date), out oW);
 				bool hasOM = _rthMonthOpenBy.TryGetValue(new DateTime(s.date.Year, s.date.Month, 1), out oM);
 				if (!hasOD) { oD = s.o;        hasOD = !double.IsNaN(oD); }   // fallback to stored open
