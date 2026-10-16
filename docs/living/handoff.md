@@ -333,6 +333,45 @@ Remaining 7 corrupted local trade folders from today (G-drive export, not the pr
 DB — T4-T6/0916/0927/0928/0937) not yet corrected — no urgency, SIM only, ground truth
 intact in `ExecutionLog_2026-10-16.csv` for whenever this gets done.
 
+### Part 6.6 — the multi-chart screenshot fix caused a cross-thread crash that disabled the strategy
+
+Same session, after Part 6.5. User asked for a way to run ClaudeTrackerV2 on only ONE chart
+(removing the duplicate-instance risk) while still getting an accurate screenshot regardless
+of which chart they actually trade from. Shipped a "capture whichever chart window currently
+has focus" change (`RequestScreenshot`, enumerating `Application.Current.Windows`) —
+`[myquant] b6b785c`.
+
+**This crashed on every single screenshot attempt.** NT8 runs each chart window on its own UI
+thread; touching a window belonging to a different chart's thread from inside this chart's own
+Dispatcher is an illegal cross-thread WPF access. Confirmed directly from the user's own NT8
+Output log: `"Screenshot failed: The calling thread cannot access this object because a
+different thread owns it."` on every attempt, immediately followed by **`Disabling NinjaScript
+strategy 'ClaudeTrackerV2/402697020'`** — NT8 auto-disabled the strategy itself because of the
+repeated exceptions. This is the actual explanation for the rest of the session's symptoms:
+zero screenshots, "the tracker got disabled," and a missed exit fill (nothing left running to
+catch it once NT8 disabled the strategy mid-trade).
+
+Reverted to the only thing safe to call from that context — the instance's own hosting chart
+via `Window.GetWindow(ChartControl)`, same dispatcher thread already running. `[myquant]
+6f2ce06`. **Real limitation this brings back:** running on one chart no longer guarantees an
+accurate screenshot if you trade from a different chart. The "focus-follows-trade" idea is
+still a reasonable thing to want — it just needs a properly cross-thread-safe implementation
+(e.g. dispatching the check onto each window's own Dispatcher and marshaling the result back),
+not attempted again same-session under this much time pressure.
+
+**`ClaudeTrackerHealthLight.cs` deleted entirely** (user call, same session) — it inferred
+"strategy running" purely from health-file age (green until 90s stale, red at 300s), so it
+kept showing green for a real stretch after the strategy was actually disabled by the crash
+above. Removed from the chart, the repo, and the Custom folder — not just disabled.
+`[myquant] 149f0a2`.
+
+**Net state entering next session:** ClaudeTrackerV2 is a pure heartbeat/recorder again (Part
+6.5), screenshots only its own hosting chart (reverted, safe), no toolbar health light exists
+anymore. Several real trades from this session have incomplete records (missing screenshots
+and/or a missing exit) — not urgent, SIM only, full ground truth is in
+`ExecutionLog_2026-10-16.csv` and NT8's own native Account/Trade Performance history whenever
+reconstruction is wanted.
+
 ### Part 7 — SessionSRLevelsV9: OoD RTH — stale hidden series, then wrong-series precision bug, then historical-path gap
 
 Same day, parallel to Part 6.5. **Symptom:** `OoD RTH` (and only that level — HOY/LOY/COY/
