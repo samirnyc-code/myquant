@@ -266,6 +266,24 @@ def cycle(dry_run):
             state[key] = {"day": today, "count": restarts_today + 1,
                           "last": dt.datetime.now().isoformat(timespec="seconds")}
 
+    # ClaudeTracker (2026-10-16): runs INSIDE NT8, not a Python process/task — there is no
+    # scheduled task to restart, so this is notify-only, not part of COMPONENTS above. Reuses
+    # pipeline_health's own check (same evidence: health-file freshness + stuck-open scan) so
+    # there's one source of truth for what counts as a problem, not a second definition to
+    # drift out of sync with the status light / Mission Control. Same COOLDOWN_S as everything
+    # else here, so a stuck-open trade doesn't re-notify every cycle while it stays stuck.
+    try:
+        import pipeline_health as ph
+        ct = ph.check_claude_tracker_trades()
+        if ct["state"] == ph.BAD:
+            st = state.get("claude_tracker", {})
+            since_last = (dt.datetime.now() - dt.datetime.fromisoformat(st["last"])).total_seconds() if st.get("last") else 1e9
+            if since_last >= COOLDOWN_S:
+                problems.append(f"claude_tracker: {ct['detail']} — NO AUTO-FIX (runs inside NT8; check the Output window)")
+                state["claude_tracker"] = {"last": dt.datetime.now().isoformat(timespec="seconds")}
+    except Exception as e:
+        log(f"claude_tracker check failed: {e}")
+
     if problems:
         save_state(state)
         body = " | ".join(problems)
