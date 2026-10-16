@@ -396,22 +396,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				_rthSeriesLastDate = Core.Globals.MinDate; _rthSeriesWeek = Core.Globals.MinDate; _rthSeriesMonthKey = -1;
 				_rthOpenByDay.Clear(); _rthWeekOpenBy.Clear(); _rthMonthOpenBy.Clear();
 
-				// Dedicated 1-min RTH series for OoD RTH's precise open — see field comment.
-				// Scoped to ROoD_Enabled specifically (not needRth) to stay minimal.
-				_rthMinSeriesAdded = false;
-				if (ROoD_Enabled && !string.IsNullOrEmpty(RthTemplateName))
-				{
-					try
-					{
-						AddDataSeries(Instrument.FullName,
-							new BarsPeriod { BarsPeriodType = BarsPeriodType.Minute, Value = 1 },
-							RthTemplateName);
-						_rthMinSeriesAdded = true;
-					}
-					catch (Exception ex) { Print("SessionSRLevelsV9: could not add 1-min RTH data series '" + RthTemplateName + "': " + ex.Message); }
-				}
-				_rthOpenPreciseDay = Core.Globals.MinDate; _rthOpenPrecise = double.NaN;
-
 				// Hidden DAILY ETH series: the authoritative source for Settlement (the Daily ETH
 				// bar close). Same ETH template as the chart, Day period.
 				_ethDaySeriesAdded = false;
@@ -428,8 +412,31 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 				_ethDaySessIter = null; _settleByDay.Clear();
 
-				// Resolve each hidden series' BarsInProgress index in the order they were added
-				// (primary = 0, ETH 5-min, RTH Daily, Daily ETH, RTH 1-min). Stays correct if any is skipped.
+				// Dedicated 1-min RTH series for OoD RTH's precise open — see field comment.
+				// Scoped to ROoD_Enabled specifically (not needRth) to stay minimal. Added LAST
+				// (call order matters — it's what the BIP resolution below keys off).
+				_rthMinSeriesAdded = false;
+				if (ROoD_Enabled && !string.IsNullOrEmpty(RthTemplateName))
+				{
+					try
+					{
+						AddDataSeries(Instrument.FullName,
+							new BarsPeriod { BarsPeriodType = BarsPeriodType.Minute, Value = 1 },
+							RthTemplateName);
+						_rthMinSeriesAdded = true;
+					}
+					catch (Exception ex) { Print("SessionSRLevelsV9: could not add 1-min RTH data series '" + RthTemplateName + "': " + ex.Message); }
+				}
+				_rthOpenPreciseDay = Core.Globals.MinDate; _rthOpenPrecise = double.NaN;
+
+				// Resolve each hidden series' BarsInProgress index in the EXACT order their
+				// AddDataSeries calls appear above (primary = 0, ETH 5-min, RTH Daily, Daily
+				// ETH, RTH 1-min). Stays correct if any is skipped — but the ORDER here must
+				// match the call order above exactly, or indices silently cross-wire (2026-10-16:
+				// this exact mismatch happened — RTH 1-min and Daily ETH were swapped because the
+				// new block was inserted between RTH Daily and Daily ETH while this formula still
+				// assumed Daily ETH came third; moved the AddDataSeries call to match instead of
+				// just reordering the formula, so the two can't drift apart silently again).
 				{ int bip = 1; _ethBip = _ethSeriesAdded ? bip++ : -1; _rthBip = _rthSeriesAdded ? bip++ : -1; _ethDayBip = _ethDaySeriesAdded ? bip++ : -1; _rthMinBip = _rthMinSeriesAdded ? bip++ : -1; }
 
 				_ethDayIter = null; _rthBarsIter = null; _rthMembershipIter = null; _rthMinDayIter = null; _ethLocked = false;
