@@ -155,8 +155,6 @@ namespace NinjaTrader.NinjaScript.Indicators
                 DtTriangleBrush   = Brushes.Red;          // DT neckline-break triangle
                 DbTriangleBrush   = Brushes.SeaGreen;     // DB neckline-break triangle
                 ShowLastN         = 0;                    // 0 = show all; N = keep only the newest N DT/DB on the chart
-                ConfirmDotHeightTicks = 6;  // height of the neckline-break dot, in ticks
-                ConfirmDotWidthBars   = 2;  // width of the neckline-break dot, in bars
                 ShowDebugPrints   = false; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
             }
             else if (State == State.Configure)
@@ -747,17 +745,13 @@ namespace NinjaTrader.NinjaScript.Indicators
                 RemoveDrawObject(tag + s);
         }
 
-        // Neckline-break marker: a filled dot. NT8's built-in Draw.Dot has no size setting
-        // at all, so this is a Draw.Ellipse instead, sized directly in ticks (height) and
-        // bars (width) via its bounding box — same sizing mechanism as the triangle it
-        // replaced, just round instead of pointed.
+        // Neckline-break marker: NT8's actual native Draw.Dot. Fixed small pixel size, no
+        // size parameter at all — which is exactly the point: price/bar-space sizing
+        // (ticks/bars) scales with zoom and bar width, so "small" at one zoom level became
+        // huge at another. This stays visually small and constant regardless of zoom.
         private DrawingTool DrawConfirmDot(string tag, bool isTop, double anchorY, Brush brush)
         {
-            double halfH = ConfirmDotHeightTicks * TickSize / 2.0;
-            int    halfW = Math.Max(1, ConfirmDotWidthBars / 2);
-            return Draw.Ellipse(this, tag, false,
-                halfW, anchorY + halfH, -halfW, anchorY - halfH,
-                brush, brush, 100);
+            return Draw.Dot(this, tag, false, 0, anchorY, brush);
         }
 
         // records a freshly-created Draw.* object so SyncVisibility() can flip
@@ -885,14 +879,6 @@ namespace NinjaTrader.NinjaScript.Indicators
         [NinjaScriptProperty, Range(0.0, double.MaxValue)]
         [Display(Name = "Min valley depth (x ABR)", Description = "Used when 'Size from avg bar range' is on: min pullback between the peaks = this x ABR.", Order = 15, GroupName = "1. Structure")]
         public double MinValleyDepthAbr { get; set; }
-
-        [NinjaScriptProperty, Range(1, int.MaxValue)]
-        [Display(Name = "Confirm dot height (ticks)", Description = "Vertical size of the neckline-break dot, in ticks.", Order = 16, GroupName = "3. Alerts")]
-        public int ConfirmDotHeightTicks { get; set; }
-
-        [NinjaScriptProperty, Range(1, int.MaxValue)]
-        [Display(Name = "Confirm dot width (bars)", Description = "Width of the neckline-break dot, in bars.", Order = 17, GroupName = "3. Alerts")]
-        public int ConfirmDotWidthBars { get; set; }
 
         [NinjaScriptProperty]
         [Display(Name = "Delete invalidated DT/DB", Description = "Remove a pattern's drawings (lines, peak line, neckline, score label) when price makes a new extreme beyond its peaks/troughs before confirming. Expired patterns are kept.", Order = 17, GroupName = "3. Alerts")]
