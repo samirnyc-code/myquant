@@ -103,41 +103,64 @@ def chart(R: pd.DataFrame, day: str, box: int, trend: int, rev: int, ma: str, le
 
     plt.style.use("dark_background")
     n = len(R)
-    fig, (axp, axv) = plt.subplots(2, 1, figsize=(max(14, n * 0.09), 8), sharex=True,
-                                    gridspec_kw={"height_ratios": [2.3, 1]})
+    # 4 panels stacked: price, then three CANDIDATE "bid/ask" indicators to compare against
+    # the friend's Sierra panel shape -- ratio is bounded +-100, delta/volume are not, and the
+    # unbounded ones are a much closer shape-match to a deep-spiking mountain chart.
+    fig, (axp, axv, axd, axvol) = plt.subplots(
+        4, 1, figsize=(max(20, n * 0.30), 22), sharex=True,
+        gridspec_kw={"height_ratios": [1.6, 1, 1, 1]})
     fig.patch.set_facecolor("black")
-    fig.suptitle(f"ES {day} RTH  ·  Flex Renko {box}-{trend}-{rev}  ·  Bid Ask Volume Ratio {ma} MA({length})",
-                 fontsize=11, color="white")
+    fig.suptitle(f"ES {day} RTH  ·  Flex Renko {box}-{trend}-{rev}  ·  3 candidate bid/ask panels (raw, no smoothing)",
+                 fontsize=13, color="white")
 
     # bricks, Sierra-style: up = blue (DodgerBlue-like), down = white
     up_c, dn_c = "#2f6fed", "#f2f2f2"
     for i, r in R.iterrows():
         c = up_c if r["dir"] == "up" else dn_c
-        axp.plot([i, i], [r["low"], r["high"]], color=c, lw=0.8, zorder=2)
+        axp.plot([i, i], [r["low"], r["high"]], color=c, lw=1.2, zorder=2)
         blo, bhi = min(r["open"], r["close"]), max(r["open"], r["close"])
-        axp.add_patch(Rectangle((i - 0.35, blo), 0.70, max(bhi - blo, 0.01),
-                                 facecolor=c, edgecolor=c, lw=0.3, zorder=3))
+        axp.add_patch(Rectangle((i - 0.40, blo), 0.80, max(bhi - blo, 0.01),
+                                 facecolor=c, edgecolor=c, lw=0.4, zorder=3))
     axp.set_xlim(-1, n)
-    axp.set_ylabel("ES", color="white")
+    axp.set_ylabel("ES", color="white", fontsize=12)
     axp.grid(alpha=0.15, color="gray")
-    axp.tick_params(colors="white")
+    axp.tick_params(colors="white", labelsize=10)
 
-    axv.plot(range(n), R["ma_vr"].values, color="#2f6fed", lw=1.3, label=f"{ma} MA({length})")
-    axv.plot(range(n), R["raw_vr"].values, color="#888", lw=0.4, alpha=0.6, label="raw VR")
-    axv.axhline(0, color="#888", lw=0.7)
-    axv.set_ylim(-105, 105)
-    axv.set_ylabel("VR", color="white")
-    axv.grid(alpha=0.15, color="gray")
-    axv.legend(loc="upper left", fontsize=8, facecolor="black", labelcolor="white")
-    axv.tick_params(colors="white")
+    def filled(ax, y, label, pad_min=10):
+        ax.fill_between(range(n), y, 0, where=(y >= 0), color="#2f6fed", alpha=0.85, zorder=3)
+        ax.fill_between(range(n), y, 0, where=(y <= 0), color="#9a9a9a", alpha=0.85, zorder=3)
+        ax.plot(range(n), y, color="white", lw=0.6, zorder=4)
+        ax.axhline(0, color="#ccc", lw=1.0)
+        pad = max(pad_min, abs(y).max() * 1.15 if len(y) else pad_min)
+        ax.set_ylim(-pad, pad)
+        ax.set_ylabel(label, color="white", fontsize=12)
+        ax.grid(alpha=0.15, color="gray")
+        ax.tick_params(colors="white", labelsize=10)
 
-    step = max(1, n // 30)
+    # 1. Bid Ask Volume Ratio (Sierra ID=230), % bounded -100..+100
+    filled(axv, R["raw_vr"].values, "VR  (ratio, %)", pad_min=10)
+
+    # 2. Volume Delta: AskVol - BidVol, raw contracts, unbounded -- closer to CVD-per-bar
+    delta = (R["askVol"] - R["bidVol"]).to_numpy()
+    filled(axd, delta, "Delta  (contracts)", pad_min=10)
+
+    # 3. raw Ask/Bid Volume, both positive, twin bars (not net -- total activity per side)
+    ax = axvol
+    ax.bar(range(n), R["askVol"].values, color="#2f6fed", alpha=0.85, width=0.9, label="Ask vol", zorder=3)
+    ax.bar(range(n), -R["bidVol"].values, color="#9a9a9a", alpha=0.85, width=0.9, label="Bid vol", zorder=3)
+    ax.axhline(0, color="#ccc", lw=1.0)
+    ax.set_ylabel("Ask / Bid vol", color="white", fontsize=12)
+    ax.grid(alpha=0.15, color="gray")
+    ax.tick_params(colors="white", labelsize=10)
+    ax.legend(loc="upper left", fontsize=8, facecolor="black", labelcolor="white")
+
+    step = max(1, n // 40)
     ticks = list(range(0, n, step))
-    axv.set_xticks(ticks)
-    axv.set_xticklabels([R["t"].iloc[i].strftime("%H:%M") for i in ticks], rotation=90, fontsize=7, color="white")
+    axvol.set_xticks(ticks)
+    axvol.set_xticklabels([R["t"].iloc[i].strftime("%H:%M") for i in ticks], rotation=90, fontsize=8, color="white")
 
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
-    fig.savefig(path, dpi=115, bbox_inches="tight", facecolor="black")
+    fig.tight_layout(rect=[0, 0, 1, 0.97])
+    fig.savefig(path, dpi=150, bbox_inches="tight", facecolor="black")
     plt.close(fig)
 
 
