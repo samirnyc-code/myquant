@@ -36,6 +36,14 @@ using NinjaTrader.NinjaScript.DrawingTools;
 // marker is a triangle (was an arrow; text glyph, size = ConfirmTriangleSize,
 // DB triangle SeaGreen); black width-4 line joins the two tops/bottoms.
 //
+// 2026-10-17: (a) confirm triangle rebuilt as a real Draw.Triangle (3 explicit
+// points sized in ticks/bars) instead of a font glyph — the glyph's
+// "ConfirmTriangleSize" font-point value didn't give predictable/working visual
+// sizing; (b) the peak/trough line is now perfectly horizontal at the more
+// extreme of the two prices (was sloped whenever the two peaks/troughs weren't
+// exactly equal); (c) the label's pattern-name ("DT"/"DB") and quality-score
+// rating are now two independent toggles instead of one combined ShowLabel.
+//
 // Note: the score gates only the "forming" alert (MinScoreToAlert); the
 // CONFIRMED alert still fires regardless of score, same as V1/V2.
 
@@ -131,7 +139,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 RearmSeconds      = 30;  // alert re-arm window
                 ShowDrawings      = true;
                 DeleteInvalidated = true;  // true: remove a DT/DB's drawings when price invalidates it (new extreme beyond the peaks/troughs)
-                ShowLabel         = false; // 'DT 72' / 'DB 64' text next to each pattern
+                ShowPatternName   = false; // 'DT'/'DB' text next to each pattern
+                ShowRating        = false; // quality score number next to each pattern
                 DtLegBrush        = Brushes.Firebrick;    // peak -> valley -> peak legs of a DT
                 DbLegBrush        = Brushes.SeaGreen;     // trough -> peak -> trough legs of a DB
                 LegDashStyle      = DashStyleHelper.Solid;
@@ -142,7 +151,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 DtTriangleBrush   = Brushes.Red;          // DT neckline-break triangle
                 DbTriangleBrush   = Brushes.SeaGreen;     // DB neckline-break triangle
                 ShowLastN         = 0;                    // 0 = show all; N = keep only the newest N DT/DB on the chart
-                ConfirmTriangleSize = 30;  // font size of the neckline-break triangle (~3x NT8's built-in triangle marker)
+                ConfirmTriangleHeightTicks = 8;  // height of the neckline-break triangle, in ticks
+                ConfirmTriangleWidthBars  = 3;   // half-width of the triangle's base, in bars
                 ShowDebugPrints   = false; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
             }
             else if (State == State.Configure)
@@ -626,10 +636,18 @@ namespace NinjaTrader.NinjaScript.Indicators
             TrackDrawObj(Draw.Line(this, tag + "_l1", false, aAgo, a.Price, midAgo, mid.Price, leg, LegDashStyle, LegWidth));
             TrackDrawObj(Draw.Line(this, tag + "_l2", false, midAgo, mid.Price, bAgo, b.Price, leg, LegDashStyle, LegWidth));
             DrawNeckline(tag, isTop, mid.Bar, mid.Price);   // to the current bar; extended on the break (SweepDrawn)
-            TrackDrawObj(Draw.Line(this, tag + "_peaks", false, aAgo, a.Price, bAgo, b.Price, PeakLineBrush, PeakLineDashStyle, PeakLineWidth)); // joins the two tops/bottoms
-            if (ShowLabel)
-                TrackDrawObj(Draw.Text(this, tag + "_txt", (isTop ? "DT " : "DB ") + score.ToString("F0"),
+            // joins the two tops/bottoms — perfectly horizontal at the MORE EXTREME of the
+            // two prices (the higher top for a DT, the lower bottom for a DB), not sloped
+            // between the two actual (possibly unequal) pivot prices.
+            double peakLevel = isTop ? Math.Max(a.Price, b.Price) : Math.Min(a.Price, b.Price);
+            TrackDrawObj(Draw.Line(this, tag + "_peaks", false, aAgo, peakLevel, bAgo, peakLevel, PeakLineBrush, PeakLineDashStyle, PeakLineWidth));
+            if (ShowPatternName || ShowRating)
+            {
+                string txt = ShowPatternName ? (isTop ? "DT" : "DB") : "";
+                if (ShowRating) txt += (txt.Length > 0 ? " " : "") + score.ToString("F0");
+                TrackDrawObj(Draw.Text(this, tag + "_txt", txt,
                           bAgo, isTop ? b.Price + 10 * TickSize : b.Price - 10 * TickSize, c));
+            }
         }
 
         // Neckline from the valley/peak bar to the CURRENT bar. Called when the pattern
@@ -725,16 +743,19 @@ namespace NinjaTrader.NinjaScript.Indicators
                 RemoveDrawObject(tag + s);
         }
 
-        // Neckline-break marker. NT8's Draw.TriangleUp/Down have no size setting, so the
-        // triangle is a text glyph (U+25BC down / U+25B2 up) whose font size sets its size.
-        // Nudged half its height away from the bar so it doesn't overlap the candle.
-        private DrawingTool DrawConfirmTriangle(string tag, bool isTop, double y, Brush brush)
+        // Neckline-break marker. NT8's built-in Draw.TriangleUp/Down marker shapes have no
+        // size setting at all, so this is a real 3-point Draw.Triangle instead — apex
+        // touching the bar (at `anchorY`, already nudged a few ticks clear of it by the
+        // caller), base pointing away, sized directly in ticks (height) and bars (half the
+        // base width) so it actually scales the way the properties say it will.
+        private DrawingTool DrawConfirmTriangle(string tag, bool isTop, double anchorY, Brush brush)
         {
-            string glyph = isTop ? "▼" : "▲";
-            int nudge = isTop ? ConfirmTriangleSize / 2 : -ConfirmTriangleSize / 2;
-            return Draw.Text(this, tag, true, glyph, 0, y, nudge, brush,
-                             new SimpleFont("Arial", ConfirmTriangleSize), TextAlignment.Center,
-                             Brushes.Transparent, Brushes.Transparent, 0);
+            double h = ConfirmTriangleHeightTicks * TickSize;
+            int    w = ConfirmTriangleWidthBars;
+            double baseY = isTop ? anchorY + h : anchorY - h;   // DT: base above the apex; DB: base below
+            return Draw.Triangle(this, tag, false,
+                w, baseY, 0, anchorY, -w, baseY,
+                brush, brush, 100);
         }
 
         // records a freshly-created Draw.* object so SyncVisibility() can flip
@@ -863,17 +884,25 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Display(Name = "Min valley depth (x ABR)", Description = "Used when 'Size from avg bar range' is on: min pullback between the peaks = this x ABR.", Order = 15, GroupName = "1. Structure")]
         public double MinValleyDepthAbr { get; set; }
 
-        [NinjaScriptProperty, Range(4, 200)]
-        [Display(Name = "Confirm triangle size", Description = "Font size of the neckline-break triangle.", Order = 16, GroupName = "3. Alerts")]
-        public int ConfirmTriangleSize { get; set; }
+        [NinjaScriptProperty, Range(1, int.MaxValue)]
+        [Display(Name = "Confirm triangle height (ticks)", Description = "Vertical size of the neckline-break triangle, in ticks.", Order = 16, GroupName = "3. Alerts")]
+        public int ConfirmTriangleHeightTicks { get; set; }
+
+        [NinjaScriptProperty, Range(1, int.MaxValue)]
+        [Display(Name = "Confirm triangle width (bars)", Description = "Half-width of the neckline-break triangle's base, in bars.", Order = 17, GroupName = "3. Alerts")]
+        public int ConfirmTriangleWidthBars { get; set; }
 
         [NinjaScriptProperty]
         [Display(Name = "Delete invalidated DT/DB", Description = "Remove a pattern's drawings (lines, peak line, neckline, score label) when price makes a new extreme beyond its peaks/troughs before confirming. Expired patterns are kept.", Order = 17, GroupName = "3. Alerts")]
         public bool DeleteInvalidated { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Show DT/DB label", Description = "Show the 'DT 72' / 'DB 64' text (pattern type + score) next to each pattern.", Order = 18, GroupName = "3. Alerts")]
-        public bool ShowLabel { get; set; }
+        [Display(Name = "Show pattern name", Description = "Show the 'DT'/'DB' pattern-type text next to each pattern.", Order = 18, GroupName = "3. Alerts")]
+        public bool ShowPatternName { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Show rating", Description = "Show the quality score number next to each pattern.", Order = 19, GroupName = "3. Alerts")]
+        public bool ShowRating { get; set; }
 
         [XmlIgnore]
         [Display(Name = "DT leg color", Description = "Color of the peak -> valley -> peak lines of a double top.", Order = 1, GroupName = "5. Lines")]
@@ -920,7 +949,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         public string DbTriangleBrushSerialize { get { return Serialize.BrushToString(DbTriangleBrush); } set { DbTriangleBrush = Serialize.StringToBrush(value); } }
 
         [Range(0, int.MaxValue)]
-        [Display(Name = "Show last N DT/DB", Description = "0 = show all. N > 0 = keep only the newest N patterns (DT and DB counted together) on the chart; older ones are removed incl. their triangle.", Order = 19, GroupName = "3. Alerts")]
+        [Display(Name = "Show last N DT/DB", Description = "0 = show all. N > 0 = keep only the newest N patterns (DT and DB counted together) on the chart; older ones are removed incl. their triangle.", Order = 20, GroupName = "3. Alerts")]
         public int ShowLastN { get; set; }
         #endregion
     }
