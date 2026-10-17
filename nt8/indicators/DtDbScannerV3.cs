@@ -148,6 +148,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 PeakLineBrush     = Brushes.Black;        // line joining the two tops/bottoms
                 PeakLineDashStyle = DashStyleHelper.Solid;
                 PeakLineWidth     = 4;
+                NecklineDtBrush   = Brushes.Firebrick;    // DT neckline (was hardcoded)
+                NecklineDbBrush   = Brushes.SeaGreen;     // DB neckline (was hardcoded)
+                NecklineDashStyle = DashStyleHelper.Dash;
+                NecklineWidth     = 2;
                 DtTriangleBrush   = Brushes.Red;          // DT neckline-break triangle
                 DbTriangleBrush   = Brushes.SeaGreen;     // DB neckline-break triangle
                 ShowLastN         = 0;                    // 0 = show all; N = keep only the newest N DT/DB on the chart
@@ -654,8 +658,8 @@ namespace NinjaTrader.NinjaScript.Indicators
         // forms, and again (same tag = same line, redrawn) on the bar that closes beyond it.
         private void DrawNeckline(string tag, bool isTop, int neckBar, double price)
         {
-            Brush c = isTop ? Brushes.Firebrick : Brushes.SeaGreen;
-            TrackDrawObj(Draw.Line(this, tag + "_neck", false, CurrentBar - neckBar, price, 0, price, c, DashStyleHelper.Dash, 2));
+            Brush c = isTop ? NecklineDtBrush : NecklineDbBrush;
+            TrackDrawObj(Draw.Line(this, tag + "_neck", false, CurrentBar - neckBar, price, 0, price, c, NecklineDashStyle, NecklineWidth));
         }
 
         private void TrackDrawn(Pending p, string tag, int neckBar)
@@ -935,6 +939,25 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Range(1, 20)]
         [Display(Name = "Peak line width", Description = "Width of the line joining the two tops/bottoms.", Order = 7, GroupName = "5. Lines")]
         public int PeakLineWidth { get; set; }
+
+        [XmlIgnore]
+        [Display(Name = "DT neckline color", Description = "Color of the double-top neckline.", Order = 10, GroupName = "5. Lines")]
+        public Brush NecklineDtBrush { get; set; }
+        [Browsable(false)]
+        public string NecklineDtBrushSerialize { get { return Serialize.BrushToString(NecklineDtBrush); } set { NecklineDtBrush = Serialize.StringToBrush(value); } }
+
+        [XmlIgnore]
+        [Display(Name = "DB neckline color", Description = "Color of the double-bottom neckline.", Order = 11, GroupName = "5. Lines")]
+        public Brush NecklineDbBrush { get; set; }
+        [Browsable(false)]
+        public string NecklineDbBrushSerialize { get { return Serialize.BrushToString(NecklineDbBrush); } set { NecklineDbBrush = Serialize.StringToBrush(value); } }
+
+        [Display(Name = "Neckline style", Description = "Dash style of the neckline.", Order = 12, GroupName = "5. Lines")]
+        public DashStyleHelper NecklineDashStyle { get; set; }
+
+        [Range(1, 20)]
+        [Display(Name = "Neckline width", Description = "Width of the neckline.", Order = 13, GroupName = "5. Lines")]
+        public int NecklineWidth { get; set; }
 
         [XmlIgnore]
         [Display(Name = "DT triangle color", Description = "Color of the double-top neckline-break triangle.", Order = 8, GroupName = "5. Lines")]
