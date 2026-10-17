@@ -1,6 +1,18 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-16 (machine-time W. Europe) — **S141: 2026-10-15 ClaudeTrackerV2
+**Last Updated:** 2026-10-17 (machine-time W. Europe) — **S142: NT8 `FlexRenkoBarsType.cs`
+reversal-offset bug fixed + real wicks added, verified against Sierra's own docs (not the
+pasted third-party answer, which contradicted them and was rejected); `DtDbScannerV3.cs` UI
+polish (sizeable-then-abandoned triangle → NT8 native Draw.Dot, neckline color/style/width
+exposed, dot-color properties renamed+recolored); built then user-killed a Heiken-Ashi
+overlay indicator (deleted, do not rebuild unasked); built `BidAskVolumeRatio.cs` (NT8, real-
+time-only) + two Python L1-tape variants after confirming Sierra's actual doc spec; built an
+order-flow divergence/absorption/rejection turning-point scanner across all 20 real ES L1
+days, caught and fixed two real methodology bugs (both produced fake 100% hit rates), final
+honest result showed NO separation from the no-signal baseline — **user called it
+hallucinating/useless and said drop it; do not resume without being asked again.** See S142
+block before touching `FlexRenkoBarsType.cs`, `DtDbScannerV3.cs`, or any `order_flow_*`/
+`bid_ask_volume_ratio_*` script.** S141: 2026-10-15 ClaudeTrackerV2
 trade-loss incident — root-caused + fixed + monitored, plus a large Trade Playbook Journal
 build on top. 3 trades silently lost to a mid-session strategy reload; recovered them, fixed
 the reload-state bug + 2 related gaps (periodic drift, multi-chart-same-instrument race),
@@ -110,6 +122,140 @@ correct, but the bar-close event itself (leg/counter freshness) lags for these a
 Daily/Weekly series; a restart and two parameter changes didn't fix it, root cause
 undetermined, deprioritized as a minor staleness issue (the regime reading itself is
 accurate, just dated to the last bar NT8 delivered). See S134 block.** S133: NT8 `RegimeTrackerBox` — NEW multi-timeframe regime dashboard indicator. One box on the chart, rows = timeframes (editable: `2000t,5M,15M,60M,240M,D,W`), two columns RTH + ETH, each cell colored by Bull/Bear/Range. Flexible corner+X/Y offset and font size. Built, compile-checked, deployed, committed+pushed. GOTCHA fixed: the two trading-hours templates must be exact Trading Hours Manager names — `CME US Index Futures RTH` / `CME US Index Futures ETH` (NOT "CME RTH"/"CME ETH"; a bad name makes `AddDataSeries` throw in `OnStateChange` → indicator errors, draws nothing). See S133 block.** **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S142 (2026-10-17) — Flex Renko port fixes, DtDbScannerV3 UI polish, Bid/Ask Volume Ratio built + order-flow turning-point study CLOSED (no edge)
+
+**Read this before touching `FlexRenkoBarsType.cs`, `DtDbScannerV3.cs`, `BidAskVolumeRatio.cs`,
+or any `bid_ask_volume_ratio_*`/`order_flow_turning_points` script.**
+
+### Part 1 — FlexRenkoBarsType.cs (NT8 custom BarsType)
+
+Started from the user's complaint that inside/outside bars break mywedge/regime-tracker
+pivot logic; landed on Flex Renko (price-based bricks structurally can't be inside/outside
+bars — proved algebraically: every brick is HH+HL or LH+LL vs the one before it).
+
+- **Real bug fixed:** `ReversalOffset` was derived as `TrendOffset/2` (a ratio guess from the
+  original S120 build), not independent. Sierra's own doc gives a counter-example ("Hybrid
+  Renko" `N-N/2-N/2`, e.g. `4-2-2`: Trend=Reversal=2, which breaks the `/2` ratio). Repacked
+  `Value2 = TrendOffset*1000 + ReversalOffset` since NT8 BarsTypes only expose 2 numeric
+  fields total (confirmed via NT8's own support forum — no 3rd `[NinjaScriptProperty]` is
+  supported on a BarsType). 16-8-4 → `Value=16, Value2=8004`.
+- **Verified against Sierra's actual doc text**, not guessed — and a pasted third-party
+  answer mid-session claimed ReversalOffset is relative to the prior bar's CLOSE; that
+  contradicted Sierra's own quoted doc ("offset from the prior bar's OPEN") and was rejected.
+  User later pasted a screenshot of the real Sierra doc page — confirmed the rejection was
+  correct.
+- **Added true wicks**: tracks live tick-level high/low excursion since the last completed
+  brick, prints it as the brick's real High/Low instead of the old box-only Max/Min(open,
+  close). v1 was body-only. Mirrors the already-verified `scripts/renko.py::flex_renko`
+  wlo/whi tracking (proved against raw ticks there).
+- **NQ "unusable, 3hrs fills the whole screen" was NOT a port bug** — diagnosed as a Sierra-
+  side Tick Size override: the friend's Sierra NQ chart uses Tick Size 2.0, not NQ's real
+  0.25. General fix (no code change): `NT8 value = Sierra value × (Sierra tick size ÷ real
+  tick size)`. NQ 16-8-4 @ 2.0 → `Value=128, Value2=64032`. ES was checked too — the chart
+  title confirmed it's running the UNSCALED default (Value=16/Value2=8004) and renders clean
+  for a full RTH session, unlike NQ at the same unscaled setting — consistent with ES *not*
+  needing the ×8 scaling, though never fully confirmed against a side-by-side Sierra ES
+  screenshot the way NQ was.
+- Commits: `80ed8a84` (fix), plus the NQ scaling guidance (no commit, just math given to user).
+- **STATUS: PENDING user F5** — never got final on-chart confirmation the wick/offset fix
+  produces correct live bricks. Session moved on to NQ tick-size, then to DtDbScannerV3.
+
+### Part 2 — DtDbScannerV3.cs (DT/DB pattern scanner) UI requests
+
+Three small asks, one real back-and-forth on the confirm marker:
+
+1. **Confirm marker "can't be sized."** It already had a size property (`ConfirmTriangleSize`,
+   font-point based) — user wanted it genuinely resizable. Rebuilt as a real 3-point
+   `Draw.Triangle` sized in ticks(height)/bars(width). User: still too big even at the
+   minimum setting, furious about it ("are u fucking kidding me with these dots"). Root
+   cause found: `ConfirmDotWidthBars/2` was INTEGER division — at 1, `1/2=0`, then
+   `Math.Max(1,0)` floored width back to 1 bar regardless of the property, and 1 bar-width
+   scales with zoom/renders many pixels wide on a Renko chart. Price/bar-space sizing was
+   the wrong tool for "small and fixed." **Final: NT8's actual native `Draw.Dot`** — fixed
+   small pixel size, no size parameter at all, not zoom-dependent. Also asked for "a dot" at
+   one point (mid-exploration) and "a small arrow" was discussed as an alternative (NT8's
+   original pre-triangle marker, per the file's own 2026-10-12 changelog) but dot is what
+   shipped.
+2. **Neckline color/style/width hardcoded** (`Firebrick`/`SeaGreen`, `Dash`, width 2) unlike
+   every other line (DT/DB legs, peak line) which already had Color/Style/Width properties.
+   Added `NecklineDtBrush`/`NecklineDbBrush`/`NecklineDashStyle`/`NecklineWidth`, defaults
+   preserve the old hardcoded look exactly.
+3. **Rating/naming toggle** — `ShowLabel` (combined "DT 72" text) split into independent
+   `ShowPatternName` ('DT'/'DB') and `ShowRating` (score number).
+4. Peak/trough line was sloped between the two (possibly unequal) pivot prices; now perfectly
+   horizontal at the MORE EXTREME of the two.
+5. Dot color properties `DtTriangleBrush`/`DbTriangleBrush` (stale names from the triangle
+   era) renamed `DtDotBrush`/`DbDotBrush`; DT default changed Red→DodgerBlue per a reference
+   image the user shared (small blue dot = the target look).
+
+Commits: `b7d2d4f2`, `4c94c3f5`, `43500643`, `828c4fba`, `1e8ea9d2`. **STATUS: PENDING user
+F5** — the native-Draw.Dot fix (the thing that actually resolved the size complaint) was
+never explicitly confirmed working by the user on a live chart.
+
+### Part 3 — HeikenAshiOverlay.cs — built, then deleted
+
+User asked to emulate Sierra's "HA overlay on top of Flex Renko." NT8's Bar Type dropdown is
+a single exclusive choice (confirmed: Bar Type and Chart Style "are not related and would not
+be aware of each other" per NT8's own docs) — Heiken Ashi there REPLACES the bars, can't
+stack with Flex Renko. Built a separate overlay indicator instead (reads whatever bars are on
+the chart, runs the standard HA formula, draws thick/thin `Draw.Line` body/wick pairs). Fixed
+a missing-usings compile error the local compile-check script missed (`DashStyleHelper`/
+`Serialize` need `NinjaTrader.Gui.Tools`/`NinjaTrader.Cbi`/`NinjaTrader.Gui` — matched to
+`DtDbScannerV3.cs`'s proven-working using block). User then: **"delete the HA overlay, its
+garbage."** Deleted, `7111a43a`. **Do not rebuild unless explicitly asked again.**
+
+### Part 4 — Bid/Ask Volume Ratio: built, researched, CLOSED (no edge)
+
+User asked if I knew Sierra's "Bid/Ask Volume Ratio" indicator. Verified the real formula
+against sierrachart.com `doc/StudiesReference.php?ID=230` before building anything (not
+guessed): `VR = 100 × (AskVol-BidVol)/(AskVol+BidVol)` per bar, 6 selectable MA types.
+
+- **`nt8/indicators/BidAskVolumeRatio.cs`** (`68ea63ba`): real-time classification via
+  `OnMarketData` (tick rule: price≥ask→ask-side, ≤bid→bid-side), same pattern as NT8's stock
+  `BuySellVolume` indicator. **HARD CAVEAT, same as Sierra's own documented limitation:**
+  `OnMarketData` never fires on historical bars — this indicator reads 0 on all history,
+  only works forward from when it's actually running live on a connected feed. Not a bug.
+- Since that can't answer "what did this look like historically," built two Python variants
+  against the recorded L1 tape (`data/l1_tape/*`, ES-only, 2026-09-16→10-15, aggressor-tagged
+  same as `l1_footprint.py` uses, validated exact vs MzPack):
+  - **`bid_ask_volume_ratio_l1.py`** (`6bf0c966`): fixed time bars, multi-day.
+  - **`bid_ask_volume_ratio_renko.py`** (`e74a4537`→`20b1d908`): per FLEX RENKO BRICK (ES
+    16/8004), one RTH day at a time, Sierra-dark-theme render. Iterated twice on user
+    feedback: dropped the MA (user: "why the MA???" — wanted raw only), 4x bigger figure
+    (first pass was unreadable, "squished together... no detail"). Added 3 candidate panels
+    (ratio %, raw Delta contracts, raw Ask/Bid volume) since the user's friend's actual
+    Sierra panel shape was never confirmed to literally be the ratio study — looked unbounded/
+    spiky, more consistent with raw volume or delta. **This was never resolved — nobody
+    confirmed which of the 3 matches the friend's real indicator.**
+- **`order_flow_turning_points.py`** (`be932975`): user asked to scan ALL 20 real ES L1 days
+  for divergence/absorption/rejection at swing pivots and identify turning points. Caught and
+  fixed two real methodology bugs BEFORE trusting any number (both produced a fake 100% hit
+  rate — see the script's own docstring/comments for the exact mechanism of each): a tie-
+  break flaw in the forward-outcome check, then a swing-detection/outcome-threshold scale
+  mismatch. After both fixes: flagged-signal reversal rates (divergence 100% n=12, rejection
+  93.1% n=58) were **statistically indistinguishable from the no-signal baseline (94.9%
+  n=39)** — no evidence any of the three patterns beats picking a random significant swing
+  point. Built `--chart-day` to visualize the flagged pivots directly (annotated chart,
+  `data/l1_tape/_analysis/order_flow_turning_points_2026-09-16.png`) so the user could check
+  by eye. User's verdict, in order: **"zero alpha"** (after the first honest result) →
+  pushed further anyway ("can u find reversals... show me") → asked for a real 2:1 R:R trade
+  sim → interrupted mid-build: **"wtf are u doing this is useless"** → **"drop it because u r
+  hallucinating."**
+- **STATUS: ⛔ CLOSED.** Do not resume the order-flow/turning-point research angle without
+  the user explicitly asking again — they lost confidence in it this session, same pattern as
+  S118/S116-gexlog/S119-tempo in this file's history. The NT8 indicator and both Python L1
+  scripts stay as tools (not deleted — useful independent of the killed research), only the
+  "does this find real reversals" research thread is closed.
+
+### Also committed this session (loose ends)
+
+- `scripts/flex_renko_wick_check.py` + its dated output CSV — the diagnostic that confirmed
+  the Python flex_renko engine produces real, non-trivial wicks on live ES data (body always
+  exactly box size; 12.2% of bricks had wick ≥1× box). Was built early in the session to
+  justify the NT8 wick port but never committed until this handoff wrap-up.
 
 ---
 
@@ -1791,6 +1937,8 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 | 18 | **Wyckoff 2.0 discretionary toolset + full-tape recording DB** | 🟢 ACTIVE (S121-wyckoff-tools 9/16, leglab) — **CONTINUE HERE** | **DB LIVE**: L1 tape+BBO recorder `L1TapeRecorderAddOn.cs` running on **ES 12-26** (ES-only per user; ~90% quote, self-healing) + nightly rollover + watchdog tasks + `check_l1_tape` tile. Footprint pipeline RETIRED (L1 reconstructs it). **Stage-1 tools built** (VP engine+NT8 drawer PENDING F5, Weis wave, VWAP-readable). **`wyckoff_marker.py` = the interactive HTML Wyckoff marker** (click-box+snap, auto events from box, box-free bull/bear/transition trend engine, multi-day, S/R+21EMA, flex-renko). Renko+wicks+**Sierra flex_renko**; NT8 `FlexRenkoBarsType.cs` deployed — **RESOLVED (S122): it's in Data Series → Type, NOT the Chart-Style dropdown; not a compile error (type + strings byte-verified in the DLL)**. **FINDING: 9/15 low = SPRING of overnight low.** NEXT: Stage-2 (TR-Box + retro event engine) + Stage-3 (OF trigger panel); VWAP host-exporter; marker threshold calibration (user marks AR/springs); optional ChoCH volume/spread confirm. **READ S121-wyckoff-tools BLOCK.** |
 | 20 | **Trade Playbook + Journal (separate repo `trade-playbook`)** | 🟢 DONE, drift-check REMOVED per user decision (2026-10-16 EOD) | Live at https://trade-playbook-ten.vercel.app. **2026-10-16 FINAL STATE** — read S141 Parts 5.5/6/6.5/7 in full before touching `ClaudeTrackerV2.cs`, `ClaudeTrackerHealthLight.cs`, or `SessionSRLevelsV9.cs` again. Short version: this morning's reload-fix (periodic drift-check + auto-close) itself chopped real trades into fakes, repeatedly, across multiple reload attempts (root cause: a duplicate-instance bug — two chart instances simultaneously "owner" — never fully root-caused despite a full NT8 restart). **User's final call: removed the entire drift-check system, not just the auto-close** — `RunHealthCheck()` is now pure heartbeat (health file + raw execution log every ~30s), no comparison/reconciliation/alerting. `ReconcileOpenPosition()` kept but ONLY at startup/ownership-takeover (the original valid 10/15 fix, unrelated to today's problem). `ClaudeTrackerHealthLight.cs` is now a pure liveness light (loop alive / owner chart / trades taken+recorded) — no P&L (removed, was reading locally-corrupted data), no drift status. `[myquant] 6f280bb` final. First chopped trade corrected in production DB via `recover_20261016_chopped_trade.py` (real: -$300). **7 more local-only corrupted trade folders from today not yet corrected** (SIM only, no urgency, ground truth intact in `ExecutionLog_2026-10-16.csv`). Separately same day: `SessionSRLevelsV9`'s OoD RTH went stale (NT8-side Daily-bar delivery gap on a custom session template, confirmed via on-disk cache) — fixed with a dedicated precise 1-min series for both live AND historical paths, `[myquant] 06fda07` final, user-confirmed working. Also same session: large Journal UI round, a real security fix (cross-trader delete), and **manual screenshot upload** (`[tp] 8270eba`, prod confirmed Ready). Thomas re-handoff doc at `trade-playbook/docs/thomas-update-2026-10-16.md`. April historical trades: decided, never importing them. |
 | 21 | DtDbScanner (DT/DB tick-chart scanner) — add + backtest/walk-forward | ⛔ CLOSED (S126 2026-10-02) — NO mechanical edge | Indicator added (`nt8/indicators/DtDbScanner.cs`), full-history walk-forward + stop/target sweep + freq gate: only 1500t/2000t ever trade >=3/day, both net losers OOS (1500t PF 0.92 -$96.9k; 2000t PF 0.93 -$45.1k). User closed it — discretionary use only, do not resume unasked. See S126 block |
+| 22 | NT8 `FlexRenkoBarsType.cs` port + `DtDbScannerV3.cs` UI polish | 🟡 PENDING USER F5 (S142 2026-10-17) | Flex Renko: fixed a real bug (ReversalOffset was derived as TrendOffset/2, should be independent — Sierra's own "4-2-2" doc example breaks that ratio), repacked `Value2 = TrendOffset*1000+ReversalOffset`, added true wicks (tracks live tick excursion, prints as real High/Low instead of box-only). ES default unchanged (Value=16/Value2=8004); NQ needs scaling (his Sierra NQ tick size = 2.0, not the real 0.25 → multiply ticks by 8: Value=128/Value2=64032). DtDbScannerV3: confirm-marker went triangle(sized, still too big)→Draw.Ellipse(found+fixed an int-division bug, still "monster"-sized per user)→NT8 native `Draw.Dot` (fixed small, no size param — final). Neckline color/style/width now properties (was hardcoded). `DtTriangleBrush`/`DbTriangleBrush` renamed `DtDotBrush`/`DbDotBrush`, DT default Red→DodgerBlue. Built then DELETED `HeikenAshiOverlay.cs` per explicit user call ("its garbage") — do not rebuild unasked. None of this round has a user-confirmed F5 — next session should ask before building further on top |
+| 23 | Bid/Ask Volume Ratio (NT8 port + L1-offline Python + order-flow turning-point scan) | ⛔ CLOSED (S142 2026-10-17) — user called it hallucinating, drop it | Built `nt8/indicators/BidAskVolumeRatio.cs` (verified against sierrachart.com doc ID=230 before coding; HARD CAVEAT: `OnMarketData` is real-time-only, reads 0 on all historical bars — not a bug). Since that can't run on history, built two Python variants off the recorded L1 tape (ES-only, 2026-09-16→10-15): `bid_ask_volume_ratio_l1.py` (time bars) and `bid_ask_volume_ratio_renko.py` (per Flex-Renko-brick, one RTH day, Sierra-style render, 3 candidate panels — ratio/delta/raw-vol, since the user's friend's actual Sierra panel shape never got confirmed as any specific one of the three). User then asked for a real divergence/absorption/rejection turning-point scan across all 20 real L1 days (`order_flow_turning_points.py`): caught and fixed two real methodology bugs that each produced a fake 100% hit rate (a tie-break flaw, then a swing/outcome scale mismatch) — after both fixes, flagged-signal reversal rates were still statistically indistinguishable from the no-signal baseline (93-100% vs 94.9%, n=12/58/39). User's verdict: "zero alpha," then "hallucinating," told me to drop it. **Do not resume any of the order-flow/turning-point work without the user explicitly asking again.** The NT8 indicator + both Python L1 scripts stay (useful tools independent of the killed research angle) |
 | 19 | **Regime tracker — BOS/ChoCh regime classifier (5m ES)** | 🔧 **WIP (Thomas-Code chat, 2026-10-13): Python review pipeline → Lag-aware (Python = base for the 4 C# copies)** · 🟢 LAG RECONCILE DONE (S124 2026-09-24) — PENDING USER F5 | **Lag=1 is canonical** (user decision). S123 export-diff was the Lag setting (Documents=Lag3 vs Desktop=Lag1), NOT a build/tick engine difference. Python now models Lag (`mywedge.compute_mywedge(lag=)` + `swing_*_asof`); **Python(lag=1)↔both NT exports = 100%** (Documents `--session eth`, Desktop `--session date`). NT8 `RegimeTracker.cs` default Lag 3→1, compiled + **deployed — PENDING USER F5** (when flat). Invariant: lag2==lag3==finalised (non-repaint). Repaint effect: 476/500 trend segments identical, 1.04% bar diffs, ~4 short direction-flip windows. **PARKED (user will revisit): Lag 1 vs Lag 2** (chart-match+repaint vs settled/non-repaint). See S124 block. Earlier (S123): outside-bar rule ported (`Swings()`/`Extends()`). **Outside-bar rule (9/22-23):** mywedge marks an outside bar as BOTH a swing high and low; if it extended the structure at both ends both swings stand, else it collapses to the extreme it LEFT ON (`bar_dir`). Validated on 4 hand-marked charts at once — 02-13 **Bull b9**, 12-26 **one Bear b21-53**, 05-19 **Bear b16**, 05-21 **unchanged Bull b28**; other 8 sessions byte-identical. Three rejected variants recorded in the regime-tracker block — do NOT retry (the third, a general minor-pivot filter, broke 14/14 sessions). **Minor pivots beyond outside bars: CLOSED 9/23, user said leave as is** — zero-length in-bar trends (05-06 b5 etc.) are an accepted artifact. **PARKED:** 02-13 late ChoCh ~b76 (outside-bar intrabar order) — tracker is deliberately **bar-only, do NOT resolve with ticks**. Page generators now in `regime_tracker/pages/` (near-duplicates; consolidate before the next batch). Safety tag `pre-nt8-merge-20260923`; stale worktree `C:\Users\Thomas-Code\wt-nt8` can be removed. **S127 2026-10-02: Indicator-Manager hide/show bug fixed in a NEW clone `RegimeTrackerV2.cs` (+ `DtDbScannerV2.cs`) — V1 untouched, still the one in use. See S127 block before next edit to either original.** **S138 2026-10-15: `RegimeTrackerBox` gains `IncludePriorSession` (matches Panel); Panel's `Lag` default restored 0→1 to match Box's canonical value. Compiled+deployed+committed (`41f138d`), PENDING user F5. See S138 block.** |
 | 22 | **BreakoutBoysLiteV3 — reworked manual entry engine (BUY/SELL auto-type + IBS toggle)** | 🟡 PENDING USER F5 + SIM TEST (2026-10-15) | NEW strategy; V1/V2 untouched = rollback. BUY/SELL auto-pick stop-limit vs limit at the SB level (never blocked); IBS on/off toggle + [-/+]; picked SB = place IMMEDIATELY (via `OnMarketData` — managed Enter from the button thread silently no-ops); SB marker stays while working + FOREVER on fill. **⚠ 2026-10-15: LMT L BB/S SA weren't actually getting the immediate-placement path (only BUY/SELL were) — fixed, committed `626d0b5`.** **2026-10-15: BARS button removed (user+Thomas) — `_maxBarsAlive` fixed at default, OFS now full-row, committed `d920baf`.** **Sim-test: immediate fill for BOTH auto-type AND LMT, auto-type selection, two-tab routing, stop-side guard, marker-on-fill.** See the S-2026-10-14 block. |
 | 23 | **NT8 reload-crash hardening + SessionSRLevelsV9 polish + RegimeTrackerPanel perf** | 🟢 DONE, PENDING F5 (2026-10-14) | SR: EthFromPrimary (ETH H now exact from chart), OoD/OoW from Daily-RTH feed, Settlement=prior-day Daily-ETH, same-price merge, tab-aware buttons, lean feeds **(⚠ S139 2026-10-15: EthFromPrimary's default-ON here silently broke ETH levels on Daily-period charts, since it can't classify RTH-vs-ETH from a whole-day bar — fixed by falling back to the hidden ETH series when the primary isn't intraday; HOY/LOY/COY RTH levels + historical segments were ALSO never fully wired to Daily charts and got the same treatment — see S139 block)**. RegimeTrackerPanel: CurrentSessionOnly+IncludePriorSession defaults, Lag=0 **(⚠ S138 2026-10-15: this Lag=0 default was a drift from the canonical Lag=1 — reverted back to 1, see row #19/S138 block)**. Crash: `ncd_io.py` share-delete + AddOn `_release_feed` trigger (`release_nt_feed.py`). **Recommend user sets chart Days-to-load ~15.** See the S-2026-10-14 block. |
