@@ -155,8 +155,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 DtTriangleBrush   = Brushes.Red;          // DT neckline-break triangle
                 DbTriangleBrush   = Brushes.SeaGreen;     // DB neckline-break triangle
                 ShowLastN         = 0;                    // 0 = show all; N = keep only the newest N DT/DB on the chart
-                ConfirmTriangleHeightTicks = 8;  // height of the neckline-break triangle, in ticks
-                ConfirmTriangleWidthBars  = 3;   // half-width of the triangle's base, in bars
+                ConfirmDotHeightTicks = 6;  // height of the neckline-break dot, in ticks
+                ConfirmDotWidthBars   = 2;  // width of the neckline-break dot, in bars
                 ShowDebugPrints   = false; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
             }
             else if (State == State.Configure)
@@ -504,7 +504,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     if (ShowDrawings)
                     {
                         string triTag = "DTconfTri_" + pendingTop.FormBar;
-                        TrackDrawObj(DrawConfirmTriangle(triTag, true, High[0] + 4 * TickSize, DtTriangleBrush));
+                        TrackDrawObj(DrawConfirmDot(triTag, true, High[0] + 4 * TickSize, DtTriangleBrush));
                         LinkTriangle(pendingTop, triTag);
                     }
                     pendingTop = null;
@@ -526,7 +526,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     if (ShowDrawings)
                     {
                         string triTag = "DBconfTri_" + pendingBottom.FormBar;
-                        TrackDrawObj(DrawConfirmTriangle(triTag, false, Low[0] - 4 * TickSize, DbTriangleBrush));
+                        TrackDrawObj(DrawConfirmDot(triTag, false, Low[0] - 4 * TickSize, DbTriangleBrush));
                         LinkTriangle(pendingBottom, triTag);
                     }
                     pendingBottom = null;
@@ -747,18 +747,16 @@ namespace NinjaTrader.NinjaScript.Indicators
                 RemoveDrawObject(tag + s);
         }
 
-        // Neckline-break marker. NT8's built-in Draw.TriangleUp/Down marker shapes have no
-        // size setting at all, so this is a real 3-point Draw.Triangle instead — apex
-        // touching the bar (at `anchorY`, already nudged a few ticks clear of it by the
-        // caller), base pointing away, sized directly in ticks (height) and bars (half the
-        // base width) so it actually scales the way the properties say it will.
-        private DrawingTool DrawConfirmTriangle(string tag, bool isTop, double anchorY, Brush brush)
+        // Neckline-break marker: a filled dot. NT8's built-in Draw.Dot has no size setting
+        // at all, so this is a Draw.Ellipse instead, sized directly in ticks (height) and
+        // bars (width) via its bounding box — same sizing mechanism as the triangle it
+        // replaced, just round instead of pointed.
+        private DrawingTool DrawConfirmDot(string tag, bool isTop, double anchorY, Brush brush)
         {
-            double h = ConfirmTriangleHeightTicks * TickSize;
-            int    w = ConfirmTriangleWidthBars;
-            double baseY = isTop ? anchorY + h : anchorY - h;   // DT: base above the apex; DB: base below
-            return Draw.Triangle(this, tag, false,
-                w, baseY, 0, anchorY, -w, baseY,
+            double halfH = ConfirmDotHeightTicks * TickSize / 2.0;
+            int    halfW = Math.Max(1, ConfirmDotWidthBars / 2);
+            return Draw.Ellipse(this, tag, false,
+                halfW, anchorY + halfH, -halfW, anchorY - halfH,
                 brush, brush, 100);
         }
 
@@ -889,12 +887,12 @@ namespace NinjaTrader.NinjaScript.Indicators
         public double MinValleyDepthAbr { get; set; }
 
         [NinjaScriptProperty, Range(1, int.MaxValue)]
-        [Display(Name = "Confirm triangle height (ticks)", Description = "Vertical size of the neckline-break triangle, in ticks.", Order = 16, GroupName = "3. Alerts")]
-        public int ConfirmTriangleHeightTicks { get; set; }
+        [Display(Name = "Confirm dot height (ticks)", Description = "Vertical size of the neckline-break dot, in ticks.", Order = 16, GroupName = "3. Alerts")]
+        public int ConfirmDotHeightTicks { get; set; }
 
         [NinjaScriptProperty, Range(1, int.MaxValue)]
-        [Display(Name = "Confirm triangle width (bars)", Description = "Half-width of the neckline-break triangle's base, in bars.", Order = 17, GroupName = "3. Alerts")]
-        public int ConfirmTriangleWidthBars { get; set; }
+        [Display(Name = "Confirm dot width (bars)", Description = "Width of the neckline-break dot, in bars.", Order = 17, GroupName = "3. Alerts")]
+        public int ConfirmDotWidthBars { get; set; }
 
         [NinjaScriptProperty]
         [Display(Name = "Delete invalidated DT/DB", Description = "Remove a pattern's drawings (lines, peak line, neckline, score label) when price makes a new extreme beyond its peaks/troughs before confirming. Expired patterns are kept.", Order = 17, GroupName = "3. Alerts")]
