@@ -152,8 +152,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 NecklineDbBrush   = Brushes.SeaGreen;     // DB neckline (was hardcoded)
                 NecklineDashStyle = DashStyleHelper.Dash;
                 NecklineWidth     = 2;
-                DtTriangleBrush   = Brushes.Red;          // DT neckline-break triangle
-                DbTriangleBrush   = Brushes.SeaGreen;     // DB neckline-break triangle
+                DtDotBrush        = Brushes.DodgerBlue;   // DT neckline-break dot
+                DbDotBrush        = Brushes.DarkSeaGreen;  // DB neckline-break dot
                 ShowLastN         = 0;                    // 0 = show all; N = keep only the newest N DT/DB on the chart
                 ShowDebugPrints   = false; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
             }
@@ -502,7 +502,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     if (ShowDrawings)
                     {
                         string triTag = "DTconfTri_" + pendingTop.FormBar;
-                        TrackDrawObj(DrawConfirmDot(triTag, true, High[0] + 4 * TickSize, DtTriangleBrush));
+                        TrackDrawObj(DrawConfirmDot(triTag, true, High[0] + 4 * TickSize, DtDotBrush));
                         LinkTriangle(pendingTop, triTag);
                     }
                     pendingTop = null;
@@ -524,7 +524,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     if (ShowDrawings)
                     {
                         string triTag = "DBconfTri_" + pendingBottom.FormBar;
-                        TrackDrawObj(DrawConfirmDot(triTag, false, Low[0] - 4 * TickSize, DbTriangleBrush));
+                        TrackDrawObj(DrawConfirmDot(triTag, false, Low[0] - 4 * TickSize, DbDotBrush));
                         LinkTriangle(pendingBottom, triTag);
                     }
                     pendingBottom = null;
@@ -944,16 +944,16 @@ namespace NinjaTrader.NinjaScript.Indicators
         public int NecklineWidth { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "DT triangle color", Description = "Color of the double-top neckline-break triangle.", Order = 8, GroupName = "5. Lines")]
-        public Brush DtTriangleBrush { get; set; }
+        [Display(Name = "DT dot color", Description = "Color of the double-top neckline-break dot.", Order = 8, GroupName = "5. Lines")]
+        public Brush DtDotBrush { get; set; }
         [Browsable(false)]
-        public string DtTriangleBrushSerialize { get { return Serialize.BrushToString(DtTriangleBrush); } set { DtTriangleBrush = Serialize.StringToBrush(value); } }
+        public string DtDotBrushSerialize { get { return Serialize.BrushToString(DtDotBrush); } set { DtDotBrush = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
-        [Display(Name = "DB triangle color", Description = "Color of the double-bottom neckline-break triangle.", Order = 9, GroupName = "5. Lines")]
-        public Brush DbTriangleBrush { get; set; }
+        [Display(Name = "DB dot color", Description = "Color of the double-bottom neckline-break dot.", Order = 9, GroupName = "5. Lines")]
+        public Brush DbDotBrush { get; set; }
         [Browsable(false)]
-        public string DbTriangleBrushSerialize { get { return Serialize.BrushToString(DbTriangleBrush); } set { DbTriangleBrush = Serialize.StringToBrush(value); } }
+        public string DbDotBrushSerialize { get { return Serialize.BrushToString(DbDotBrush); } set { DbDotBrush = Serialize.StringToBrush(value); } }
 
         [Range(0, int.MaxValue)]
         [Display(Name = "Show last N DT/DB", Description = "0 = show all. N > 0 = keep only the newest N patterns (DT and DB counted together) on the chart; older ones are removed incl. their triangle.", Order = 20, GroupName = "3. Alerts")]
