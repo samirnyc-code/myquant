@@ -1,22 +1,43 @@
 // FlexRenkoBarsType.cs — Sierra-Chart-style FLEX RENKO as an NT8 custom bar type.
-// S120-wyckoff. Lets us chart the same bars "he" uses on Sierra (16-8-4 HTF, 8-4-2 exec)
+// S120-wyckoff, corrected S141. Lets us chart the same bars "he" uses on Sierra (16-8-4 HTF, 8-4-2 exec)
 // natively in NinjaTrader, on the live feed. Appears in the chart Bar Type dropdown as
 // "Flex Renko" (custom type). Deploy to Documents\NinjaTrader 8\bin\Custom\BarsTypes\ then F5.
 //
-// PARAMS (ticks):  Value = Box size,  Value2 = Trend offset.  Reversal offset is derived as
-//   Trend/2 to match his ratio (box : box/2 : box/4). So Value=16,Value2=8 -> 16-8-4;
-//   Value=8,Value2=4 -> 8-4-2. (If he ever uses a non-ratio reversal, we expose a 3rd field.)
+// PARAMS (ticks):  Value = Box size.  Value2 = TrendOffset*1000 + ReversalOffset (packed —
+//   NT8's BarsType framework only exposes 2 numeric slots on the Data Series dialog, confirmed
+//   via NinjaTrader's own support forum: there is no supported way to add a 3rd
+//   [NinjaScriptProperty] to a BarsType. Sierra's own UI is one hyphenated field
+//   "BarSize-TrendOffset-ReversalOffset" for the same reason; this is the NT8-numeric-field
+//   equivalent of that packing. 16-8-4 -> Value=16, Value2=8004 (8*1000+4).
+//   8-4-2 -> Value=8, Value2=4002.
 //
-// ALGORITHM (derived from the Sierra doc's open-offset rules; verified in Python flex_renko):
-//   B=Box, T=Trend, R=Reversal (=T/2), all in price.  Bricks body = B, overlapping.
-//   Up brick: open O(bottom), close C=O+B(top).
-//     continuation up : triggers at C+(B-T); new O=C-T, new C=C+(B-T)
-//     reversal   down : triggers at O+R-B ; new(down) O=O+R(top), C=O+R-B(bottom)
-//   Down brick mirror.
+// ALGORITHM — verified word-for-word against Sierra Chart's own docs (sierrachart.com
+//   doc/RenkoCharts.html), NOT derived/guessed:
+//   "Trend Offset ... the Renko Open value is offset INSIDE the prior bar by the specified
+//    number of ticks" (continuation bar's open = prior close, pulled back toward the prior
+//    open by T ticks).
+//   "Reversal Offset ... the Renko Open value is offset FROM THE PRIOR BAR OPEN by the
+//    specified number of ticks" (reversal bar's open = prior bar's own OPEN, offset by R
+//    ticks INTO that prior bar's body).
+//   Body is always BoxSize (B). So, with O=prior bar's open, C=prior bar's close:
+//     prior bar UP (dir=1):
+//       continuation up : new O = C - T,  new C = O + B        (triggers when price >= C+(B-T))
+//       reversal   down : new O = O + R,  new C = O - B        (triggers when price <= O+R-B)
+//     prior bar DOWN (dir=-1): mirror image of the above.
+//   This is an EXACT implementation of those two quoted rules, not a guess — confirmed against
+//   Sierra's own documented text (and checked that a hallucinated "reversal offset is from the
+//   prior CLOSE" claim from a pasted third-party answer contradicts that text and was rejected).
 //
-// ⚠️ FIRST DRAFT — BarsTypes ALWAYS need on-chart F5 testing (the compile check can't validate
-//   the bar-build/rendering). Body-only bricks for v1 (no wicks yet; stock Renko has none either).
-//   Adapts @RenkoBarsType.cs's forming-bar / gap-fill / partial-bar management pattern.
+// WICKS — v1 was body-only ("stock Renko has none either", which is false for Sierra: Sierra
+//   Renko/Flex Renko bars DO carry true wicks via "Renko Bricks with Wicks" draw style, per the
+//   same doc page). Fixed here: track the running tick-level high/low excursion since the last
+//   completed brick (reset after each brick), and use THAT as the printed brick's real High/Low
+//   instead of the box-only Max/Min(open,close). Mirrors the already-verified Python
+//   scripts/renko.py::flex_renko wlo/whi excursion tracking (proved against the raw tape there).
+//
+// ⚠️ BarsType changes ALWAYS need on-chart F5 testing (the compile check can't validate the
+//   bar-build/rendering). Adapts @RenkoBarsType.cs's forming-bar / gap-fill / partial-bar
+//   management pattern (NT8's own native Renko source, read directly off this machine).
 
 #region Using declarations
 using System;
@@ -28,16 +49,15 @@ namespace NinjaTrader.NinjaScript.BarsTypes
 {
     public class FlexRenkoBarsType : BarsType
     {
-        // NT8 auto-discovers BarsType subclasses at startup (ResetBarsTypes) keyed by the unique
-        // BarsPeriodType id below (76308). It shows in the Bar Type dropdown IF the whole Custom
-        // assembly compiles — ONE compile error anywhere in Custom blocks every new type. Restart
-        // NinjaTrader after a clean compile.
-        private double flexOpen;    // last completed brick renko open
-        private double flexClose;   // last completed brick renko close
+        private const int PACK = 1000;   // Value2 = TrendOffset*PACK + ReversalOffset (ticks each)
+
+        private double flexOpen;    // last completed brick's open
+        private double flexClose;   // last completed brick's close
         private int    dir;         // 0 neutral, 1 up, -1 down
+        private double excHi, excLo; // true tick-level excursion since the last completed brick (wicks)
 
         public override void ApplyDefaultBasePeriodValue(BarsPeriod period) { }
-        public override void ApplyDefaultValue(BarsPeriod period) { period.Value = 16; period.Value2 = 8; }
+        public override void ApplyDefaultValue(BarsPeriod period) { period.Value = 16; period.Value2 = 8004; } // 16-8-4
         public override string ChartLabel(DateTime time) { return time.ToString("T", Core.Globals.GeneralOptions.CurrentCulture); }
         public override int GetInitialLookBackDays(BarsPeriod period, TradingHours tradingHours, int barsBack) { return 3; }
         public override double GetPercentComplete(Bars bars, DateTime now) { return 0; }
@@ -47,9 +67,11 @@ namespace NinjaTrader.NinjaScript.BarsTypes
         {
             if (SessionIterator == null) SessionIterator = new SessionIterator(bars);
             double tick = bars.Instrument.MasterInstrument.TickSize;
-            double B = bars.BarsPeriod.Value  * tick;
-            double T = bars.BarsPeriod.Value2 * tick;
-            double R = (bars.BarsPeriod.Value2 / 2.0) * tick;   // reversal = trend/2 (his ratio)
+            double B = bars.BarsPeriod.Value * tick;
+            int    to = bars.BarsPeriod.Value2 / PACK;
+            int    ro = bars.BarsPeriod.Value2 % PACK;
+            double T = to * tick;
+            double R = ro * tick;
 
             bool isNewSession = SessionIterator.IsNewSession(time, isBar);
             if (isNewSession) SessionIterator.GetNextSession(time, isBar);
@@ -64,10 +86,14 @@ namespace NinjaTrader.NinjaScript.BarsTypes
                     AddBar(bars, lc, lc, lc, lc, lt, lv);
                 }
                 flexOpen = flexClose = close; dir = 0;
+                excHi = excLo = close;
                 AddBar(bars, close, close, close, close, time, volume);
                 bars.LastPrice = close;
                 return;
             }
+
+            if (high > excHi) excHi = high;
+            if (low  < excLo) excLo = low;
 
             DateTime barTime = bars.GetTime(bars.Count - 1);
             long     barVol  = bars.GetVolume(bars.Count - 1);
@@ -75,7 +101,7 @@ namespace NinjaTrader.NinjaScript.BarsTypes
             int guard = 0;
             while (guard++ < 10000)
             {
-                // current triggers given state
+                // current triggers given state (fall out algebraically from new-C = new-O ± B)
                 double upTrig, dnTrig;
                 if (dir == 1)      { upTrig = flexClose + (B - T); dnTrig = flexOpen + R - B; }
                 else if (dir == -1){ dnTrig = flexClose - (B - T); upTrig = flexOpen - R + B; }
@@ -84,37 +110,40 @@ namespace NinjaTrader.NinjaScript.BarsTypes
                 if (close.ApproxCompare(upTrig) >= 0)                       // ---- UP brick completes ----
                 {
                     double On, Cn;
-                    if (dir == 1)  { On = flexClose - T;  Cn = flexClose + (B - T); }   // continuation
-                    else if (dir == -1) { On = flexOpen - R; Cn = On + B; }             // reversal up
-                    else           { On = flexClose;      Cn = flexClose + B; }         // first
-                    // finalize the forming bar as this completed brick
+                    if (dir == 1)       { On = flexClose - T; Cn = On + B; }   // continuation: open offset INSIDE prior bar
+                    else if (dir == -1) { On = flexOpen - R;  Cn = On + B; }   // reversal up:   open offset from prior bar's OPEN
+                    else                { On = flexClose;     Cn = On + B; }   // first
+                    double wHi = Math.Max(excHi, Cn), wLo = Math.Min(excLo, On);
                     RemoveLastBar(bars);
-                    AddBar(bars, On, Math.Max(On, Cn), Math.Min(On, Cn), Cn, barTime, barVol);
+                    AddBar(bars, On, wHi, wLo, Cn, barTime, barVol);
                     flexOpen = On; flexClose = Cn; dir = 1;
+                    excHi = excLo = Cn;                      // excursion for the NEXT brick starts fresh here
                     // open a fresh partial forming bar at the new brick top, marked to current price
-                    AddBar(bars, Cn, Math.Max(Cn, close), Math.Min(Cn, close), close, time, volume);
+                    AddBar(bars, Cn, Math.Max(Cn, high), Math.Min(Cn, low), close, time, volume);
                     barTime = time; barVol = volume;
                     continue;
                 }
                 if (close.ApproxCompare(dnTrig) <= 0)                       // ---- DOWN brick completes ----
                 {
                     double On, Cn;
-                    if (dir == -1) { On = flexClose + T;  Cn = flexClose - (B - T); }   // continuation
-                    else if (dir == 1)  { On = flexOpen + R; Cn = On - B; }             // reversal down
-                    else           { On = flexClose;      Cn = flexClose - B; }         // first
+                    if (dir == -1)     { On = flexClose + T; Cn = On - B; }   // continuation: open offset INSIDE prior bar
+                    else if (dir == 1) { On = flexOpen + R;  Cn = On - B; }   // reversal down: open offset from prior bar's OPEN
+                    else               { On = flexClose;     Cn = On - B; }   // first
+                    double wHi = Math.Max(excHi, On), wLo = Math.Min(excLo, Cn);
                     RemoveLastBar(bars);
-                    AddBar(bars, On, Math.Max(On, Cn), Math.Min(On, Cn), Cn, barTime, barVol);
+                    AddBar(bars, On, wHi, wLo, Cn, barTime, barVol);
                     flexOpen = On; flexClose = Cn; dir = -1;
-                    AddBar(bars, Cn, Math.Max(Cn, close), Math.Min(Cn, close), close, time, volume);
+                    excHi = excLo = Cn;
+                    AddBar(bars, Cn, Math.Max(Cn, high), Math.Min(Cn, low), close, time, volume);
                     barTime = time; barVol = volume;
                     continue;
                 }
                 break;
             }
 
-            // no brick completed this tick: just update the forming bar
-            double fh = Math.Max(bars.GetHigh(bars.Count - 1), close);
-            double fl = Math.Min(bars.GetLow(bars.Count - 1), close);
+            // no brick completed this tick: just update the forming bar (true high/low, not just close)
+            double fh = Math.Max(bars.GetHigh(bars.Count - 1), high);
+            double fl = Math.Min(bars.GetLow(bars.Count - 1), low);
             UpdateBar(bars, close, fh, fl, time, volume);
             bars.LastPrice = close;
         }
@@ -124,22 +153,23 @@ namespace NinjaTrader.NinjaScript.BarsTypes
             if (State == State.SetDefaults)
             {
                 Name              = "Flex Renko";
-                BarsPeriod        = new BarsPeriod { BarsPeriodType = (BarsPeriodType)76308, Value = 16, Value2 = 8 };
+                BarsPeriod        = new BarsPeriod { BarsPeriodType = (BarsPeriodType)76308, Value = 16, Value2 = 8004 };
                 BuiltFrom         = BarsPeriodType.Tick;
                 DaysToLoad        = 3;
-                DefaultChartStyle = Gui.Chart.ChartStyleType.OpenClose;
+                DefaultChartStyle = Gui.Chart.ChartStyleType.CandleStick;
                 IsIntraday        = true;
                 IsTimeBased       = false;
             }
             else if (State == State.Configure)
             {
-                Name = string.Format("Flex Renko {0}-{1}-{2}", BarsPeriod.Value, BarsPeriod.Value2, Math.Max(1, BarsPeriod.Value2 / 2));
+                int to = BarsPeriod.Value2 / PACK, ro = BarsPeriod.Value2 % PACK;
+                Name = string.Format("Flex Renko {0}-{1}-{2}", BarsPeriod.Value, to, ro);
                 Properties.Remove(Properties.Find("BaseBarsPeriodType", true));
                 Properties.Remove(Properties.Find("BaseBarsPeriodValue", true));
                 Properties.Remove(Properties.Find("PointAndFigurePriceType", true));
                 Properties.Remove(Properties.Find("ReversalType", true));
                 SetPropertyName("Value", "Box size (ticks)");
-                SetPropertyName("Value2", "Trend offset (ticks)");
+                SetPropertyName("Value2", "TrendOffset*1000 + ReversalOffset (ticks) e.g. 8004 = 8-4");
             }
         }
     }
