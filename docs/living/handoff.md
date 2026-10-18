@@ -43,8 +43,29 @@ separate calendar logic needed). So now BOTH things render per session: its own 
 same already-backfilled `_vpByDate`). Compile-checked (own file clean; full-repo check shows
 only the 3 pre-existing unrelated collisions already documented in S144 — confirmed no new
 ones). Deployed to `Custom\Indicators\My\SessionSRLevelsV10.cs` (verified byte-identical via
-`diff`) — **PENDING USER F5, not visually verified by me.** S144: NT8 `Custom\Indicators\!Samirs
-Indis\` folder** (apostrophe stripped by NT8 itself on compile — NOT `!Samir's Indis`)
+`diff`) — **PENDING USER F5, not visually verified by me.**
+**SECOND CORRECTION, same session, right after the above — user said "not how i wanted it" to
+BOTH halves:** (1) "today's developing" was still a single flat ray drawn from session-open to
+now using only the LATEST `_devPoc`/`_devVah`/`_devVal` value — looks like the level never
+moved all day, not an actual developing trail. (2) the prior-session projection the user wanted
+was "a colored range," not thin dashed lines. Fixed both for real this time: added `_devTrail`
+(a `List<DevSnap>` of `{bar, poc, vah, val}`, one entry appended per `RecomputeDevPocVa` call =
+once per bar close, cleared at the day roll in `FinalizeDevPocVa` alongside `_vapToday`) and a
+new `DrawDevTrail` render method that steps through it bar-by-bar — each snapshot holds flat
+from its own bar until the NEXT snapshot's bar, so the POC/VAH/VAL lines visibly move through
+the session instead of one static ray. Replaced `DrawPriorVp` (dashed lines) with
+`DrawPriorVpBox` — same `FillRectangle`+POC-line visual language as the existing historical
+own-box, just in the renamed `PriorVaBoxColor`/`PriorPocColor` (dropped the now-unused
+`PriorVpStyle`/old `PriorVaColor` properties entirely, not kept for back-compat — nothing had
+saved a template against them yet). Note this is still: TODAY's bar-by-bar trail is the only
+place a real intraday trail is possible — the persisted log only ever stores each day's FINAL
+value, so historical days still render as a single finalized box (own value, confined to own
+bars), now with the prior-day box projected onto them too. Compile-checked (own file clean;
+same 3 pre-existing unrelated repo-wide collisions, confirmed no new ones). Deployed to
+`Custom\Indicators\My\SessionSRLevelsV10.cs`, byte-verified via `diff`. **PENDING USER F5 —
+still not visually verified by me; if this isn't right either, need an actual screenshot/
+description of what's rendering wrong rather than a third blind guess.** S144: NT8
+`Custom\Indicators\!Samirs Indis\` folder** (apostrophe stripped by NT8 itself on compile — NOT `!Samir's Indis`)
 created to group SR V9/V10, bid/ask (Ratio/Delta/Split), regime (Tracker/TrackerV2/
 TrackerBox/TrackerPanel/2ESetups/PhaseMachine), and DtDbScanner/V2/V3 at the top of the
 Indicators dialog — sorts first via the `!` prefix. New standalone
