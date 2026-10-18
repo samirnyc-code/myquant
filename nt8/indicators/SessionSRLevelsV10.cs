@@ -56,6 +56,13 @@
 //      VpHistSessions (prior = that session's own predecessor in _rthHist) — so every
 //      session on screen shows both what it did and what it opened against.
 //
+//   S145-4: ShowDevTrail is a real OFF switch for #1 (both the trail and its box-
+//   fallback) — fully skips drawing, independent of PocOpacity/VaOpacity. Those two
+//   opacity properties are new too: PocColor/VaColor's alpha was previously HARDCODED
+//   in DrawDevTrail (1f/0.85f) regardless of any color transparency the user picked —
+//   that's why "transparent" still showed up solid on a dark chart background. Fixed by
+//   reading PocOpacity/VaOpacity instead of the hardcoded constants.
+//
 // LEVELS (12 total, independently stylable): for BOTH the RTH session and the ETH
 // (overnight/non-RTH) session —
 //   HOY/LOY/COY = High/Low/Close of the prior completed session (NOT "of year" despite
@@ -440,6 +447,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 				PocColor = Brushes.Red; VaColor = Brushes.MediumSeaGreen; VaBoxColor = Brushes.MediumSeaGreen;
 				ShowPriorVp     = true;
 				PriorPocColor = Brushes.Orange; PriorVaBoxColor = Brushes.Goldenrod; PriorVpOpacity = 20;
+				ShowDevTrail = true; PocOpacity = 100; VaOpacity = 85;
 			}
 			else if (State == State.Configure)
 			{
@@ -1392,7 +1400,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			if (toV < 0) return;
 
 			// (1a) Today's own developing POC/VAH/VAL, bar by bar — see _devTrail comment.
-			DrawDevTrail(_devTrail, CurrentBar, cc, cs, fromV, toV);
+			// ShowDevTrail is a real off switch (independent of PocOpacity/VaOpacity) —
+			// skips drawing entirely rather than relying on a transparent color.
+			if (ShowDevTrail) DrawDevTrail(_devTrail, CurrentBar, cc, cs, fromV, toV);
 
 			// (2a) PRIOR session's final POC/VA projected onto TODAY (still developing), as
 			// a colored range. "Prior" = the most recently completed entry in _rthHist — one
@@ -1421,7 +1431,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			if (VpHistSessions > 0 && _rthHist.Count > 0)
 			{
 				var boxBr = new D2DSolidColorBrush(RenderTarget, ToColor4(VaBoxColor, 0.12f));
-				var pocBr = new D2DSolidColorBrush(RenderTarget, ToColor4(PocColor, 0.8f));
+				var pocBr = new D2DSolidColorBrush(RenderTarget, ToColor4(PocColor, PocOpacity / 100f));
 				int shown = 0;
 				for (int k = _rthHist.Count - 1; k >= 0 && shown < VpHistSessions; k--)
 				{
@@ -1434,17 +1444,20 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 					if (eIdx < sIdx) continue;
 					float xL = cc.GetXByBarIndex(ChartBars, sIdx), xR = cc.GetXByBarIndex(ChartBars, eIdx);
 
-					List<DevSnap> hist;
-					if (_histDevTrailByDate.TryGetValue(s.date.Date, out hist) && hist.Count > 0)
+					if (ShowDevTrail)
 					{
-						DrawDevTrail(hist, s.dayEndBar, cc, cs, fromV, toV);
-					}
-					else
-					{
-						float yHi = cs.GetYByValue(vp[1]), yLo = cs.GetYByValue(vp[2]);
-						RenderTarget.FillRectangle(new RectangleF(xL, Math.Min(yHi, yLo), Math.Max(xR - xL, 1f), Math.Max(Math.Abs(yLo - yHi), 1f)), boxBr);
-						float yPoc = cs.GetYByValue(vp[0]);
-						RenderTarget.DrawLine(new Vector2(xL, yPoc), new Vector2(xR, yPoc), pocBr, 1.5f);
+						List<DevSnap> hist;
+						if (_histDevTrailByDate.TryGetValue(s.date.Date, out hist) && hist.Count > 0)
+						{
+							DrawDevTrail(hist, s.dayEndBar, cc, cs, fromV, toV);
+						}
+						else
+						{
+							float yHi = cs.GetYByValue(vp[1]), yLo = cs.GetYByValue(vp[2]);
+							RenderTarget.FillRectangle(new RectangleF(xL, Math.Min(yHi, yLo), Math.Max(xR - xL, 1f), Math.Max(Math.Abs(yLo - yHi), 1f)), boxBr);
+							float yPoc = cs.GetYByValue(vp[0]);
+							RenderTarget.DrawLine(new Vector2(xL, yPoc), new Vector2(xR, yPoc), pocBr, 1.5f);
+						}
 					}
 
 					if (ShowPriorVp && k > 0)
@@ -1468,8 +1481,8 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 		private void DrawDevTrail(List<DevSnap> trail, int endBar, ChartControl cc, ChartScale cs, int fromV, int toV)
 		{
 			if (trail.Count == 0) return;
-			var pocBr = new D2DSolidColorBrush(RenderTarget, ToColor4(PocColor, 1f));
-			var vaBr  = new D2DSolidColorBrush(RenderTarget, ToColor4(VaColor, 0.85f));
+			var pocBr = new D2DSolidColorBrush(RenderTarget, ToColor4(PocColor, PocOpacity / 100f));
+			var vaBr  = new D2DSolidColorBrush(RenderTarget, ToColor4(VaColor, VaOpacity / 100f));
 			for (int i = 0; i < trail.Count; i++)
 			{
 				DevSnap snap = trail[i];
@@ -2491,6 +2504,18 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 		[Range(0, 100)] [Display(Name = "Prior-session VA box opacity %", Order = 9, GroupName = "23 Volume Profile",
 			Description = "Fill opacity of the projected prior-session range. Kept low by default (box, not lines) so it reads as a zone behind price, not a lines obscuring it.")]
 		public int PriorVpOpacity { get; set; }
+
+		[Display(Name = "Show this session's developing POC/VA", Order = 10, GroupName = "23 Volume Profile",
+			Description = "ON by default. A real OFF switch, independent of color/opacity: hides THIS session's own POC/VA display completely (today's live trail, and every historical day's reconstructed trail or box-fallback) — not just made transparent, drawn or not. Leaves the PRIOR-session projected range (ShowPriorVp, above) untouched either way.")]
+		public bool ShowDevTrail { get; set; }
+
+		[Range(0, 100)] [Display(Name = "POC opacity % (this session)", Order = 11, GroupName = "23 Volume Profile",
+			Description = "Opacity of this session's own POC line (today's trail, historical trail, and the box-fallback's POC line). Previously hardcoded and did NOT respect any opacity setting — that was the bug behind 'transparent but still visible'.")]
+		public int PocOpacity { get; set; }
+
+		[Range(0, 100)] [Display(Name = "VA line opacity % (this session)", Order = 12, GroupName = "23 Volume Profile",
+			Description = "Opacity of this session's own VAH/VAL lines (today's and historical trails). Previously hardcoded at 85% regardless of any setting.")]
+		public int VaOpacity { get; set; }
 
 		#endregion
 	}

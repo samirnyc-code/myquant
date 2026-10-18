@@ -88,7 +88,20 @@ instead of breaking. Compile-checked (own file clean; same 3 pre-existing unrela
 confirmed no new ones). Deployed to `Custom\Indicators\My\SessionSRLevelsV10.cs`, byte-verified.
 **PENDING USER F5 — still not visually verified by me. If the rendering is still wrong, an
 actual screenshot or a precise description of what's showing vs. expected would get it right
-faster than another blind guess at the intent.** S144: NT8
+faster than another blind guess at the intent.**
+**FOURTH ask, same session: "I need an option to turn the developing VA plot off completely,
+when transparent I still see it on a black background."** Real bug, not just a feature
+request: `DrawDevTrail`'s POC/VA brush alphas were HARDCODED (1f/0.85f) regardless of
+whatever opacity/transparency the user actually picked on `PocColor`/`VaColor` — so no color
+setting could ever make it invisible. Added `ShowDevTrail` (bool, default true) as a genuine
+off switch independent of color — fully skips drawing (today's live trail, every historical
+day's reconstructed trail, AND the box-fallback) rather than relying on transparency; leaves
+`ShowPriorVp`'s projected range untouched either way. Also fixed the root cause: new
+`PocOpacity`/`VaOpacity` (int 0-100, default 100/85) properties now actually drive the alpha
+in `DrawDevTrail` (and the box-fallback's POC line), replacing the hardcoded constants — so
+dialing opacity down now really works too, not just the hard on/off. Compile-checked (own file
+clean; same 3 pre-existing unrelated collisions). Deployed to `Custom\Indicators\My\`,
+byte-verified. **PENDING USER F5.** S144: NT8
 `Custom\Indicators\!Samirs Indis\` folder** (apostrophe stripped by NT8 itself on compile — NOT `!Samir's Indis`)
 created to group SR V9/V10, bid/ask (Ratio/Delta/Split), regime (Tracker/TrackerV2/
 TrackerBox/TrackerPanel/2ESetups/PhaseMachine), and DtDbScanner/V2/V3 at the top of the
