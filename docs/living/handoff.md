@@ -1,6 +1,44 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-17 (machine-time W. Europe) — **S142: NT8 `FlexRenkoBarsType.cs`
+**Last Updated:** 2026-10-18 (machine-time W. Europe) — **S143: L1 recorder restarted for
+ETH open (`L1TapeRecorderAddOn.cs` re-enabled — was renamed `.cs.disabled` on 10/14;
+`MyQuant L1 Rollover` + `MyQuant L1 Recorder Watchdog` scheduled tasks re-enabled); NT8
+built `BidAskVolumeDelta.cs` + `BidAskVolumeSplit.cs` (the other 2 of the 3 candidate
+bid/ask panels from S142, alongside the already-built `BidAskVolumeRatio.cs`); added LIVE
+price/CVD divergence marking to the existing `CumulativeDelta.cs` (fulfills its own
+in-file TODO) — incremental ZigZag-style swing tracker, confirms a pivot the instant
+price reverses by `ReversalTicks`, so the divergence line starts drawing the moment price
+pushes past the prior confirmed swing with CVD not confirming and grows live with the
+leg (NOT a fixed-lag retroactive fractal — user explicitly corrected this mid-build);
+drawn in both panels from one instance (CVD-to-CVD via manual OnRender in its own panel,
+price-to-price via `Draw.Line`/`Draw.Text` + `DrawOnPricePanel=true`). New
+`SessionSRLevelsV10.cs` (forked from V9, V9 untouched) adds optional developing session
+POC/Value-Area (`ShowDevPocVa`, OFF by default — togglable to conserve resources, zero
+`OnMarketData` cost while off): live per-tick price/volume binning drives today's
+developing POC/VAH/VAL (same greedy VA-expansion method as `scripts/volume_profile.py`),
+logged per-day to `data/vp_levels/session_vp_live_log.csv` on session close, prior
+sessions' VA drawn as a box off V9's existing `_rthHist` day-boundary tracking —
+**history builds up one day at a time from today forward, NEVER backfilled** (real-time-
+only `OnMarketData`, same limitation as `BidAskVolumeRatio.cs`). **Caught and fixed before
+deploying:** V10 initially redeclared the shared `LevelLineStyle` enum (same namespace as
+V9) — would have been a guaranteed CS0101 the moment both sit in Custom together; fixed
+by having V10 reuse V9's declaration instead. **V9.cs must stay deployed alongside V10.cs
+or V10 fails to compile.** Compile-checked only (own + full-repo, confirmed no NEW
+collisions beyond the 3 pre-existing unrelated ones — V7/V9 enum, ClaudeTracker/
+TradeLifecycle `ApproxExtensions`, both repo-only artifacts since the superseded files
+aren't actually deployed to Custom). **NOT F5-verified by me — user compiling live today
+as ETH opens.** Flagged to user: `ReversalTicks` default (8 ticks/2pt) is smaller than
+this project's usual Flex Renko box (16 ticks/4pt) — likely too sensitive on Renko,
+recommend raising it there; Tick-Replay compatibility with the custom `FlexRenkoBarsType`
+is unverified. **Separately, a concurrent chat session (same day) built
+`CVDDivergenceOscillator.cs`** (standalone port of TradingView TradingFinder's
+"Cumulative Volume Delta Divergence Periodic EMA" — bar-proxy CVD, fixed-lookback
+fractal divergence, kept deliberately separate from `CumulativeDelta.cs`'s live-zigzag
+approach for comparison) and reorganized the NT8-side Custom\Indicators folder (moved this
+session's new indicators + a few others into `Custom\Indicators\!Samir's Indis\` for UI
+grouping — NT8 compiles the whole Custom tree recursively regardless of nesting, so no
+functional effect; verified by diff that the move didn't alter file content). See S143
+block.** — S142: NT8 `FlexRenkoBarsType.cs`
 reversal-offset bug fixed + real wicks added, verified against Sierra's own docs (not the
 pasted third-party answer, which contradicted them and was rejected); `DtDbScannerV3.cs` UI
 polish (sizeable-then-abandoned triangle → NT8 native Draw.Dot, neckline color/style/width
@@ -122,6 +160,141 @@ correct, but the bar-close event itself (leg/counter freshness) lags for these a
 Daily/Weekly series; a restart and two parameter changes didn't fix it, root cause
 undetermined, deprioritized as a minor staleness issue (the regime reading itself is
 accurate, just dated to the last bar NT8 delivered). See S134 block.** S133: NT8 `RegimeTrackerBox` — NEW multi-timeframe regime dashboard indicator. One box on the chart, rows = timeframes (editable: `2000t,5M,15M,60M,240M,D,W`), two columns RTH + ETH, each cell colored by Bull/Bear/Range. Flexible corner+X/Y offset and font size. Built, compile-checked, deployed, committed+pushed. GOTCHA fixed: the two trading-hours templates must be exact Trading Hours Manager names — `CME US Index Futures RTH` / `CME US Index Futures ETH` (NOT "CME RTH"/"CME ETH"; a bad name makes `AddDataSeries` throw in `OnStateChange` → indicator errors, draws nothing). See S133 block.** **S132: NT8 `SessionSRLevelsV9` — big session of chart-level work + the NT8 duplicate-region bug finally root-caused. Added current-day H/L, manual-OoM override, calendar start-dates, extend-right, OoD-RTH session cap, hidden ETH-hours data series (ETH levels now work on RTH-only + daily charts, lock at RTH open), single-column labels, PRICE toggle button, and NEW: dual 1-day expected-move bands (VIX-formula vs gexlog-brief, side-by-side to compare for a few weeks). HARD-WON LESSON: the recurring CS0102/CS0111/CS0121/CS0229 "duplicate generated region" errors are caused by NT8 APPENDING its own generated `#region` to any file that already contains one — fix is to keep these files REGION-LESS in the repo (NT8 writes & owns one region on compile). See S132 block.** S131 (tab favicons, DONE), Added a favicon to the Trade Playbook app (`app/icon.svg`, upward chart line — the tab had none). Also changed the myquant desk "Daily Playbook" favicon 📋→🏈 (+H1 + hub nav label) to stop it colliding with 📝 Mark Setups / 📚 Data Catalog; restarted the Mission Control launcher pair cleanly (no tree-kill) and brought 4 stopped desk dashboards back up — all 6 serving HTTP 200.** S130 (NT Config tab in Trade Playbook, DONE), S129 (L1TapeRecorderAddOn fix, DONE), S128 (Trade Playbook Entry-method field, DONE — DB push auto-applied via `vercel.json`'s build-time `prisma db push`), S127/S126/S125/S124 unaffected — see blocks below.
+
+---
+
+## S143 (2026-10-18) — L1 recorder restarted; Bid/Ask Delta+Split ported; CVD live divergence; SessionSRLevelsV10 (developing POC/VA)
+
+**Read this before touching `CumulativeDelta.cs`, `SessionSRLevelsV9.cs`/`V10.cs`, or
+`L1TapeRecorderAddOn.cs`.**
+
+### 1. L1 recorder restarted for ETH open
+
+User asked to restart everything that was running before the 10/14 shutdown. Found the
+AddOn had been taken out of compilation by renaming it `L1TapeRecorderAddOn.cs.disabled`
+in `Custom\AddOns\` (content byte-identical to the committed repo copy — no drift). Fixed:
+- Renamed back to `.cs` in `Custom\AddOns\`.
+- Re-enabled both scheduled tasks (`schtasks /change ... /enable`): `MyQuant L1 Rollover`
+  and `MyQuant L1 Recorder Watchdog` — both confirmed `Ready` after.
+- AddOns auto-run on NT8 start once compiled (no separate enable switch) — next F5 picks
+  it back up.
+User feedback, saved to memory: once a specific action is named explicitly, don't re-ask
+for confirmation on that same action — act.
+
+### 2. BidAskVolumeDelta.cs + BidAskVolumeSplit.cs (NT8 indicators)
+
+The S142 Python comparison script `bid_ask_volume_ratio_renko.py` plotted 3 CANDIDATE
+bid/ask panels (ratio / delta / raw ask+bid volume) to compare shapes — only the ratio
+panel (`BidAskVolumeRatio.cs`) had been ported to NT8. Built the other two as real NT8
+indicators, same `OnMarketData` tick-classification pattern (real-time only, same honest
+caveat as the ratio indicator):
+- `BidAskVolumeDelta.cs` — per-bar AskVol−BidVol, raw contracts, unbounded, colored bar
+  plot (blue ask-dominant / gray bid-dominant).
+- `BidAskVolumeSplit.cs` — raw AskVol (positive) / BidVol (plotted negative) as twin bars,
+  total activity per side, not net.
+Both compile clean standalone (no shared type names with `BidAskVolumeRatio.cs`), deployed,
+committed (`5dafdcd`).
+
+### 3. CVD live price/divergence marking — `CumulativeDelta.cs`
+
+User asked how to mark divergences on the bid/ask indicator + the chart, "maybe by
+connecting tops and bottoms" — researched first (TradingView CVD/RSI divergence family:
+LuxAlgo Delta Divergence, CVD Divergence Lines, UAlgo CVD Divergence & Absorption).
+Standard method found: N-bar fractal pivot on both price and the oscillator in parallel,
+matched pivot-to-same-type-pivot within a lookback window, confirmed only after a fixed
+forward lag — and the literature's actual target for this pattern is CUMULATIVE delta
+(CVD), not a per-bar delta (too noisy, swings through zero every bar).
+
+Then found `nt8/indicators/CumulativeDelta.cs` ALREADY existed — a session-reset CVD-as-
+candles indicator with a TODO literally reading "auto-detect + draw regular/hidden
+divergences." Built that feature into it rather than a new file.
+
+**User correction mid-build (important, now in memory/this file for future sessions):**
+rejected the fixed-lag fractal-confirmation design — wanted it live: "if we make a new
+extreme from a previous pivot, the indi needs to start drawing," not drawn retroactively
+after N bars. Redesigned to an incremental ZigZag-style tracker:
+- A leg's running extreme becomes a CONFIRMED swing pivot the instant price reverses by
+  `ReversalTicks` (default 8) — no symmetric look-ahead window, so a pivot is known the
+  moment it actually happens, not on a schedule.
+- The INSTANT price pushes past the last confirmed swing extreme with CVD not confirming
+  it (price > last swing high but CVD < CVD at that high, or the mirror for lows), the
+  connecting line appears and grows bar-by-bar (ticks fire `OnBarUpdate` under
+  `Calculate.OnEachTick`, already the file's setting) for as long as the push continues.
+- If CVD catches back up before the leg reverses, the in-progress line is removed —
+  divergence is a condition, not a one-shot trigger (LuxAlgo's own stated caveat).
+- Once the leg actually reverses, whatever's on screen freezes as a permanent historical
+  mark; a fresh episode starts against the newly-confirmed pivot.
+- Hidden divergence (continuation) is a separate OFF-by-default toggle, evaluated once at
+  confirmation — it compares two already-completed swings, so by definition it has no
+  live/growing form.
+Drawn in BOTH panels from the one instance: the CVD-to-CVD line is manual SharpDX drawing
+inside the existing `OnRender` (same mechanism as the candles, so it stays in this
+indicator's own panel); the price-to-price line uses `Draw.Line`/`Draw.Text` with
+`DrawOnPricePanel=true` — the documented way a sub-panel indicator places markers on the
+price panel without becoming an overlay. These two mechanisms are independent (confirmed
+no existing cross-panel precedent in this repo, so this is new — flagged as NOT F5-
+verified). Compile error hit + fixed along the way: `Brush`/`SolidColorBrush` ambiguous
+between `System.Windows.Media` and `SharpDX.Direct2D1` once both namespaces are in scope —
+fully qualified every bare use. Committed (`98830eb`).
+
+**NOT YET DONE / open:** no label de-collision if divergences cluster tightly (hard rule
+chart-label-no-overlap not yet satisfied for this feature specifically — revisit if it
+shows up in practice). `ReversalTicks` default (8 ticks/2pt) is smaller than this
+project's usual Flex Renko box size (16 ticks/4pt) — flagged to user as likely too
+sensitive on Renko, needs tuning once seen live. Tick-Replay behavior against the custom
+`FlexRenkoBarsType` (vs a built-in bar type) is unverified either way.
+
+**Same day, a separate concurrent chat session** built `CVDDivergenceOscillator.cs` — a
+standalone port of TradingView TradingFinder's "Cumulative Volume Delta Divergence
+Periodic EMA" (bar-proxy CVD, fixed-lookback fractal divergence), deliberately kept
+separate from this file's live-zigzag approach for comparison. Also reorganized the NT8-
+side `Custom\Indicators\` folder (moved this session's new files + a few others into
+`Custom\Indicators\!Samir's Indis\` for UI grouping only — verified by diff this didn't
+alter any file content, and NT8 compiles the whole Custom tree recursively regardless of
+subfolder nesting).
+
+### 4. SessionSRLevelsV10.cs — developing POC/Value-Area
+
+User asked for POC + developing Value-Area for the day, prior session's VA as a box, and
+"a historical function," incorporated into SR V9 as a new V10. Asked the user to pick the
+data-source architecture first (file-fed from the already-validated
+`scripts/volume_profile.py` tick-trove engine, vs. live `OnMarketData` accumulation) —
+**user chose live accumulation.** Direct consequence, stated upfront and again when asked
+"will this be visible historically": **no retroactive backfill is possible** —
+`OnMarketData` is real-time-only (same limitation as `BidAskVolumeRatio.cs`), so history
+can only build up one day at a time starting from whenever this is first turned on live.
+
+Forked `SessionSRLevelsV9.cs` → `SessionSRLevelsV10.cs` (V9 left untouched in both repo
+and `Custom\Indicators\`, same rollback pattern as every prior Vn jump in this file).
+Added, ALL gated behind `ShowDevPocVa` (OFF by default per explicit user ask to conserve
+resources — `OnMarketData` returns immediately doing zero work while off, matching V9's
+existing needEth/needRth/needSettle leanness philosophy):
+- New `OnMarketData` override bins each Last trade's price/volume into a per-session
+  `Dictionary<double,double>`, independent of the file's `Calculate.OnBarClose` setting
+  (OnMarketData fires on every real tick regardless of Calculate).
+- Developing POC/VAH/VAL recomputed once per primary bar close (not per tick) via the
+  same greedy value-area expansion already validated in `volume_profile.py::value_area()`.
+- Each day's FINAL values persisted to `data/vp_levels/session_vp_live_log.csv`
+  (date,vpoc,vah,val) the instant the existing day-boundary block
+  (`if (tradingDay != _curTradingDay)`) fires, before the accumulator resets.
+- Prior sessions' VA renders as a shaded box + POC line, reusing V9's EXISTING `_rthHist`
+  day-boundary bar-index tracking (no new day-boundary bookkeeping needed) — count
+  controlled by `VpHistSessions` (default 1).
+
+**Real bug caught before deploying:** V10 (copied from V9) initially redeclared the
+shared `LevelLineStyle` enum in the parent `NinjaTrader.NinjaScript` namespace — V9.cs
+already defines it there, and NT8 compiles the whole Custom tree together, so having both
+files declare it would be a guaranteed CS0101 the moment either recompiles (same error
+class as the pre-existing, harmless V7/V9 REPO-only collision — repo keeps retired
+versions for history but Custom only ever has the live one(s) deployed). Fixed by
+removing V10's redeclaration and documenting the dependency in-file: **V9.cs must stay
+present in Custom (anywhere under it) or V10 fails to compile.** Verified via
+`nt8_compile_check.ps1` on V9+V10 together (clean) and the full-repo check (same 3
+pre-existing unrelated collisions as before — V7/V9 enum, `ClaudeTracker`/`TradeLifecycle`
+`ApproxExtensions` — confirming no new collision introduced).
+
+Compiled clean, deployed, committed (`f682f40`). **NOT F5-verified by me — user compiling
+live today.**
 
 ---
 
@@ -1917,6 +2090,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 
 | # | workstream | status | next action |
 |---|---|---|---|
+| 24 | **NT8 order-flow build: Bid/Ask Delta+Split, CVD live divergence, SessionSRLevelsV10 POC/VA, L1 recorder restart** | 🟡 PENDING USER F5 (S143 2026-10-18) | User is compiling live now as ETH opens. Watch for: `DrawOnPricePanel` actually routing CVD divergence lines to the price panel (unverified mechanism); label overlap if divergences cluster (no de-collision yet); `ReversalTicks` default (8t/2pt) likely too sensitive for the usual 16t/4pt Flex Renko box — raise it there; V9.cs must stay deployed alongside V10.cs (shared `LevelLineStyle` enum). See S143 block. |
 | 1 | 0DTE live desk (paper) | 🟢 RUNNING | trades daily; just watch the book |
 | 2 | ThetaData fill-validation | ✅ DONE (S113) | validated; report built; nothing pending |
 | 3 | **Stress-test SANDBOX + July-2026 TD-only model** | 🔜 NEXT (primary) | build sandbox per S113 spec; exit-rule slider incl. zone-anchored |
