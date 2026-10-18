@@ -71,7 +71,7 @@ namespace NinjaTrader.NinjaScript
 	public enum LevelLineStyle { Solid, Dash, Dot, DashDot }
 }
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
 	public class SessionSRLevelsV9 : Indicator
 	{

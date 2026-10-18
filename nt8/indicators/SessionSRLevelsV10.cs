@@ -87,7 +87,7 @@ using SharpDX.DirectWrite;
 // definition error the moment either recompiles. If V9.cs is ever removed from Custom,
 // this enum must be re-added here first (copy verbatim from SessionSRLevelsV9.cs).
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
 	public class SessionSRLevelsV10 : Indicator
 	{

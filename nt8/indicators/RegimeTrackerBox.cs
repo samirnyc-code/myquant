@@ -33,7 +33,7 @@ namespace NinjaTrader.NinjaScript
 	public enum RegimeBoxCorner { TopLeft, TopRight, BottomLeft, BottomRight }
 }
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
 	// ── RegimeTrackerBox ─────────────────────────────────────────────────────
 	// A dashboard box that shows, per timeframe, the current Bull/Bear/Range

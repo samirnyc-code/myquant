@@ -14,7 +14,7 @@ using NinjaTrader.Gui.Chart;
 using NinjaTrader.NinjaScript;
 #endregion
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
 	// ── RegimeTrackerPanel ───────────────────────────────────────────────────
 	// Sub-panel companion to RegimeTrackerV2: draws ONLY the Bull/Bear/Range

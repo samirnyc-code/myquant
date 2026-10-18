@@ -26,7 +26,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 // original DtDbScanner — do not deploy both permanently, retire whichever
 // loses the comparison.
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
     public class DtDbScannerV2 : Indicator
     {

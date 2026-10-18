@@ -28,7 +28,7 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
     public class BidAskVolumeSplit : Indicator
     {

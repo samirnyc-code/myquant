@@ -64,7 +64,7 @@ using SharpDX;
 using SharpDX.Direct2D1;
 #endregion
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
     public enum CvdResetMode { Session, None }
 

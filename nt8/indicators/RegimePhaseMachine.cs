@@ -13,7 +13,7 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
 	// ── RegimePhaseMachine ────────────────────────────────────────────────────
 	// The S83 tick-driven regime engine (phase machine v4) as a chart indicator.
@@ -834,60 +834,3 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
 	}
 }
-
-#region NinjaScript generated code. Neither change nor remove.
-
-namespace NinjaTrader.NinjaScript.Indicators
-{
-	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
-	{
-		private RegimePhaseMachine[] cacheRegimePhaseMachine;
-		public RegimePhaseMachine RegimePhaseMachine(string accountName, string hvlCsvPath, bool showHvlLine, bool showPivotTags, bool showLevels, bool showTriggers, double gapMaxPct, double stopAdrMult, int stopFloorTicks, int windowStartMin, int windowEndMin, int flatAfterMin)
-		{
-			return RegimePhaseMachine(Input, accountName, hvlCsvPath, showHvlLine, showPivotTags, showLevels, showTriggers, gapMaxPct, stopAdrMult, stopFloorTicks, windowStartMin, windowEndMin, flatAfterMin);
-		}
-
-		public RegimePhaseMachine RegimePhaseMachine(ISeries<double> input, string accountName, string hvlCsvPath, bool showHvlLine, bool showPivotTags, bool showLevels, bool showTriggers, double gapMaxPct, double stopAdrMult, int stopFloorTicks, int windowStartMin, int windowEndMin, int flatAfterMin)
-		{
-			if (cacheRegimePhaseMachine != null)
-				for (int idx = 0; idx < cacheRegimePhaseMachine.Length; idx++)
-					if (cacheRegimePhaseMachine[idx] != null && cacheRegimePhaseMachine[idx].AccountName == accountName && cacheRegimePhaseMachine[idx].HvlCsvPath == hvlCsvPath && cacheRegimePhaseMachine[idx].ShowHvlLine == showHvlLine && cacheRegimePhaseMachine[idx].ShowPivotTags == showPivotTags && cacheRegimePhaseMachine[idx].ShowLevels == showLevels && cacheRegimePhaseMachine[idx].ShowTriggers == showTriggers && cacheRegimePhaseMachine[idx].GapMaxPct == gapMaxPct && cacheRegimePhaseMachine[idx].StopAdrMult == stopAdrMult && cacheRegimePhaseMachine[idx].StopFloorTicks == stopFloorTicks && cacheRegimePhaseMachine[idx].WindowStartMin == windowStartMin && cacheRegimePhaseMachine[idx].WindowEndMin == windowEndMin && cacheRegimePhaseMachine[idx].FlatAfterMin == flatAfterMin && cacheRegimePhaseMachine[idx].EqualsInput(input))
-						return cacheRegimePhaseMachine[idx];
-			return CacheIndicator<RegimePhaseMachine>(new RegimePhaseMachine(){ AccountName = accountName, HvlCsvPath = hvlCsvPath, ShowHvlLine = showHvlLine, ShowPivotTags = showPivotTags, ShowLevels = showLevels, ShowTriggers = showTriggers, GapMaxPct = gapMaxPct, StopAdrMult = stopAdrMult, StopFloorTicks = stopFloorTicks, WindowStartMin = windowStartMin, WindowEndMin = windowEndMin, FlatAfterMin = flatAfterMin }, input, ref cacheRegimePhaseMachine);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
-{
-	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
-	{
-		public Indicators.RegimePhaseMachine RegimePhaseMachine(string accountName, string hvlCsvPath, bool showHvlLine, bool showPivotTags, bool showLevels, bool showTriggers, double gapMaxPct, double stopAdrMult, int stopFloorTicks, int windowStartMin, int windowEndMin, int flatAfterMin)
-		{
-			return indicator.RegimePhaseMachine(Input, accountName, hvlCsvPath, showHvlLine, showPivotTags, showLevels, showTriggers, gapMaxPct, stopAdrMult, stopFloorTicks, windowStartMin, windowEndMin, flatAfterMin);
-		}
-
-		public Indicators.RegimePhaseMachine RegimePhaseMachine(ISeries<double> input , string accountName, string hvlCsvPath, bool showHvlLine, bool showPivotTags, bool showLevels, bool showTriggers, double gapMaxPct, double stopAdrMult, int stopFloorTicks, int windowStartMin, int windowEndMin, int flatAfterMin)
-		{
-			return indicator.RegimePhaseMachine(input, accountName, hvlCsvPath, showHvlLine, showPivotTags, showLevels, showTriggers, gapMaxPct, stopAdrMult, stopFloorTicks, windowStartMin, windowEndMin, flatAfterMin);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.Strategies
-{
-	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
-	{
-		public Indicators.RegimePhaseMachine RegimePhaseMachine(string accountName, string hvlCsvPath, bool showHvlLine, bool showPivotTags, bool showLevels, bool showTriggers, double gapMaxPct, double stopAdrMult, int stopFloorTicks, int windowStartMin, int windowEndMin, int flatAfterMin)
-		{
-			return indicator.RegimePhaseMachine(Input, accountName, hvlCsvPath, showHvlLine, showPivotTags, showLevels, showTriggers, gapMaxPct, stopAdrMult, stopFloorTicks, windowStartMin, windowEndMin, flatAfterMin);
-		}
-
-		public Indicators.RegimePhaseMachine RegimePhaseMachine(ISeries<double> input , string accountName, string hvlCsvPath, bool showHvlLine, bool showPivotTags, bool showLevels, bool showTriggers, double gapMaxPct, double stopAdrMult, int stopFloorTicks, int windowStartMin, int windowEndMin, int flatAfterMin)
-		{
-			return indicator.RegimePhaseMachine(input, accountName, hvlCsvPath, showHvlLine, showPivotTags, showLevels, showTriggers, gapMaxPct, stopAdrMult, stopFloorTicks, windowStartMin, windowEndMin, flatAfterMin);
-		}
-	}
-}
-
-#endregion

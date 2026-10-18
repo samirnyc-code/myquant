@@ -47,7 +47,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 // Note: the score gates only the "forming" alert (MinScoreToAlert); the
 // CONFIRMED alert still fires regardless of score, same as V1/V2.
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
     public class DtDbScannerV3 : Indicator
     {

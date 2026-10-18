@@ -12,7 +12,7 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
 	// ── Regime2ESetups ────────────────────────────────────────────────────────
 	// DISPLAY-ONLY port of the REGIME-2E v1.1 book (S87-corrected, PF 1.54 no-gap /

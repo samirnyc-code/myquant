@@ -79,7 +79,7 @@ namespace NinjaTrader.NinjaScript
 	public enum CvdCumulativeMode { Periodic, EMA }
 }
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
     public class CVDDivergenceOscillator : Indicator
     {

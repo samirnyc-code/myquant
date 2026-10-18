@@ -17,7 +17,7 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
 	// ── RegimeTracker ─────────────────────────────────────────────────────────
 	// NT8 port of regime_tracker/regime_tracker.py (compute_regime): a Bull / Bear /

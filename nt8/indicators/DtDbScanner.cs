@@ -34,7 +34,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 //   the whole thing to tell you WHICH open chart has the best setup right now.
 //   Hook points for that are marked `// RANKER:` below.
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
     public class DtDbScanner : Indicator
     {

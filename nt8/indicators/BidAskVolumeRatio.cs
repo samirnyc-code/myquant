@@ -37,7 +37,7 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
     public enum BavrDiffMethod { AskMinusBid, BidMinusAsk }
     public enum BavrMaType { Simple, Exponential, Weighted, LinearRegression, Wilders, Smoothed }

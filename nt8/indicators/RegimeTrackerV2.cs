@@ -18,7 +18,7 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.My
 {
 	// ── RegimeTrackerV2 ──────────────────────────────────────────────────────
 	// Resource-comparison CLONE of RegimeTracker.cs — logic is identical (same
