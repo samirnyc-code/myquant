@@ -25,7 +25,25 @@ new to add). Dated audit trail per run in `data/vp_levels/_analysis/vp_backfill_
 instance, then F5/reload — `_rthHist` (which anchors the historical VA box to bar positions)
 already covers however many days the chart loads historically via normal `OnBarUpdate`, so once
 both are set the prior-session VA boxes for this backfilled range should just appear; not
-F5-verified by me.** S144: NT8 `Custom\Indicators\!Samirs
+F5-verified by me.**
+**CORRECTION same session, right after the above:** user pushed back hard — the original
+`DrawDevPocVa` only ever drew EACH session's own POC/VA confined to its own bars (today's
+still-developing rays + each historical day's own box over its own bars), never projected a
+PRIOR session's levels forward onto the NEXT one, which is the actual standard "yesterday's
+value area as today's reference" read the user wanted and assumed was already there. Added
+that as a genuinely separate thing, not a replacement: new `ShowPriorVp` (on by default) draws
+the prior completed session's final POC/VAH/VAL as dashed reference lines (distinct colors —
+`PriorPocColor`/`PriorVaColor`/`PriorVpStyle`/`PriorVpOpacity`, all new properties) spanning the
+CURRENT/next session's own bars — for today, prior = `_rthHist`'s last entry; for each
+historical day shown via `VpHistSessions`, prior = that day's own predecessor in `_rthHist`
+(array already skips weekends/holidays, so `k-1` is always the correct real prior session, no
+separate calendar logic needed). So now BOTH things render per session: its own box/rays
+(unchanged) AND the predecessor's levels projected onto it (new) — reusing the existing
+`DrawStyledLine` dash helper, no new OnMarketData/OnBarUpdate cost (pure render-time, reads the
+same already-backfilled `_vpByDate`). Compile-checked (own file clean; full-repo check shows
+only the 3 pre-existing unrelated collisions already documented in S144 — confirmed no new
+ones). Deployed to `Custom\Indicators\My\SessionSRLevelsV10.cs` (verified byte-identical via
+`diff`) — **PENDING USER F5, not visually verified by me.** S144: NT8 `Custom\Indicators\!Samirs
 Indis\` folder** (apostrophe stripped by NT8 itself on compile — NOT `!Samir's Indis`)
 created to group SR V9/V10, bid/ask (Ratio/Delta/Split), regime (Tracker/TrackerV2/
 TrackerBox/TrackerPanel/2ESetups/PhaseMachine), and DtDbScanner/V2/V3 at the top of the

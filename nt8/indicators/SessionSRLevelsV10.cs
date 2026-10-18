@@ -13,13 +13,29 @@
 //   to accumulate). Developing POC/VAH/VAL recompute once per primary bar close (not
 //   every tick — the greedy value-area expansion is cheap but there's no reason to pay
 //   it more than once a bar).
-//   HISTORY IS BUILT GOING FORWARD, NOT BACKFILLED: each trading day's FINAL developing
-//   POC/VAH/VAL is appended to a small persisted log (data/vp_levels/session_vp_live_log.csv,
-//   date,vpoc,vah,val) the moment that day's session boundary rolls. The prior-session VA
-//   box and the N-session "historical function" (VpHistSessions) both read that log —
-//   so NOTHING shows for days before this feature was turned on live; one more day of
-//   history becomes available each day it keeps running, same tradeoff already accepted
-//   when picking live accumulation over the file-fed alternative.
+//   HISTORY IS BUILT GOING FORWARD BY DEFAULT, BUT CAN BE BACKFILLED: each trading day's
+//   FINAL developing POC/VAH/VAL is appended to a small persisted log
+//   (data/vp_levels/session_vp_live_log.csv, date,vpoc,vah,val) the moment that day's
+//   session boundary rolls — this is the only path while the feature stays running.
+//   scripts/backfill_vp_log.py (S145, 2026-10-18) can also write rows into that SAME log
+//   straight from the recorded L1 tape (data/l1_tape/), for any day BEFORE the feature was
+//   ever turned on live — it never overwrites a day the live indicator already wrote. Both
+//   VpByDate consumers below (the per-session box and the prior-session projection) just
+//   read whatever is in the log; they don't care whether a given day's row came from the
+//   live accumulator or the backfill script.
+//
+//   TWO DISTINCT THINGS ARE DRAWN (S145 revision — the original version only drew #1, which
+//   the user correctly flagged as not what "SR from VP" normally means):
+//   1. EACH session's OWN POC/VA, confined to its own bars (today = still-developing rays
+//      from its session open to now via live _vapToday; a completed day = a shaded box over
+//      its own dayStartBar..dayEndBar, read from the log). This is "what happened in this
+//      session's own auction."
+//   2. The PRIOR completed session's FINAL POC/VA, projected FORWARD as dashed reference
+//      lines across the CURRENT/next session's own bars (ShowPriorVp, on by default) — the
+//      classic "yesterday's value area as today's reference level" read. Drawn for today
+//      (prior = _rthHist's last entry) AND for every historical session shown via
+//      VpHistSessions (prior = that session's own predecessor in _rthHist) — so every
+//      session on screen shows both what it did and what it opened against.
 //
 // LEVELS (12 total, independently stylable): for BOTH the RTH session and the ETH
 // (overnight/non-RTH) session —
@@ -380,6 +396,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 				VaPercent       = 0.70;
 				VpHistSessions  = 1;
 				PocColor = Brushes.Red; VaColor = Brushes.MediumSeaGreen; VaBoxColor = Brushes.MediumSeaGreen;
+				ShowPriorVp     = true;
+				PriorPocColor = Brushes.Orange; PriorVaColor = Brushes.Goldenrod;
+				PriorVpStyle = LevelLineStyle.Dash; PriorVpOpacity = 70;
 			}
 			else if (State == State.Configure)
 			{
@@ -1238,15 +1257,19 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			catch (Exception ex) { Print("SessionSRLevelsV10: could not read VP log: " + ex.Message); }
 		}
 
-		// Today's developing POC/VAH/VAL as rays from the session open to now, + up to
-		// VpHistSessions prior sessions' VA as a shaded box (reusing _rthHist's already-
-		// tracked day bar boundaries — no separate day-boundary bookkeeping needed).
+		// Two distinct things, per the S145 revision (see header comment): (1) each
+		// session's OWN POC/VA confined to its own bars — today as still-developing rays
+		// from the session open to now, completed days as a shaded box over _rthHist's
+		// already-tracked day bar boundaries; (2) the PRIOR completed session's FINAL
+		// POC/VA projected FORWARD as dashed reference lines across the CURRENT/next
+		// session's bars (ShowPriorVp) — "yesterday's value area" as today's levels.
 		private void DrawDevPocVa(ChartControl cc, ChartScale cs)
 		{
 			if (!ShowDevPocVa || ChartBars == null || RenderTarget == null) return;
 			int fromV = ChartBars.FromIndex, toV = ChartBars.ToIndex;
 			if (toV < 0) return;
 
+			// (1a) Today's own developing POC/VAH/VAL — rays from today's session open to now.
 			if (!double.IsNaN(_devPoc) && _curDayStartBar >= 0 && _curDayStartBar <= toV)
 			{
 				int sIdx = Math.Max(_curDayStartBar, fromV), eIdx = Math.Min(CurrentBar, toV);
@@ -1262,6 +1285,26 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 				}
 			}
 
+			// (2a) PRIOR session's final POC/VA projected onto TODAY (still developing).
+			// "Prior" = the most recently completed entry in _rthHist — one real trading
+			// session, calendar gaps (weekends/holidays) already excluded by construction.
+			if (ShowPriorVp && _curDayStartBar >= 0 && _curDayStartBar <= toV && _rthHist.Count > 0)
+			{
+				double[] pvp;
+				if (_vpByDate.TryGetValue(_rthHist[_rthHist.Count - 1].date.Date, out pvp))
+				{
+					int sIdx = Math.Max(_curDayStartBar, fromV), eIdx = Math.Min(CurrentBar, toV);
+					if (eIdx >= sIdx)
+					{
+						float xL = cc.GetXByBarIndex(ChartBars, sIdx), xR = cc.GetXByBarIndex(ChartBars, eIdx);
+						DrawPriorVp(pvp, xL, xR, cs);
+					}
+				}
+			}
+
+			// (1b)+(2b) Each of the last VpHistSessions completed sessions: its OWN box
+			// over its OWN bars, plus (if ShowPriorVp) ITS predecessor's VP projected onto
+			// it the same way — so every session shown also shows what it opened against.
 			if (VpHistSessions > 0 && _rthHist.Count > 0)
 			{
 				var boxBr = new D2DSolidColorBrush(RenderTarget, ToColor4(VaBoxColor, 0.12f));
@@ -1281,9 +1324,31 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 					RenderTarget.FillRectangle(new RectangleF(xL, Math.Min(yHi, yLo), Math.Max(xR - xL, 1f), Math.Max(Math.Abs(yLo - yHi), 1f)), boxBr);
 					float yPoc = cs.GetYByValue(vp[0]);
 					RenderTarget.DrawLine(new Vector2(xL, yPoc), new Vector2(xR, yPoc), pocBr, 1.5f);
+
+					if (ShowPriorVp && k > 0)
+					{
+						double[] pvp;
+						if (_vpByDate.TryGetValue(_rthHist[k - 1].date.Date, out pvp))
+							DrawPriorVp(pvp, xL, xR, cs);
+					}
 				}
 				boxBr.Dispose(); pocBr.Dispose();
 			}
+		}
+
+		// The prior session's VPOC/VAH/VAL as dashed reference lines spanning [xL,xR] of
+		// the NEXT session — either today's still-developing bars or a historical
+		// session's own bars. Deliberately styled (PriorVpStyle, distinct colors) so it
+		// never reads as the same thing as that session's OWN (solid) POC/VA above it.
+		private void DrawPriorVp(double[] pvp, float xL, float xR, ChartScale cs)
+		{
+			float alpha = PriorVpOpacity / 100f;
+			var pocBr = new D2DSolidColorBrush(RenderTarget, ToColor4(PriorPocColor, alpha));
+			var vaBr  = new D2DSolidColorBrush(RenderTarget, ToColor4(PriorVaColor, alpha));
+			DrawStyledLine(xL, xR, cs.GetYByValue(pvp[0]), pocBr, 1.5f, PriorVpStyle);
+			DrawStyledLine(xL, xR, cs.GetYByValue(pvp[1]), vaBr, 1f, PriorVpStyle);
+			DrawStyledLine(xL, xR, cs.GetYByValue(pvp[2]), vaBr, 1f, PriorVpStyle);
+			pocBr.Dispose(); vaBr.Dispose();
 		}
 
 		private static Color4 ToColor4(WMBrush b, float alpha)
@@ -2245,7 +2310,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 		[Display(Name = "Start date (blank = leftmost visible bar)", Order = 7, GroupName = "21 Custom 8")] public DateTime C8_StartDate { get; set; }
 
 		[Display(Name = "Show developing POC/VA", Order = 0, GroupName = "23 Volume Profile",
-			Description = "OFF by default to conserve resources. ON: live per-tick price/volume binning (OnMarketData, real-time only — same limitation as BidAskVolumeRatio.cs, no historical backfill) drives a developing POC + Value-Area for today, logs each day's final values on session close, and draws prior sessions' VA as a box once logged.")]
+			Description = "OFF by default to conserve resources. ON: live per-tick price/volume binning (OnMarketData, real-time only) drives a developing POC + Value-Area for today and logs each day's final values on session close — data/vp_levels/session_vp_live_log.csv, which scripts/backfill_vp_log.py can also backfill from the recorded L1 tape for days before this was ever turned on live.")]
 		public bool ShowDevPocVa { get; set; }
 
 		[Range(0.5, 0.95)] [Display(Name = "Value area %", Order = 1, GroupName = "23 Volume Profile",
@@ -2253,17 +2318,34 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 		public double VaPercent { get; set; }
 
 		[Range(0, 70)] [Display(Name = "Historical VA sessions (0 = off)", Order = 2, GroupName = "23 Volume Profile",
-			Description = "How many prior sessions' VA boxes to draw. Builds up one day at a time starting from when this was first turned on live — no retroactive backfill.")]
+			Description = "How many prior sessions' OWN VA boxes to draw (each confined to its own bars). Reads whatever is in session_vp_live_log.csv, live-written or backfilled.")]
 		public int VpHistSessions { get; set; }
 
-		[XmlIgnore] [Display(Name = "POC color", Order = 3, GroupName = "23 Volume Profile")] public WMBrush PocColor { get; set; }
+		[XmlIgnore] [Display(Name = "POC color (this session)", Order = 3, GroupName = "23 Volume Profile")] public WMBrush PocColor { get; set; }
 		[Browsable(false)] public string PocColorSerialize { get { return Serialize.BrushToString(PocColor); } set { PocColor = Serialize.StringToBrush(value); } }
 
 		[XmlIgnore] [Display(Name = "VA line color (today)", Order = 4, GroupName = "23 Volume Profile")] public WMBrush VaColor { get; set; }
 		[Browsable(false)] public string VaColorSerialize { get { return Serialize.BrushToString(VaColor); } set { VaColor = Serialize.StringToBrush(value); } }
 
-		[XmlIgnore] [Display(Name = "VA box color (historical)", Order = 5, GroupName = "23 Volume Profile")] public WMBrush VaBoxColor { get; set; }
+		[XmlIgnore] [Display(Name = "VA box color (historical, this session)", Order = 5, GroupName = "23 Volume Profile")] public WMBrush VaBoxColor { get; set; }
 		[Browsable(false)] public string VaBoxColorSerialize { get { return Serialize.BrushToString(VaBoxColor); } set { VaBoxColor = Serialize.StringToBrush(value); } }
+
+		[Display(Name = "Show prior session's VP projected forward", Order = 6, GroupName = "23 Volume Profile",
+			Description = "ON by default. Draws the PRIOR completed session's final POC/VAH/VAL as reference lines spanning the CURRENT/next session's own bars (today's still-developing bars, and each historical session shown by 'Historical VA sessions' above) — the classic 'yesterday's value area' read, separate from that session's own POC/VA.")]
+		public bool ShowPriorVp { get; set; }
+
+		[XmlIgnore] [Display(Name = "Prior-session POC color", Order = 7, GroupName = "23 Volume Profile")] public WMBrush PriorPocColor { get; set; }
+		[Browsable(false)] public string PriorPocColorSerialize { get { return Serialize.BrushToString(PriorPocColor); } set { PriorPocColor = Serialize.StringToBrush(value); } }
+
+		[XmlIgnore] [Display(Name = "Prior-session VA line color", Order = 8, GroupName = "23 Volume Profile")] public WMBrush PriorVaColor { get; set; }
+		[Browsable(false)] public string PriorVaColorSerialize { get { return Serialize.BrushToString(PriorVaColor); } set { PriorVaColor = Serialize.StringToBrush(value); } }
+
+		[Display(Name = "Prior-session VP line style", Order = 9, GroupName = "23 Volume Profile",
+			Description = "Kept distinct from the solid 'this session' lines/box above so the two readings never get visually confused.")]
+		public LevelLineStyle PriorVpStyle { get; set; }
+
+		[Range(0, 100)] [Display(Name = "Prior-session VP opacity %", Order = 10, GroupName = "23 Volume Profile")]
+		public int PriorVpOpacity { get; set; }
 
 		#endregion
 	}
