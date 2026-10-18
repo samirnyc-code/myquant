@@ -1,6 +1,31 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-18 (machine-time W. Europe) — **S144: NT8 `Custom\Indicators\!Samirs
+**Last Updated:** 2026-10-18 (machine-time W. Europe) — **S145: NT8 `SessionSRLevelsV10`
+developing POC/Value-Area — backfilled from the recorded L1 tape instead of waiting on the
+live-only accumulation.** V10's `ShowDevPocVa` feature (S142+) bins price/volume per-tick via
+`OnMarketData`, which NT8 only fires on LIVE ticks (not historical bars) — by design, its
+`session_vp_live_log.csv` only ever had days from when the feature was turned on live forward,
+nothing for the ~month of L1 tape already recorded. Built `scripts/backfill_vp_log.py`: reuses
+the already-validated `volume_at_price()`/`value_area()` from `volume_profile.py` (pct=0.70,
+matches V10's `VaPercent` default), computed from ALL `Ev=='T'` rows for the FULL Globex trading
+day (no RTH/ETH split — matches exactly what V10's own `OnMarketData`/`FinalizeDevPocVa` scope
+is, confirmed by reading the indicator source, not assumed), reading straight from the raw
+per-contract L1 tape (`data/l1_tape/`) rather than `tickdata.py`'s back-adjusted continuous
+troves — same reasoning already established in `dtdb_sr_filter_check.py`: the live NT8 chart
+shows the actual contract's raw price, so a continuous-adjusted level would be off by the roll
+amount. Only ADDS rows for dates missing from the log (never overwrites a live-written day
+unless `--force`). Ran it: **21 real trading days backfilled, 2026-09-16 → 2026-10-14** into
+`data/vp_levels/session_vp_live_log.csv` (verified against V10's exact `LoadVpLog()` parse
+format). 2026-10-15/16/19 L1 files correctly skipped as stubs (10-15 is a genuine 29-minute
+partial recording, 7,995 trade rows; 10-16/10-19 are near-empty recorder stubs) — below the
+10k-trade-row floor. Re-running the script is idempotent (confirmed: second run found nothing
+new to add). Dated audit trail per run in `data/vp_levels/_analysis/vp_backfill_<stamp>.csv`.
+**Still needed from the user, not done here (no unilateral state/config change):** turn
+`ShowDevPocVa` on and raise `VpHistSessions` above its default of 1 on the actual NT8 indicator
+instance, then F5/reload — `_rthHist` (which anchors the historical VA box to bar positions)
+already covers however many days the chart loads historically via normal `OnBarUpdate`, so once
+both are set the prior-session VA boxes for this backfilled range should just appear; not
+F5-verified by me.** S144: NT8 `Custom\Indicators\!Samirs
 Indis\` folder** (apostrophe stripped by NT8 itself on compile — NOT `!Samir's Indis`)
 created to group SR V9/V10, bid/ask (Ratio/Delta/Split), regime (Tracker/TrackerV2/
 TrackerBox/TrackerPanel/2ESetups/PhaseMachine), and DtDbScanner/V2/V3 at the top of the
@@ -2202,7 +2227,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 
 | # | workstream | status | next action |
 |---|---|---|---|
-| 24 | **NT8 order-flow build: Bid/Ask Delta+Split, CVD live divergence, SessionSRLevelsV10 POC/VA, L1 recorder restart** | 🟡 PENDING USER F5 (S143 2026-10-18) | User is compiling live now as ETH opens. Watch for: `DrawOnPricePanel` actually routing CVD divergence lines to the price panel (unverified mechanism); label overlap if divergences cluster (no de-collision yet); `ReversalTicks` default (8t/2pt) likely too sensitive for the usual 16t/4pt Flex Renko box — raise it there; V9.cs must stay deployed alongside V10.cs (shared `LevelLineStyle` enum). See S143 block. |
+| 24 | **NT8 order-flow build: Bid/Ask Delta+Split, CVD live divergence, SessionSRLevelsV10 POC/VA, L1 recorder restart** | 🟡 PENDING USER F5 (S143 2026-10-18); **VP log backfilled from L1 tape (S145 2026-10-18)** | User is compiling live now as ETH opens. Watch for: `DrawOnPricePanel` actually routing CVD divergence lines to the price panel (unverified mechanism); label overlap if divergences cluster (no de-collision yet); `ReversalTicks` default (8t/2pt) likely too sensitive for the usual 16t/4pt Flex Renko box — raise it there; V9.cs must stay deployed alongside V10.cs (shared `LevelLineStyle` enum). **S145: `data/vp_levels/session_vp_live_log.csv` backfilled 21 real days (09-16→10-14) via new `scripts/backfill_vp_log.py`, off the recorded L1 tape — no longer empty-until-live-runs-forward.** User still needs to enable `ShowDevPocVa` + raise `VpHistSessions` on the live indicator + F5 to see it. See S143 + S145 blocks. |
 | 1 | 0DTE live desk (paper) | 🟢 RUNNING | trades daily; just watch the book |
 | 2 | ThetaData fill-validation | ✅ DONE (S113) | validated; report built; nothing pending |
 | 3 | **Stress-test SANDBOX + July-2026 TD-only model** | 🔜 NEXT (primary) | build sandbox per S113 spec; exit-rule slider incl. zone-anchored |
