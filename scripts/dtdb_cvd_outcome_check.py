@@ -51,11 +51,14 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ticks", type=int, default=2000)
     ap.add_argument("--minutes", type=int, default=None, help="use N-minute time bars instead of tick bars")
+    ap.add_argument("--renko", type=int, nargs=3, default=None, metavar=("BOX", "TREND", "REV"),
+                     help="use Flex Renko bricks instead of tick/time bars, e.g. --renko 16 8 4")
     ap.add_argument("--horizon", type=int, default=20, help="bars forward to check for the outcome")
     ap.add_argument("--confirm-pts", type=float, default=3.0, help="points of move to call continued/reversed")
     ap.add_argument("--day", default=None, help="single day; default = every L1 day on disk")
     a = ap.parse_args()
-    bar_label = f"{a.minutes}min" if a.minutes else f"{a.ticks}tick"
+    renko = tuple(a.renko) if a.renko else None
+    bar_label = f"renko{a.renko[0]}-{a.renko[1]}-{a.renko[2]}" if renko else (f"{a.minutes}min" if a.minutes else f"{a.ticks}tick")
 
     dates = [a.day] if a.day else all_dates()
     rows = []
@@ -63,7 +66,7 @@ def main() -> int:
         try:
             df = load_day(d)
             rth = rth_only(df, d)
-            bars = build_bars(rth, a.ticks, a.minutes)
+            bars = build_bars(rth, a.ticks, a.minutes, renko)
         except SystemExit as e:
             print(f"  {d}: skipped ({e})")
             continue

@@ -129,7 +129,19 @@ def build_time_bars(df: pd.DataFrame, minutes: int) -> pd.DataFrame:
     return bars
 
 
-def build_bars(rth: pd.DataFrame, ticks: int | None, minutes: int | None) -> pd.DataFrame:
+def build_renko_bars(df: pd.DataFrame, box: int, trend: int, rev: int) -> pd.DataFrame:
+    """Flex Renko bricks (Sierra convention: box/trend/rev in ticks), reusing the
+    already-validated brick builder + per-brick askVol/bidVol windowing from
+    bid_ask_volume_ratio_renko.py so there's exactly one Renko implementation in the repo."""
+    from bid_ask_volume_ratio_renko import build as renko_build
+    R = renko_build(df, box, trend, rev, length=1, ma="simple", sign=1)
+    return R[["t", "open", "high", "low", "close", "askVol", "bidVol"]].reset_index(drop=True)
+
+
+def build_bars(rth: pd.DataFrame, ticks: int | None, minutes: int | None,
+                renko: tuple[int, int, int] | None = None) -> pd.DataFrame:
+    if renko:
+        return build_renko_bars(rth, *renko)
     if minutes:
         return build_time_bars(rth, minutes)
     return build_tick_bars(rth, ticks or 2000)
