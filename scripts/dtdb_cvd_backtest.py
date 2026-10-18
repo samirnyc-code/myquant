@@ -98,6 +98,43 @@ def build_tick_bars(df: pd.DataFrame, tick_count: int) -> pd.DataFrame:
     return bars
 
 
+def build_time_bars(df: pd.DataFrame, minutes: int) -> pd.DataFrame:
+    """N-minute wall-clock bars (standard OHLCV), same per-bar askVol/bidVol from the
+    tape's own Aggr classification. Bucketed on RTH-anchored boundaries (08:30 CT start)."""
+    tape = df[df["Ev"] == "T"].sort_values("Time").reset_index(drop=True)
+    tape["Size"] = tape["Size"].astype("int64")
+    n = len(tape)
+    if n < 100:
+        raise SystemExit(f"only {n} trade prints, too few for {minutes}-minute bars")
+
+    tape["bucket"] = tape["Time"].dt.floor(f"{minutes}min")
+    ask = tape["Aggr"].eq("A") * tape["Size"]
+    bid = tape["Aggr"].eq("B") * tape["Size"]
+    tape["ask"] = ask
+    tape["bid"] = bid
+
+    bars = tape.groupby("bucket").agg(
+        t=("Time", "last"),
+        open=("Price", "first"),
+        high=("Price", "max"),
+        low=("Price", "min"),
+        close=("Price", "last"),
+        askVol=("ask", "sum"),
+        bidVol=("bid", "sum"),
+    ).reset_index(drop=True)
+    # drop a trailing partial bar (bucket cut short by RTH close) so it doesn't masquerade as a full bar
+    last_bucket_dur = (tape["Time"].iloc[-1] - tape.loc[tape["bucket"] == tape["bucket"].iat[-1], "Time"].iloc[0])
+    if last_bucket_dur < pd.Timedelta(minutes=minutes) * 0.5:
+        bars = bars.iloc[:-1].reset_index(drop=True)
+    return bars
+
+
+def build_bars(rth: pd.DataFrame, ticks: int | None, minutes: int | None) -> pd.DataFrame:
+    if minutes:
+        return build_time_bars(rth, minutes)
+    return build_tick_bars(rth, ticks or 2000)
+
+
 def cvd_hist(bars: pd.DataFrame, period: int, mode: str) -> np.ndarray:
     delta = (bars["askVol"] - bars["bidVol"]).astype(float)
     if mode == "periodic":
@@ -288,7 +325,7 @@ def find_confirmed(bars: pd.DataFrame, day: str) -> list[Instance]:
     return confirmed
 
 
-def chart_day(day: str, bars: pd.DataFrame, insts: list[Instance], path: Path):
+def chart_day(day: str, bars: pd.DataFrame, insts: list[Instance], path: Path, bar_label: str):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -298,7 +335,7 @@ def chart_day(day: str, bars: pd.DataFrame, insts: list[Instance], path: Path):
     n = len(bars)
     fig, ax = plt.subplots(figsize=(max(20, n * 0.12), 10))
     fig.patch.set_facecolor("black")
-    fig.suptitle(f"ES {day} RTH  ·  {len(bars)} x 2000-tick bars  ·  DT/DB CVD divergence "
+    fig.suptitle(f"ES {day} RTH  ·  {len(bars)} x {bar_label} bars  ·  DT/DB CVD divergence "
                  f"({sum(1 for x in insts if x.agrees)}/{len(insts)} agree)", fontsize=13, color="white")
 
     for i, r in bars.iterrows():
@@ -334,9 +371,11 @@ def chart_day(day: str, bars: pd.DataFrame, insts: list[Instance], path: Path):
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ticks", type=int, default=2000)
+    ap.add_argument("--minutes", type=int, default=None, help="use N-minute time bars instead of tick bars")
     ap.add_argument("--day", default=None, help="single day YYYY-MM-DD; default = every day on disk")
     ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args()
+    bar_label = f"{a.minutes}min" if a.minutes else f"{a.ticks}tick"
 
     dates = [a.day] if a.day else all_dates()
     outdir = Path(a.out); outdir.mkdir(parents=True, exist_ok=True)
@@ -347,7 +386,7 @@ def main() -> int:
         try:
             df = load_day(d)
             rth = rth_only(df, d)
-            bars = build_tick_bars(rth, a.ticks)
+            bars = build_bars(rth, a.ticks, a.minutes)
         except SystemExit as e:
             print(f"  {d}: skipped ({e})")
             continue
@@ -358,8 +397,8 @@ def main() -> int:
         print(f"  {d}: {len(bars)} bars, {len(insts)} confirmed DT/DB")
         if insts:
             all_insts.extend(insts)
-            png = outdir / f"dtdb_cvd_{d}.png"
-            chart_day(d, bars, insts, png)
+            png = outdir / f"dtdb_cvd_{bar_label}_{d}.png"
+            chart_day(d, bars, insts, png, bar_label)
             opened_pngs.append(png)
 
     if not all_insts:
@@ -372,7 +411,7 @@ def main() -> int:
                  retest_bar=x.retest_bar, retest_cvd_delta=x.retest_cvd_delta)
             for x in all_insts]
     log = pd.DataFrame(rows)
-    csv_out = outdir / f"dtdb_cvd_backtest_{dates[0]}_{dates[-1]}.csv"
+    csv_out = outdir / f"dtdb_cvd_backtest_{bar_label}_{dates[0]}_{dates[-1]}.csv"
     log.to_csv(csv_out, index=False)
 
     n = len(log)

@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 import sys
 sys.path.insert(0, str(ROOT))
 from bid_ask_volume_ratio_renko import load_day, rth_only, L1_DIR
-from dtdb_cvd_backtest import build_tick_bars, find_confirmed, all_dates, SWING_STRENGTH
+from dtdb_cvd_backtest import build_bars, find_confirmed, all_dates, SWING_STRENGTH
 
 OUT = L1_DIR / "_analysis"
 
@@ -50,10 +50,12 @@ def forward_outcome(bars: pd.DataFrame, confirm_bar: int, is_top: bool, horizon:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ticks", type=int, default=2000)
+    ap.add_argument("--minutes", type=int, default=None, help="use N-minute time bars instead of tick bars")
     ap.add_argument("--horizon", type=int, default=20, help="bars forward to check for the outcome")
     ap.add_argument("--confirm-pts", type=float, default=3.0, help="points of move to call continued/reversed")
     ap.add_argument("--day", default=None, help="single day; default = every L1 day on disk")
     a = ap.parse_args()
+    bar_label = f"{a.minutes}min" if a.minutes else f"{a.ticks}tick"
 
     dates = [a.day] if a.day else all_dates()
     rows = []
@@ -61,7 +63,7 @@ def main() -> int:
         try:
             df = load_day(d)
             rth = rth_only(df, d)
-            bars = build_tick_bars(rth, a.ticks)
+            bars = build_bars(rth, a.ticks, a.minutes)
         except SystemExit as e:
             print(f"  {d}: skipped ({e})")
             continue
@@ -80,7 +82,7 @@ def main() -> int:
         return 1
 
     ev = pd.DataFrame(rows)
-    csv_out = OUT / f"dtdb_cvd_outcome_{dates[0]}_{dates[-1]}.csv"
+    csv_out = OUT / f"dtdb_cvd_outcome_{bar_label}_{dates[0]}_{dates[-1]}.csv"
     ev.to_csv(csv_out, index=False)
 
     print(f"\n=== {len(ev)} confirmed DT/DB across {len(dates)} days ({dates[0]} -> {dates[-1]}) ===")
