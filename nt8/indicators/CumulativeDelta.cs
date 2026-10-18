@@ -16,11 +16,40 @@
 //   ResetMode   : Session (reset CVD each RTH session) | None (continuous)
 //   LargeLotMin : 0 = count every trade; >0 = only count trades >= N contracts
 //                 (large-lot / "smart money" filtered CVD — the mzVolumeDelta idea)
-// TODO(next): auto-detect + draw regular/hidden divergences; export marks to CSV.
+//
+// DIVERGENCE (2026-10-18, S142+): LIVE, not confirmed-after-the-fact. A lightweight
+// incremental swing tracker (ZigZag-style: a leg's running extreme becomes a CONFIRMED
+// swing the moment price reverses by ReversalTicks — no symmetric look-ahead window,
+// so a pivot is known as soon as it actually happens) tracks the last confirmed CVD
+// swing high/low each session. On EVERY tick (OnBarUpdate fires per-tick under
+// Calculate.OnEachTick, same as the CVD accumulation below), the instant price pushes
+// past that last confirmed swing extreme (= "a new extreme from a previous pivot"),
+// this checks whether CVD is failing to confirm it and — if so — starts drawing the
+// connecting line immediately and keeps extending it bar by bar for as long as the
+// push continues:
+//   regular bearish (live): price > last confirmed swing high, CVD < CVD at that high
+//   regular bullish (live): price < last confirmed swing low,  CVD > CVD at that low
+// If CVD catches back up before the leg reverses, the in-progress line is removed (the
+// condition stopped holding — matches LuxAlgo's own caveat that divergence is a
+// condition, not a one-shot trigger). Once the leg actually reverses, whatever is on
+// screen at that instant is left as a permanent historical mark and a fresh episode
+// starts against the newly confirmed pivot.
+//   hidden bearish/bullish (continuation, OFF by default): unlike the regular case
+//   above, these compare two ALREADY-COMPLETED swings, so they're only evaluated once,
+//   at the moment a new swing confirms — there's no live/growing form of hidden
+//   divergence by definition.
+// Drawn in TWO places from the same live state: the CVD-to-CVD connecting line is
+// manual SharpDX drawing inside OnRender (same mechanism as the candles below, so it
+// renders in this indicator's OWN panel); the price-to-price connecting line uses the
+// NinjaScript Draw.Line/Draw.Text drawing-object API with DrawOnPricePanel=true, the
+// documented way a sub-panel indicator places markers on the price panel without
+// becoming an overlay itself — these two mechanisms are independent, so the same
+// instance can target both panels simultaneously.
 // RULE (CLAUDE.md): this .cs lives in nt8/ and stays committed.
 
 #region Using declarations
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Windows.Media;
@@ -30,6 +59,7 @@ using NinjaTrader.Data;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
 using NinjaTrader.NinjaScript;
+using NinjaTrader.NinjaScript.DrawingTools;
 using SharpDX;
 using SharpDX.Direct2D1;
 #endregion
@@ -46,15 +76,28 @@ namespace NinjaTrader.NinjaScript.Indicators
         private double barOpen, barHi, barLo, barClose;
         private SharpDX.Direct2D1.Brush upBrush, dnBrush;
 
+        // ---- live incremental swing/divergence tracking ----
+        private enum SwingDir { Up, Down }
+        private SwingDir dir = SwingDir.Up;
+        private int legExtBar = -1; private double legExtPrice = double.NaN;
+        private int sessionStartBar = -1;
+        private int lastHighBar = -1; private double lastHighPrice = double.NaN, lastHighCvd = double.NaN;
+        private int lastLowBar = -1;  private double lastLowPrice = double.NaN, lastLowCvd = double.NaN;
+        private string bearTag, bullTag;   // non-null while a live episode is actively being drawn
+
+        private struct DivMark { public int barA, barB; public double cvdA, cvdB; public bool bearish; }
+        private List<DivMark> hist = new List<DivMark>();           // frozen, historical marks (CVD-panel side)
+        private DivMark? liveMark;                                   // currently-growing mark, or null
+
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
             {
                 Name = "CumulativeDelta";
-                Description = "Cumulative volume delta (CVD) as candles, from ticks — no Order Flow+ needed";
+                Description = "Cumulative volume delta (CVD) as candles, from ticks — no Order Flow+ needed — with live price/CVD divergence marking";
                 Calculate = Calculate.OnEachTick;   // MUST be per-tick
                 IsOverlay = false;                  // its own panel
-                DrawOnPricePanel = false;
+                DrawOnPricePanel = true;             // lets Draw.Line/Draw.Text (divergence only) reach the price panel
                 DisplayInDataBox = true;
                 PaintPriceMarkers = true;
                 IsSuspendedWhileInactive = true;
@@ -62,6 +105,16 @@ namespace NinjaTrader.NinjaScript.Indicators
                 LargeLotMin = 0;
                 UpColor = Brushes.SeaGreen;
                 DownColor = Brushes.Firebrick;
+
+                ShowDivergence = true;
+                ShowHiddenDivergence = false;
+                ReversalTicks = 8;
+                DivLabelFontSize = 10;
+                BearColor = Brushes.OrangeRed;
+                BullColor = Brushes.Lime;
+                HiddenBearColor = Brushes.DarkOrange;
+                HiddenBullColor = Brushes.Cyan;
+
                 // transparent plots drive the panel autoscale to include the CVD high/low;
                 // a faint Close line is a fallback in case custom rendering is unavailable
                 AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "CVD");     // Values[0]=Close
@@ -126,6 +179,133 @@ namespace NinjaTrader.NinjaScript.Indicators
                 cvO[0] = cvH[0] = cvL[0] = cvC[0] = runCum;
                 Values[0][0] = Values[1][0] = Values[2][0] = runCum;
             }
+
+            if (Bars.IsFirstBarOfSession)
+            {
+                sessionStartBar = CurrentBar;
+                dir = SwingDir.Up; legExtBar = CurrentBar; legExtPrice = High[0];
+                lastHighBar = lastLowBar = -1;
+                bearTag = bullTag = null; liveMark = null;
+            }
+            else if (legExtBar < 0)
+            {
+                legExtBar = CurrentBar; legExtPrice = dir == SwingDir.Up ? High[0] : Low[0];
+            }
+
+            if (ShowDivergence) UpdateDivergence();
+        }
+
+        // ---- live incremental ZigZag swing tracker + divergence (see header) ----
+        private void UpdateDivergence()
+        {
+            double tick = TickSize > 0 ? TickSize : 0.25;
+            double revAmt = ReversalTicks * tick;
+
+            if (dir == SwingDir.Up)
+            {
+                if (High[0] > legExtPrice) { legExtPrice = High[0]; legExtBar = CurrentBar; }
+                else if (Low[0] <= legExtPrice - revAmt)
+                {
+                    ConfirmHigh(legExtBar, legExtPrice);
+                    dir = SwingDir.Down; legExtPrice = Low[0]; legExtBar = CurrentBar;
+                }
+            }
+            else
+            {
+                if (Low[0] < legExtPrice) { legExtPrice = Low[0]; legExtBar = CurrentBar; }
+                else if (High[0] >= legExtPrice + revAmt)
+                {
+                    ConfirmLow(legExtBar, legExtPrice);
+                    dir = SwingDir.Up; legExtPrice = High[0]; legExtBar = CurrentBar;
+                }
+            }
+
+            bool pushingHigh = dir == SwingDir.Up && lastHighBar >= sessionStartBar && lastHighBar >= 0
+                                && High[0] > lastHighPrice;
+            if (pushingHigh)
+            {
+                double curCvd = cvC[0];
+                if (curCvd < lastHighCvd)
+                {
+                    if (bearTag == null) bearTag = "cvdDivBear_" + lastHighBar + "_" + CurrentBar;
+                    DrawLivePrice(bearTag, lastHighBar, lastHighPrice, CurrentBar, High[0], BearColor, "Bear Div", true);
+                    liveMark = new DivMark { barA = lastHighBar, barB = CurrentBar, cvdA = lastHighCvd, cvdB = curCvd, bearish = true };
+                }
+                else if (bearTag != null) { RemoveLivePrice(bearTag); bearTag = null; liveMark = null; }
+            }
+            else if (bearTag != null) { RemoveLivePrice(bearTag); bearTag = null; liveMark = null; }
+
+            bool pushingLow = dir == SwingDir.Down && lastLowBar >= sessionStartBar && lastLowBar >= 0
+                               && Low[0] < lastLowPrice;
+            if (pushingLow)
+            {
+                double curCvd = cvC[0];
+                if (curCvd > lastLowCvd)
+                {
+                    if (bullTag == null) bullTag = "cvdDivBull_" + lastLowBar + "_" + CurrentBar;
+                    DrawLivePrice(bullTag, lastLowBar, lastLowPrice, CurrentBar, Low[0], BullColor, "Bull Div", false);
+                    liveMark = new DivMark { barA = lastLowBar, barB = CurrentBar, cvdA = lastLowCvd, cvdB = curCvd, bearish = false };
+                }
+                else if (bullTag != null) { RemoveLivePrice(bullTag); bullTag = null; liveMark = null; }
+            }
+            else if (bullTag != null) { RemoveLivePrice(bullTag); bullTag = null; liveMark = null; }
+        }
+
+        private void ConfirmHigh(int bar, double price)
+        {
+            double cvd = cvC.GetValueAt(bar);
+            if (ShowHiddenDivergence && lastHighBar >= sessionStartBar && lastHighBar >= 0
+                && price < lastHighPrice && cvd > lastHighCvd)
+            {
+                DrawFinalPrice("cvdHDivBear_" + bar, lastHighBar, lastHighPrice, bar, price, HiddenBearColor, "H.Bear Div");
+                hist.Add(new DivMark { barA = lastHighBar, barB = bar, cvdA = lastHighCvd, cvdB = cvd, bearish = true });
+            }
+            else if (bearTag != null)
+            {
+                hist.Add(new DivMark { barA = lastHighBar, barB = bar, cvdA = lastHighCvd, cvdB = cvd, bearish = true });
+            }
+            lastHighBar = bar; lastHighPrice = price; lastHighCvd = cvd;
+            bearTag = null; liveMark = null;   // episode closed; whatever is drawn stays, untouched
+        }
+
+        private void ConfirmLow(int bar, double price)
+        {
+            double cvd = cvC.GetValueAt(bar);
+            if (ShowHiddenDivergence && lastLowBar >= sessionStartBar && lastLowBar >= 0
+                && price > lastLowPrice && cvd < lastLowCvd)
+            {
+                DrawFinalPrice("cvdHDivBull_" + bar, lastLowBar, lastLowPrice, bar, price, HiddenBullColor, "H.Bull Div");
+                hist.Add(new DivMark { barA = lastLowBar, barB = bar, cvdA = lastLowCvd, cvdB = cvd, bearish = false });
+            }
+            else if (bullTag != null)
+            {
+                hist.Add(new DivMark { barA = lastLowBar, barB = bar, cvdA = lastLowCvd, cvdB = cvd, bearish = false });
+            }
+            lastLowBar = bar; lastLowPrice = price; lastLowCvd = cvd;
+            bullTag = null; liveMark = null;
+        }
+
+        // price-panel connecting line + label (drawing-object API; auto-persists/auto-
+        // renders itself via NT8, routed to the price panel by DrawOnPricePanel=true)
+        private void DrawLivePrice(string tag, int barA, double priceA, int barB, double priceB, System.Windows.Media.Brush color, string label, bool above)
+        {
+            int baA = CurrentBar - barA, baB = CurrentBar - barB;
+            Draw.Line(this, tag, false, baA, priceA, baB, priceB, color, DashStyleHelper.Solid, 2);
+            double off = 8 * (TickSize > 0 ? TickSize : 0.25);
+            Draw.Text(this, tag + "_txt", false, label, baB, above ? priceB + off : priceB - off, 0,
+                      color, new NinjaTrader.Gui.Tools.SimpleFont("Arial", DivLabelFontSize), System.Windows.TextAlignment.Center,
+                      Brushes.Transparent, Brushes.Transparent, 0);
+        }
+
+        private void DrawFinalPrice(string tag, int barA, double priceA, int barB, double priceB, System.Windows.Media.Brush color, string label)
+        {
+            DrawLivePrice(tag, barA, priceA, barB, priceB, color, label, priceB >= priceA);
+        }
+
+        private void RemoveLivePrice(string tag)
+        {
+            RemoveDrawObject(tag);
+            RemoveDrawObject(tag + "_txt");
         }
 
         public override void OnRenderTargetChanged()
@@ -139,7 +319,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
         }
 
-        // draw the CVD candlesticks
+        // draw the CVD candlesticks + CVD-panel-side divergence connecting lines
         protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
         {
             base.OnRender(chartControl, chartScale);
@@ -162,31 +342,101 @@ namespace NinjaTrader.NinjaScript.Indicators
                 float top = Math.Min(yO, yC), bot = Math.Max(yO, yC);
                 RenderTarget.FillRectangle(new RectangleF(x - w, top, 2f * w, Math.Max(bot - top, 1f)), br);   // body
             }
+
+            if (!ShowDivergence) return;
+            int fromV = ChartBars.FromIndex, toV = ChartBars.ToIndex;
+            var bearBr = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, ToColor4(BearColor));
+            var bullBr = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, ToColor4(BullColor));
+            foreach (DivMark m in hist) DrawCvdMark(chartControl, chartScale, m, fromV, toV, m.bearish ? bearBr : bullBr);
+            if (liveMark.HasValue) DrawCvdMark(chartControl, chartScale, liveMark.Value, fromV, toV, liveMark.Value.bearish ? bearBr : bullBr);
+            bearBr.Dispose(); bullBr.Dispose();
+        }
+
+        private void DrawCvdMark(ChartControl cc, ChartScale cs, DivMark m, int fromV, int toV, SharpDX.Direct2D1.Brush br)
+        {
+            if (m.barA < fromV - 1 && m.barB < fromV - 1) return;
+            if (m.barA > toV + 1 && m.barB > toV + 1) return;
+            float xA = cc.GetXByBarIndex(ChartBars, m.barA), xB = cc.GetXByBarIndex(ChartBars, m.barB);
+            float yA = cs.GetYByValue(m.cvdA), yB = cs.GetYByValue(m.cvdB);
+            RenderTarget.DrawLine(new Vector2(xA, yA), new Vector2(xB, yB), br, 2f);
+        }
+
+        private static Color4 ToColor4(System.Windows.Media.Brush b)
+        {
+            var scb = b as System.Windows.Media.SolidColorBrush;
+            if (scb == null) return new Color4(1f, 1f, 1f, 1f);
+            var c = scb.Color;
+            return new Color4(c.R / 255f, c.G / 255f, c.B / 255f, c.A / 255f);
         }
 
         #region Properties
         [NinjaScriptProperty]
         [Display(Name = "ResetMode", Description = "Reset CVD each session or run continuous",
-                 GroupName = "Parameters", Order = 0)]
+                 GroupName = "1. Parameters", Order = 0)]
         public CvdResetMode ResetMode { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, int.MaxValue)]
         [Display(Name = "LargeLotMin", Description = "0 = all trades; >0 = only count trades >= N contracts",
-                 GroupName = "Parameters", Order = 1)]
+                 GroupName = "1. Parameters", Order = 1)]
         public int LargeLotMin { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "Up color", GroupName = "Parameters", Order = 2)]
+        [Display(Name = "Up color", GroupName = "1. Parameters", Order = 2)]
         public System.Windows.Media.Brush UpColor { get; set; }
         [Browsable(false)]
         public string UpColorSerialize { get { return Serialize.BrushToString(UpColor); } set { UpColor = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
-        [Display(Name = "Down color", GroupName = "Parameters", Order = 3)]
+        [Display(Name = "Down color", GroupName = "1. Parameters", Order = 3)]
         public System.Windows.Media.Brush DownColor { get; set; }
         [Browsable(false)]
         public string DownColorSerialize { get { return Serialize.BrushToString(DownColor); } set { DownColor = Serialize.StringToBrush(value); } }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Show divergence (live)", Description = "Live regular price/CVD divergence — starts drawing the instant price pushes past the prior confirmed swing with CVD not confirming, grows with the leg, freezes when the leg reverses.",
+                 GroupName = "2. Divergence", Order = 0)]
+        public bool ShowDivergence { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Show hidden divergence", Description = "Continuation pattern: evaluated once, when a swing confirms (not live/growing by definition). Off by default.",
+                 GroupName = "2. Divergence", Order = 1)]
+        public bool ShowHiddenDivergence { get; set; }
+
+        [NinjaScriptProperty]
+        [Range(1, 1000)]
+        [Display(Name = "Reversal (ticks)", Description = "How far price must pull back from a leg's running extreme before that extreme is a CONFIRMED swing pivot.",
+                 GroupName = "2. Divergence", Order = 2)]
+        public int ReversalTicks { get; set; }
+
+        [NinjaScriptProperty]
+        [Range(6, 24)]
+        [Display(Name = "Label font size", GroupName = "2. Divergence", Order = 3)]
+        public int DivLabelFontSize { get; set; }
+
+        [XmlIgnore]
+        [Display(Name = "Bearish color", GroupName = "2. Divergence", Order = 4)]
+        public System.Windows.Media.Brush BearColor { get; set; }
+        [Browsable(false)]
+        public string BearColorSerialize { get { return Serialize.BrushToString(BearColor); } set { BearColor = Serialize.StringToBrush(value); } }
+
+        [XmlIgnore]
+        [Display(Name = "Bullish color", GroupName = "2. Divergence", Order = 5)]
+        public System.Windows.Media.Brush BullColor { get; set; }
+        [Browsable(false)]
+        public string BullColorSerialize { get { return Serialize.BrushToString(BullColor); } set { BullColor = Serialize.StringToBrush(value); } }
+
+        [XmlIgnore]
+        [Display(Name = "Hidden bearish color", GroupName = "2. Divergence", Order = 6)]
+        public System.Windows.Media.Brush HiddenBearColor { get; set; }
+        [Browsable(false)]
+        public string HiddenBearColorSerialize { get { return Serialize.BrushToString(HiddenBearColor); } set { HiddenBearColor = Serialize.StringToBrush(value); } }
+
+        [XmlIgnore]
+        [Display(Name = "Hidden bullish color", GroupName = "2. Divergence", Order = 7)]
+        public System.Windows.Media.Brush HiddenBullColor { get; set; }
+        [Browsable(false)]
+        public string HiddenBullColorSerialize { get { return Serialize.BrushToString(HiddenBullColor); } set { HiddenBullColor = Serialize.StringToBrush(value); } }
         #endregion
     }
 }
