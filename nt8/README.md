@@ -21,8 +21,9 @@ nt8/
 **NT8-side grouping (2026-10-18):** on the deployed NT8 machine (not in this repo's flat
 layout), `SessionSRLevelsV9.cs`, `SessionSRLevelsV10.cs`, `BidAskVolumeRatio.cs`,
 `BidAskVolumeDelta.cs`, `BidAskVolumeSplit.cs`, `RegimeTracker.cs`, `RegimeTrackerV2.cs`,
-`RegimeTrackerBox.cs`, `RegimeTrackerPanel.cs`, `Regime2ESetups.cs`, and
-`RegimePhaseMachine.cs` were moved into a `Custom\Indicators\!Samir's Indis\` subfolder
+`RegimeTrackerBox.cs`, `RegimeTrackerPanel.cs`, `Regime2ESetups.cs`, `RegimePhaseMachine.cs`,
+`DtDbScanner.cs`, `DtDbScannerV2.cs`, and `DtDbScannerV3.cs` were moved into a
+`Custom\Indicators\!Samir's Indis\` subfolder
 (the `!` forces it to sort first in NT8's Indicators dialog) so they group together at
 the top of the indicator list, separate from everything else in `Custom\Indicators\`.
 Subfolder location is NT8 UI organization only — NT8 compiles the whole `Custom\` tree
