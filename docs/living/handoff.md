@@ -71,7 +71,23 @@ effect — recommended stopping further cuts of this same dataset. CVD-divergenc
 DT/DB (any construction tried: raw CVD, Sierra VR ratio; any bar type: 2000-tick,
 5-min, Renko 16-8-4; any location filter: near/away from SR) is now a closed research
 line on ES — do not re-cut this same ~1000-instance dataset a ninth way without a
-genuinely new hypothesis.** S143: L1
+genuinely new hypothesis.**
+**REVISION (same session, right after writing "closed/no edge" above):** user asked
+whether it was a timeframe problem -- fair, every prior test used ONE arbitrary
+horizon(20 bars)/confirm_pts(3) choice. Built `dtdb_horizon_sweep.py`, a 5x5 grid
+(horizon 5/10/20/40/80 x confirm_pts 1/2/3/5/8) on 2000-tick bars for both CVD and
+VR scoring. **This walks back "no edge whatsoever": 24/25 VR cells and 24/25 CVD
+cells show a POSITIVE continuation-rate gap (agrees beats disagrees)** -- not what
+pure noise looks like (would scatter ~evenly +/-). Magnitude is small (2-6pt lift
+on a ~40% base continuation rate) and the 25 cells are NOT independent (heavily
+overlapping horizon/threshold windows = closer to one pattern at different zoom
+levels than 25 separate confirmations), so this is NOT a reversal to "there's a
+real tradeable edge" -- but it IS more real-looking than the single-point "reversal
+rate identical" read suggested. Open, unresolved question for next time: is this a
+genuine divergence effect or a confound (CVD/VR-agrees instances skew toward
+trendier days where everything continues better, independent of the divergence
+reading itself)? THAT isolation check, not another parameter cut, is the next
+legitimate step if this gets picked up again.** S143: L1
 recorder restarted for
 ETH open (`L1TapeRecorderAddOn.cs` re-enabled — was renamed `.cs.disabled` on 10/14;
 `MyQuant L1 Rollover` + `MyQuant L1 Recorder Watchdog` scheduled tasks re-enabled); NT8
