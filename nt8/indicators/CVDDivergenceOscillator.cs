@@ -66,10 +66,21 @@ using SharpDX;
 using SharpDX.Direct2D1;
 #endregion
 
+namespace NinjaTrader.NinjaScript
+{
+	// Defined in the PARENT namespace, NOT in .Indicators — same reason as
+	// SessionSRLevelsV9.cs's LevelLineStyle: NT8 regenerates wrapper code in the sibling
+	// .MarketAnalyzerColumns and .Strategies namespaces on every compile using the
+	// unqualified enum name, so a [NinjaScriptProperty] enum must live where all three
+	// child namespaces can see it by walking up to this common parent. Declaring it in
+	// .Indicators compiles fine standalone but throws CS0246 in NT8's own generated
+	// wrapper code the moment the whole Custom tree builds together (2026-10-18 — this
+	// exact bug blocked a full Custom rebuild; root-caused and fixed same session).
+	public enum CvdCumulativeMode { Periodic, EMA }
+}
+
 namespace NinjaTrader.NinjaScript.Indicators
 {
-    public enum CvdCumulativeMode { Periodic, EMA }
-
     public class CVDDivergenceOscillator : Indicator
     {
         private Series<double> deltaSeries;
