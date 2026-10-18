@@ -1,6 +1,51 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-18 (machine-time W. Europe) — **S143: L1 recorder restarted for
+**Last Updated:** 2026-10-18 (machine-time W. Europe) — **S144: NT8 `Custom\Indicators\!Samirs
+Indis\` folder** (apostrophe stripped by NT8 itself on compile — NOT `!Samir's Indis`)
+created to group SR V9/V10, bid/ask (Ratio/Delta/Split), regime (Tracker/TrackerV2/
+TrackerBox/TrackerPanel/2ESetups/PhaseMachine), and DtDbScanner/V2/V3 at the top of the
+Indicators dialog — sorts first via the `!` prefix. New standalone
+`CVDDivergenceOscillator.cs`: faithful port of TradingView TradingFinder's "Cumulative
+Volume Delta Divergence Periodic EMA" (user pasted the actual Pine v5 source after
+WebFetch couldn't retrieve it) — bar-proxy CVD (Periodic SUM or EMA), fixed-lookback
+fractal regular divergence; kept separate from `CumulativeDelta.cs`'s own live-zigzag
+divergence (S143) for comparison. Hit a REAL cross-file bug building this: its
+`CvdCumulativeMode` enum declared in `.Indicators` compiled fine alone but threw CS0246
+in NT8's own generated wrapper code the moment the whole `Custom\` tree built together
+(blocked ALL new indicators incl. the new folder from ever showing up, no amount of
+reopening the dialog would have fixed it) — same root cause as `LevelLineStyle`
+(`SessionSRLevelsV9.cs`), fixed by moving the enum to the parent `NinjaTrader.NinjaScript`
+namespace. **`DtDbScannerV3.cs` CVD divergence check added** (user-requested, NOT the
+closed S142 order-flow work): at every confirmed DT/DB, bar-proxy CVD at the two peak/
+trough pivots is compared and labeled agree/disagree for EVERY instance (advisory only,
+gates nothing); optional pullback/retest watch labels CVD change at the first neckline
+retest. Caught + fixed a real bug validating this against L1 history: the retest watcher
+fired on the confirm bar's own close (100% false-positive retest rate) — fixed in both
+the live `.cs` and the Python port (required ≥1 bar to pass after confirmation).
+**Built `scripts/dtdb_cvd_backtest.py` + `dtdb_cvd_outcome_check.py` + `dtdb_ibs_inspect.py`
++ `dtdb_book_walk_check.py`** (full Python port of the C# DT/DB + CVD detection logic,
+replayed against the 24-day L1 tape history) to validate the new badge before trusting
+it live. **RESULT: NO EDGE, confirmed three independent ways** — (1) 1096 confirmed
+DT/DB on 2000-tick bars: CVD-agrees continued 44.5%/reversed 52.8% vs disagrees
+41.6%/52.9% (baseline 43.1%/52.8%) — reversal rate identical, continuation gap within
+noise; (2) 185 confirmed DT/DB on 5-min bars: agrees 39.8%/52.7% vs disagrees
+42.4%/52.2% — same null result, smaller sample; (3) same conclusion as the already-
+closed S142 order-flow-at-generic-swings study for a DIFFERENT signal construction.
+**CVD-divergence-as-a-comparison-signal is now a closed line of research on ES across
+three independent framings (generic pivots, DT/DB on ticks, DT/DB on 5min) — do not
+re-derive a fourth variant without being asked.** One qualitative deep-dive (the
+`dtdb_ibs_inspect.py` chart_breakdown, 2026-10-13 DB instance, bar 675->683) also
+verified the MECHANISM of a case where CVD read hugely negative (-8374, a rolling-21-
+bar-sum artifact from strong earlier buying aging out of the window, not real new
+selling) while price still ran +10.5pts — confirmed via the actual L1 best-bid/ask quote
+series (not just trade prints) that the resting bid was walking up continuously,
+absorbing 2:1 sell-aggressor volume the whole way; trade-aggressor delta cannot see a
+repricing passive book, which is the real reason this class of signal keeps failing.
+IBS (Internal Bar Strength) of the two pivots was also checked ad hoc on that one
+instance (both closed upper-half of range) but a same-direction comparative IBS test
+(mirroring the CVD logic) ALSO disagreed in that case — not independently validated
+across the dataset, not a lead to resume without a real systematic check.** S143: L1
+recorder restarted for
 ETH open (`L1TapeRecorderAddOn.cs` re-enabled — was renamed `.cs.disabled` on 10/14;
 `MyQuant L1 Rollover` + `MyQuant L1 Recorder Watchdog` scheduled tasks re-enabled); NT8
 built `BidAskVolumeDelta.cs` + `BidAskVolumeSplit.cs` (the other 2 of the 3 candidate
