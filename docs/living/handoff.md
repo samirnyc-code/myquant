@@ -163,10 +163,34 @@ accurate, just dated to the last bar NT8 delivered). See S134 block.** S133: NT8
 
 ---
 
-## S143 (2026-10-18) — L1 recorder restarted; Bid/Ask Delta+Split ported; CVD live divergence; SessionSRLevelsV10 (developing POC/VA)
+## S143 (2026-10-18) — L1 recorder restarted; Bid/Ask Delta+Split ported; CVD live divergence; SessionSRLevelsV10 (developing POC/VA); real compile bug fixed; NT8 folder-grouping mechanism clarified
 
 **Read this before touching `CumulativeDelta.cs`, `SessionSRLevelsV9.cs`/`V10.cs`, or
 `L1TapeRecorderAddOn.cs`.**
+
+### 0. Live F5 session findings (user compiling as this session went)
+
+- **Real compile bug, not a hang**: a concurrent chat session's `CVDDivergenceOscillator.cs`
+  declared `enum CvdCumulativeMode` in the `.Indicators` namespace instead of the parent
+  `NinjaTrader.NinjaScript` — blocked the ENTIRE Custom-tree rebuild with CS0246,
+  misleadingly attributed to `DtDbScannerV3.cs` (which consumes that enum via a new
+  `CvdMode` property, also added by that session) in NT8's error grid. Root-caused + fixed
+  (moved the enum to the parent namespace, same pattern `SessionSRLevelsV9.cs` already
+  uses for `LevelLineStyle`), verified via `nt8_compile_check.ps1` standalone + full-repo.
+  `[myquant] 90f4fce`.
+- **Custom\Indicators\ subfolder grouping (`!Samir's Indis` → renamed `!Samirs Indis`,
+  apostrophe dropped as a troubleshooting step) does NOT make indicators group together
+  in the "Add Indicator" selection dialog — confirmed.** That dialog groups by the
+  indicator CLASS's C# **namespace** (e.g. `NinjaTrader.NinjaScript.Indicators.NTLambda`
+  for the NTLambda vendor pack — confirmed by reading `NTLCumulativeDelta.cs`), NOT by
+  which physical disk folder the `.cs` file sits in — NT8 compiles the whole `Custom\`
+  tree into one flat assembly regardless of subfolder nesting. To get a real folder
+  grouping, every target file's class would need wrapping in a nested namespace (e.g.
+  `NinjaTrader.NinjaScript.Indicators.SamirsIndis`), which changes the fully-qualified
+  type name — risky for `SessionSRLevelsV9.cs`/`DtDbScannerV3.cs` specifically since
+  they're already live on real charts with saved templates referencing the current name.
+  **User decision: skip it** — the physical subfolder stays as pure disk/NinjaScript-
+  Editor organization only; no namespace changes made. Don't resume this unasked.
 
 ### 1. L1 recorder restarted for ETH open
 
