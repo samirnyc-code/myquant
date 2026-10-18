@@ -839,6 +839,9 @@ namespace NinjaTrader.NinjaScript.Indicators
             {
                 WatchRetest w = watchingRetest[i];
                 if (CurrentBar - w.ConfirmBar > PullbackWatchBars) { watchingRetest.RemoveAt(i); continue; }
+                if (CurrentBar <= w.ConfirmBar) continue;   // the confirm bar's own High/Low often still
+                                                             // sits near the neckline it just broke --
+                                                             // a retest can only happen on a LATER bar
 
                 double tol = RetestToleranceTicks * TickSize;
                 bool isRetest = w.IsTop
