@@ -67,6 +67,8 @@ namespace NinjaTrader.NinjaScript.Indicators
             public double Score;
             public bool   IsTop;           // true = double top, false = double bottom
             public string DrawTag;         // DrawStructure tag prefix (set when drawn), links the confirm triangle
+            public int    P1Bar, P2Bar;     // the two peak/trough pivot bars (CVD divergence check)
+            public double P1Price, P2Price;
         }
 
         // Every structure still on the chart, oldest first, with its confirm
@@ -90,8 +92,21 @@ namespace NinjaTrader.NinjaScript.Indicators
             public double InvalidateBeyond;
             public int    FormBar;
             public int    NeckBar;          // bar of the valley/peak the neckline starts from
+            public int    P1Bar, P2Bar;     // the two peak/trough pivot bars (CVD divergence check)
         }
         private readonly List<DrawnStructure> openDrawn = new List<DrawnStructure>();
+
+        // a structure that just confirmed (neckline break) and is being watched for a
+        // pullback/retest of the neckline, to label the CVD reading at that retest too
+        private class WatchRetest
+        {
+            public string Tag;
+            public bool   IsTop;
+            public double Neckline;
+            public int    ConfirmBar;
+            public double BreakCvd;     // smoothed CVD at the confirm/break bar
+        }
+        private readonly List<WatchRetest> watchingRetest = new List<WatchRetest>();
 
         // ---- state ----------------------------------------------------------
         private readonly List<Pivot> highs = new List<Pivot>();
@@ -109,6 +124,17 @@ namespace NinjaTrader.NinjaScript.Indicators
         private List<DrawingTool> _drawObjs;
         private bool _lastIsVisible;
         private DispatcherTimer _visTimer;
+
+        // ── CVD divergence (2026-10-18) ──────────────────────────────────────
+        // Same bar-proxy delta as CVDDivergenceOscillator.cs (Volume * close-position-
+        // in-range, no tick replay needed): Hist = rolling SUM (Periodic) or EMA of
+        // that delta over CvdPeriod bars. At every DT/DB confirm, CVD at the two
+        // peak/trough pivots is compared: for a DT, CVD weaker at the 2nd top than the
+        // 1st (cvd2 < cvd1) agrees with the bearish thesis; for a DB, CVD stronger at
+        // the 2nd trough (cvd2 > cvd1) agrees with the bullish thesis. Labeled for
+        // EVERY confirmed instance (agree or not) so the hit rate can be eyeballed —
+        // advisory only, not a filter/gate on anything the scanner already does.
+        private Series<double> _cvdDelta, _cvdHist;
 
         protected override void OnStateChange()
         {
@@ -156,9 +182,19 @@ namespace NinjaTrader.NinjaScript.Indicators
                 DbDotBrush        = Brushes.DarkSeaGreen;  // DB neckline-break dot
                 ShowLastN         = 0;                    // 0 = show all; N = keep only the newest N DT/DB on the chart
                 ShowDebugPrints   = false; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
+
+                ShowCvdDivergence = true;
+                CvdPeriod         = 21;
+                CvdMode           = CvdCumulativeMode.Periodic;
+                CvdDivBrush       = Brushes.Cyan;
+                ShowPullbackCvd   = true;
+                PullbackWatchBars = 30;
+                RetestToleranceTicks = 4;
             }
             else if (State == State.Configure)
             {
+                _cvdDelta = new Series<double>(this);
+                _cvdHist  = new Series<double>(this);
             }
             else if (State == State.DataLoaded)
             {
@@ -219,6 +255,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         protected override void OnBarUpdate()
         {
             SyncVisibility();
+            UpdateCvd();
 
             // Need enough bars to confirm a pivot on both sides.
             if (CurrentBar < 2 * SwingStrength + 2)
@@ -235,6 +272,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             // --- 4. resolve every drawn structure (deletes invalidated ones) --
             SweepDrawn();
+
+            // --- 5. watch confirmed structures for a neckline pullback/retest --
+            ManageRetest();
+        }
+
+        // bar-proxy CVD (same formula as CVDDivergenceOscillator.cs): Volume weighted by
+        // where Close sits in the bar's H-L range. Hist = rolling SUM (Periodic) or EMA.
+        private void UpdateCvd()
+        {
+            double range = High[0] - Low[0];
+            double buying  = range > 0 ? Volume[0] * (Close[0] - Low[0]) / range : 0;
+            double selling = range > 0 ? Volume[0] * (High[0] - Close[0]) / range : 0;
+            _cvdDelta[0] = buying - selling;
+            _cvdHist[0] = CvdMode == CvdCumulativeMode.Periodic
+                ? SUM(_cvdDelta, CvdPeriod)[0]
+                : EMA(_cvdDelta, CvdPeriod)[0];
         }
 
         // Confirms whether the bar at `offset` bars ago is a swing high/low.
@@ -380,7 +433,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 InvalidateBeyond = Math.Max(p1.Price, p2.Price),
                 FormBar          = CurrentBar,
                 Score            = score,
-                IsTop            = true
+                IsTop            = true,
+                P1Bar = p1.Bar, P1Price = p1.Price, P2Bar = p2.Bar, P2Price = p2.Price
             };
 
             // RANKER: register score here, e.g. Registry[Instrument+tickInterval] = (score, "DT");
@@ -463,7 +517,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 InvalidateBeyond = Math.Min(t1.Price, t2.Price),
                 FormBar          = CurrentBar,
                 Score            = score,
-                IsTop            = false
+                IsTop            = false,
+                P1Bar = t1.Bar, P1Price = t1.Price, P2Bar = t2.Bar, P2Price = t2.Price
             };
 
             // RANKER: register score here.
@@ -673,7 +728,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                 Neckline         = p.Neckline,
                 InvalidateBeyond = p.InvalidateBeyond,
                 FormBar          = p.FormBar,
-                NeckBar          = neckBar
+                NeckBar          = neckBar,
+                P1Bar            = p.P1Bar,
+                P2Bar            = p.P2Bar
             });
         }
 
@@ -707,6 +764,13 @@ namespace NinjaTrader.NinjaScript.Indicators
                 else if (confirmed)
                 {
                     DrawNeckline(d.Tag, d.IsTop, d.NeckBar, d.Neckline);   // extend to the bar that closed beyond
+                    if (ShowCvdDivergence) DrawCvdDivergenceBadge(d);
+                    if (ShowPullbackCvd)
+                        watchingRetest.Add(new WatchRetest
+                        {
+                            Tag = d.Tag, IsTop = d.IsTop, Neckline = d.Neckline,
+                            ConfirmBar = CurrentBar, BreakCvd = _cvdHist[0]
+                        });
                     openDrawn.RemoveAt(i);
                 }
             }
@@ -740,7 +804,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         private void RemoveStructure(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return;
-            string[] parts = { "_l1", "_l2", "_neck", "_peaks", "_txt" };
+            string[] parts = { "_l1", "_l2", "_neck", "_peaks", "_txt", "_cvd", "_rt" };
             foreach (string s in parts)
                 RemoveDrawObject(tag + s);
         }
@@ -752,6 +816,43 @@ namespace NinjaTrader.NinjaScript.Indicators
         private DrawingTool DrawConfirmDot(string tag, bool isTop, double anchorY, Brush brush)
         {
             return Draw.Dot(this, tag, false, 0, anchorY, brush);
+        }
+
+        // CVD-at-the-two-pivots check, labeled for every confirmed DT/DB (agree or not)
+        // so the hit rate can be audited visually rather than filtered silently.
+        private void DrawCvdDivergenceBadge(DrawnStructure d)
+        {
+            double cvd1 = _cvdHist[CurrentBar - d.P1Bar];
+            double cvd2 = _cvdHist[CurrentBar - d.P2Bar];
+            bool agrees = d.IsTop ? cvd2 < cvd1 : cvd2 > cvd1;
+            string txt = (agrees ? "CVD✓ " : "CVD✗ ") + (cvd2 - cvd1 >= 0 ? "+" : "") + (cvd2 - cvd1).ToString("F0");
+            double y = d.IsTop ? High[0] + 10 * TickSize : Low[0] - 10 * TickSize;
+            TrackDrawObj(Draw.Text(this, d.Tag + "_cvd", txt, 0, y, agrees ? CvdDivBrush : Brushes.Gray));
+        }
+
+        // watches a just-confirmed structure for the FIRST bar price pulls back to
+        // retest the broken neckline, then labels the CVD reading there too (purely
+        // informational — no verdict, no gating).
+        private void ManageRetest()
+        {
+            for (int i = watchingRetest.Count - 1; i >= 0; i--)
+            {
+                WatchRetest w = watchingRetest[i];
+                if (CurrentBar - w.ConfirmBar > PullbackWatchBars) { watchingRetest.RemoveAt(i); continue; }
+
+                double tol = RetestToleranceTicks * TickSize;
+                bool isRetest = w.IsTop
+                    ? High[0] >= w.Neckline - tol && Close[0] <= w.Neckline   // DT: bounce back up, no full reclaim
+                    : Low[0]  <= w.Neckline + tol && Close[0] >= w.Neckline;  // DB: pulls back down, no full reclaim
+                if (!isRetest) continue;
+
+                double retestCvd = _cvdHist[0];
+                double d = retestCvd - w.BreakCvd;
+                string txt = "Retest CVDΔ" + (d >= 0 ? "+" : "") + d.ToString("F0");
+                double y = w.IsTop ? High[0] + 6 * TickSize : Low[0] - 6 * TickSize;
+                TrackDrawObj(Draw.Text(this, w.Tag + "_rt", txt, 0, y, CvdDivBrush));
+                watchingRetest.RemoveAt(i);
+            }
         }
 
         // records a freshly-created Draw.* object so SyncVisibility() can flip
@@ -958,6 +1059,36 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Range(0, int.MaxValue)]
         [Display(Name = "Show last N DT/DB", Description = "0 = show all. N > 0 = keep only the newest N patterns (DT and DB counted together) on the chart; older ones are removed incl. their triangle.", Order = 20, GroupName = "3. Alerts")]
         public int ShowLastN { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Show CVD divergence", Description = "At every confirmed DT/DB, compare bar-proxy CVD at the two peaks/troughs and label agree/disagree (advisory only, every instance labeled — not a filter).", Order = 1, GroupName = "6. CVD Divergence")]
+        public bool ShowCvdDivergence { get; set; }
+
+        [NinjaScriptProperty, Range(1, 500)]
+        [Display(Name = "CVD period", Description = "Rolling-sum window (Periodic) or smoothing length (EMA) applied to the per-bar delta proxy.", Order = 2, GroupName = "6. CVD Divergence")]
+        public int CvdPeriod { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "CVD mode", Description = "Periodic = rolling SUM of delta over CVD period bars; EMA = EMA of delta over CVD period bars.", Order = 3, GroupName = "6. CVD Divergence")]
+        public CvdCumulativeMode CvdMode { get; set; }
+
+        [XmlIgnore]
+        [Display(Name = "CVD agree color", Description = "Text color when CVD agrees with the pattern's bias (disagree always shows Gray).", Order = 4, GroupName = "6. CVD Divergence")]
+        public Brush CvdDivBrush { get; set; }
+        [Browsable(false)]
+        public string CvdDivBrushSerialize { get { return Serialize.BrushToString(CvdDivBrush); } set { CvdDivBrush = Serialize.StringToBrush(value); } }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Show pullback CVD", Description = "After a DT/DB confirms, watch for the first pullback/retest of the broken neckline and label the CVD change there too.", Order = 5, GroupName = "6. CVD Divergence")]
+        public bool ShowPullbackCvd { get; set; }
+
+        [NinjaScriptProperty, Range(1, int.MaxValue)]
+        [Display(Name = "Pullback watch (bars)", Description = "Stop watching for a neckline retest after this many bars past confirmation.", Order = 6, GroupName = "6. CVD Divergence")]
+        public int PullbackWatchBars { get; set; }
+
+        [NinjaScriptProperty, Range(0, int.MaxValue)]
+        [Display(Name = "Retest tolerance (ticks)", Description = "How close price must come back to the neckline (without fully reclaiming it) to count as a retest.", Order = 7, GroupName = "6. CVD Divergence")]
+        public int RetestToleranceTicks { get; set; }
         #endregion
     }
 }
