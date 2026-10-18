@@ -62,9 +62,33 @@ place a real intraday trail is possible — the persisted log only ever stores e
 value, so historical days still render as a single finalized box (own value, confined to own
 bars), now with the prior-day box projected onto them too. Compile-checked (own file clean;
 same 3 pre-existing unrelated repo-wide collisions, confirmed no new ones). Deployed to
-`Custom\Indicators\My\SessionSRLevelsV10.cs`, byte-verified via `diff`. **PENDING USER F5 —
-still not visually verified by me; if this isn't right either, need an actual screenshot/
-description of what's rendering wrong rather than a third blind guess.** S144: NT8
+`Custom\Indicators\My\SessionSRLevelsV10.cs`, byte-verified via `diff`. **THIRD CORRECTION, same session — user: "where was the session's POC and VA on the first
+tick of the new session and so forth? U r still only showing me the finished box for the
+EOD!"** Correct, and a real gap: the second pass fixed TODAY's trail and the prior-session
+box, but every HISTORICAL day still only ever had its FINAL value persisted
+(`session_vp_live_log.csv`), so history could only ever render as one static end-of-day box —
+there was no way to show how a past session's own POC/VA actually moved, because that data
+simply didn't exist yet. Fixed by reconstructing it from the L1 tape instead of assuming it's
+unavailable: `backfill_vp_log.py` now ALSO replays each day's trades in `--bucket-minutes`
+(default 5) chunks, recomputing the developing POC/VAH/VAL cumulatively from that day's own
+session open at each chunk (same cumulative-from-open method as the live path, just sourced
+from the tape) and writing a new `data/vp_levels/session_vp_dev_trail.csv`
+(date,timestamp,poc,vah,val — `timestamp` is a full CT-naive calendar+clock time, not just
+time-of-day, specifically to avoid midnight-wrap bugs since early-session buckets land on the
+PRIOR calendar date). Ran it for all 21 backfilled days: 3,160 snapshot rows, ~25s, each day's
+final trail row verified to exactly match its existing final-value log row. NT8 side: new
+`_vpTrailByDate` (loaded from that file at DataLoaded) + `MapHistDevTrailBar` (called every bar
+of every historical day, binary-searches that day's trail for the snapshot at-or-before the
+bar's own CT-converted time via the existing `ConvertToRthTz` helper, builds `_histDevTrailByDate`
+incrementally bar-by-bar — same pattern as `_devTrail`, just file-sourced) + generalized
+`DrawDevTrail` to take any trail list + end-bar, reused for both today's live trail and every
+historical day's reconstructed one. A day backfilled only through the OLD final-value-only
+script (none left after this run, but kept as a safety net) still falls back to the static box
+instead of breaking. Compile-checked (own file clean; same 3 pre-existing unrelated collisions,
+confirmed no new ones). Deployed to `Custom\Indicators\My\SessionSRLevelsV10.cs`, byte-verified.
+**PENDING USER F5 — still not visually verified by me. If the rendering is still wrong, an
+actual screenshot or a precise description of what's showing vs. expected would get it right
+faster than another blind guess at the intent.** S144: NT8
 `Custom\Indicators\!Samirs Indis\` folder** (apostrophe stripped by NT8 itself on compile — NOT `!Samir's Indis`)
 created to group SR V9/V10, bid/ask (Ratio/Delta/Split), regime (Tracker/TrackerV2/
 TrackerBox/TrackerPanel/2ESetups/PhaseMachine), and DtDbScanner/V2/V3 at the top of the

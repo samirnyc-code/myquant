@@ -24,24 +24,37 @@
 //   read whatever is in the log; they don't care whether a given day's row came from the
 //   live accumulator or the backfill script.
 //
-//   TWO DISTINCT THINGS ARE DRAWN (S145-2 revision — corrected twice after the user flagged
-//   each miss: v1 only drew #1 as a flat ray using the LATEST value, not a real developing
-//   trail; v1.5 drew #2 as thin dashed lines, not the "colored range" the user asked for):
-//   1. TODAY's OWN developing POC/VA as a literal BAR-BY-BAR TRAIL (_devTrail, one snapshot
-//      per bar close from live _vapToday): the line steps to each bar's own value and holds
-//      flat until the next bar updates it, so you can actually watch it move through the
-//      session instead of seeing one flat line drawn from the session open to now using
-//      only the final/latest number. A completed historical day still shows as a shaded
-//      box over its own dayStartBar..dayEndBar (only the FINAL value is ever persisted to
-//      the log, so a bar-by-bar trail is only possible for the still-live day).
+//   TWO DISTINCT THINGS ARE DRAWN (S145-3 revision — corrected THREE times after the user
+//   flagged each miss: v1 drew #1 as a flat ray using the LATEST value only, not a real
+//   developing trail; v1.5 drew #2 as thin dashed lines instead of a "colored range"; v1.5
+//   ALSO still only showed a single static end-of-day box for every historical session,
+//   which is what "retarded... where was the session's POC and VA on the first tick"
+//   called out directly — v2 fixes that by reconstructing the real intraday shape for
+//   history too, not just today):
+//   1. EVERY session's OWN developing POC/VA as a literal BAR-BY-BAR TRAIL, not a single
+//      finished value:
+//        - TODAY (still live): _devTrail, one snapshot per bar close built from the live
+//          _vapToday/OnMarketData ticks (genuinely tick-accurate).
+//        - EVERY HISTORICAL day: _histDevTrailByDate, built by MapHistDevTrailBar mapping
+//          each of THIS chart's own historical bars onto the closest-at-or-before snapshot
+//          in _vpTrailByDate — which is loaded from data/vp_levels/session_vp_dev_trail.csv,
+//          produced by scripts/backfill_vp_log.py replaying the recorded L1 tape in
+//          `--bucket-minutes` (default 5) chunks and recomputing the developing POC/VA
+//          cumulatively from that day's session open, exactly the same cumulative-from-open
+//          semantic as the live path, just sourced from the tape instead of live ticks. Both
+//          render through the SAME DrawDevTrail step-line method. A day that was only ever
+//          run through the OLD final-value-only backfill (no dev-trail row) falls back to a
+//          single end-of-day box, so nothing regresses for a day the trail hasn't been built
+//          for yet — but every day backfilled with the current script shows the real shape.
 //   2. The PRIOR completed session's FINAL POC/VA, projected FORWARD as a FILLED COLORED
 //      RANGE (box — PriorVaBoxColor/PriorPocColor, same FillRectangle visual as the
-//      historical own-box, not thin lines) across the CURRENT/next session's own bars
-//      (ShowPriorVp, on by default) — the classic "yesterday's value area as today's
-//      reference level" read. Drawn for today (prior = _rthHist's last entry) AND for every
-//      historical session shown via VpHistSessions (prior = that session's own predecessor
-//      in _rthHist) — so every session on screen shows both what it did and what it opened
-//      against.
+//      historical own-box fallback, not thin lines) across the CURRENT/next session's own
+//      bars (ShowPriorVp, on by default) — the classic "yesterday's value area as today's
+//      reference level" read, deliberately a single static range (not a trail) since it's
+//      a reference to what ALREADY FINISHED, not something still developing. Drawn for
+//      today (prior = _rthHist's last entry) AND for every historical session shown via
+//      VpHistSessions (prior = that session's own predecessor in _rthHist) — so every
+//      session on screen shows both what it did and what it opened against.
 //
 // LEVELS (12 total, independently stylable): for BOTH the RTH session and the ETH
 // (overnight/non-RTH) session —
@@ -268,6 +281,23 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 		private readonly List<DevSnap> _devTrail = new List<DevSnap>();
 		private readonly Dictionary<DateTime, double[]> _vpByDate = new Dictionary<DateTime, double[]>();   // date -> [vpoc,vah,val]
 		private readonly string _vpLogPath = @"C:\Users\Admin\myquant\data\vp_levels\session_vp_live_log.csv";
+
+		// S145-3: HISTORICAL sessions' developing trail, reconstructed from the recorded L1
+		// tape (scripts/backfill_vp_log.py --bucket-minutes), because the live-only path
+		// above can only ever snapshot the CURRENTLY-live day — every day before today only
+		// ever had its FINAL value persisted (_vpByDate), which is why earlier passes could
+		// only draw a static end-of-day box for history, not a real developing shape. Fix:
+		// _vpTrailByDate = the file's raw (timestamp, poc, vah, val) snapshots per day, in
+		// CT ("RTH-tz") wall-clock time, loaded once at State.DataLoaded. _histDevTrailByDate
+		// = those same snapshots mapped onto THIS chart's own bar indices as NT8 walks each
+		// historical bar (MapHistDevTrailBar, called from the main per-bar loop below) — one
+		// chart-bar-indexed entry per bar whose converted time crosses into a new snapshot,
+		// built incrementally exactly like _devTrail is for the live day, just sourced from
+		// the file instead of live ticks.
+		private struct TrailPt { public DateTime ts; public double poc, vah, val; }
+		private readonly Dictionary<DateTime, List<TrailPt>> _vpTrailByDate = new Dictionary<DateTime, List<TrailPt>>();
+		private readonly Dictionary<DateTime, List<DevSnap>> _histDevTrailByDate = new Dictionary<DateTime, List<DevSnap>>();
+		private readonly string _vpTrailLogPath = @"C:\Users\Admin\myquant\data\vp_levels\session_vp_dev_trail.csv";
 
 		// Current-day running High/Low, tracked from the ACTUAL bars (not the visible window)
 		// so it stays locked when you scroll/zoom. Intraday only; on daily OnBarUpdate is
@@ -512,6 +542,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 				_primaryDayOpenBar = _primaryWeekOpenBar = _primaryMonthOpenBar = -1;
 				_curDayHigh = _curDayLow = double.NaN; _curDayStartBar = -1;
 				_rthHist.Clear(); _ethByDay.Clear(); _vixByDate.Clear(); _gexMoveByDate.Clear(); _vixMapStamp = DateTime.MinValue;
+			_histDevTrailByDate.Clear(); _vpTrailByDate.Clear();
 
 				_dayIter = null; _rthHours = null; _rthIter = null; _rthOk = false;
 				_curTradingDay = Core.Globals.MinDate; _curWeekStart = Core.Globals.MinDate; _curMonthKey = -1;
@@ -566,7 +597,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 						+ "', expected '" + FullTemplateNameHint + "' (the 23h Globex template). If this chart"
 						+ " is RTH-only, ETH levels will have nothing to draw.");
 
-				if (ShowDevPocVa) LoadVpLog();
+				if (ShowDevPocVa) { LoadVpLog(); LoadVpTrailLog(); }
 			}
 			else if (State == State.Historical)
 			{
@@ -726,6 +757,10 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			// Current-day H/L across every bar of the trading day (independent of RTH/ETH).
 			if (!double.IsNaN(_curDayHigh) && High[0] > _curDayHigh) _curDayHigh = High[0];
 			if (!double.IsNaN(_curDayLow)  && Low[0]  < _curDayLow)  _curDayLow  = Low[0];
+
+			// Map this bar onto the backfilled dev-trail for its trading day (every bar,
+			// historical or live — a no-op for today, see MapHistDevTrailBar comment).
+			if (ShowDevPocVa) MapHistDevTrailBar(barTime);
 
 			bool isRth = false;
 			if (_rthOk && _rthSessBegin != Core.Globals.MinDate)
@@ -1274,6 +1309,74 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			catch (Exception ex) { Print("SessionSRLevelsV10: could not read VP log: " + ex.Message); }
 		}
 
+		// Loaded once at State.DataLoaded, same as LoadVpLog. Rows are grouped by `date`
+		// (the trading-day label) into a per-day list sorted ascending by `timestamp` (the
+		// bucket's own real CT calendar+clock time — may be the day BEFORE `date` for early/
+		// overnight buckets, which is exactly why this is a full timestamp and not just a
+		// time-of-day: comparing full timestamps in MapHistDevTrailBar sidesteps any
+		// midnight-wrap ambiguity entirely).
+		private void LoadVpTrailLog()
+		{
+			_vpTrailByDate.Clear();
+			if (!File.Exists(_vpTrailLogPath)) return;
+			try
+			{
+				foreach (string line in File.ReadAllLines(_vpTrailLogPath))
+				{
+					if (line.Length == 0 || line.StartsWith("date")) continue;
+					string[] p = line.Split(',');
+					if (p.Length < 5) continue;
+					DateTime d, ts; double poc, vah, val;
+					if (DateTime.TryParse(p[0], System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d)
+						&& DateTime.TryParse(p[1], System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out ts)
+						&& double.TryParse(p[2], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out poc)
+						&& double.TryParse(p[3], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out vah)
+						&& double.TryParse(p[4], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out val))
+					{
+						List<TrailPt> list;
+						if (!_vpTrailByDate.TryGetValue(d.Date, out list))
+						{ list = new List<TrailPt>(); _vpTrailByDate[d.Date] = list; }
+						list.Add(new TrailPt { ts = ts, poc = poc, vah = vah, val = val });
+					}
+				}
+				foreach (List<TrailPt> list in _vpTrailByDate.Values)
+					list.Sort((x, y) => x.ts.CompareTo(y.ts));
+			}
+			catch (Exception ex) { Print("SessionSRLevelsV10: could not read VP dev-trail log: " + ex.Message); }
+		}
+
+		// Called from the main per-bar intraday loop (every bar, historical or live) when
+		// ShowDevPocVa is on. Maps this bar's own converted time onto the LATEST dev-trail
+		// snapshot at-or-before it for its trading day (binary search over the sorted list),
+		// appending a new _histDevTrailByDate entry only when it differs from the running
+		// day's last one — the exact same incremental-build pattern _devTrail uses for the
+		// live day, just reading from the file instead of live ticks. A no-op (and
+		// essentially free) for today, since today's date is never in the backfilled file
+		// yet — today keeps using the live _devTrail exclusively, by construction, no
+		// explicit guard needed.
+		private void MapHistDevTrailBar(DateTime barTime)
+		{
+			List<TrailPt> trail;
+			if (!_vpTrailByDate.TryGetValue(_curTradingDay.Date, out trail) || trail.Count == 0) return;
+			DateTime tRth = ConvertToRthTz(barTime);
+			int lo = 0, hi = trail.Count - 1, at = -1;
+			while (lo <= hi)
+			{
+				int mid = (lo + hi) / 2;
+				if (trail[mid].ts <= tRth) { at = mid; lo = mid + 1; }
+				else hi = mid - 1;
+			}
+			if (at < 0) return;
+			TrailPt pt = trail[at];
+			List<DevSnap> hist;
+			if (!_histDevTrailByDate.TryGetValue(_curTradingDay.Date, out hist))
+			{ hist = new List<DevSnap>(); _histDevTrailByDate[_curTradingDay.Date] = hist; }
+			if (hist.Count == 0 || hist[hist.Count - 1].bar != CurrentBar)
+				hist.Add(new DevSnap { bar = CurrentBar, poc = pt.poc, vah = pt.vah, val = pt.val });
+			else
+				hist[hist.Count - 1] = new DevSnap { bar = CurrentBar, poc = pt.poc, vah = pt.vah, val = pt.val };
+		}
+
 		// Two distinct things, per the S145-2 revision (see header comment — corrected after
 		// the first pass drew the wrong visual for both halves): (1) TODAY's own POC/VA
 		// drawn as an actual bar-by-bar developing trail (_devTrail — a flat step per bar,
@@ -1289,7 +1392,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			if (toV < 0) return;
 
 			// (1a) Today's own developing POC/VAH/VAL, bar by bar — see _devTrail comment.
-			DrawDevTrail(cc, cs, fromV, toV);
+			DrawDevTrail(_devTrail, CurrentBar, cc, cs, fromV, toV);
 
 			// (2a) PRIOR session's final POC/VA projected onto TODAY (still developing), as
 			// a colored range. "Prior" = the most recently completed entry in _rthHist — one
@@ -1308,9 +1411,13 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 				}
 			}
 
-			// (1b)+(2b) Each of the last VpHistSessions completed sessions: its OWN box
-			// over its OWN bars, plus (if ShowPriorVp) ITS predecessor's VP projected onto
-			// it the same way — so every session shown also shows what it opened against.
+			// (1b)+(2b) Each of the last VpHistSessions completed sessions: its OWN
+			// developing trail if the L1-tape backfill has one (bar-by-bar, same as today —
+			// see MapHistDevTrailBar/_histDevTrailByDate), else a static box using only the
+			// FINAL value (old behavior, kept as the fallback for a day that was only ever
+			// run through the final-value-only backfill) — over its OWN bars, plus (if
+			// ShowPriorVp) ITS predecessor's VP projected onto it the same way, so every
+			// session shown also shows both what it did and what it opened against.
 			if (VpHistSessions > 0 && _rthHist.Count > 0)
 			{
 				var boxBr = new D2DSolidColorBrush(RenderTarget, ToColor4(VaBoxColor, 0.12f));
@@ -1326,10 +1433,19 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 					int sIdx = Math.Max(s.dayStartBar, fromV), eIdx = Math.Min(s.dayEndBar, toV);
 					if (eIdx < sIdx) continue;
 					float xL = cc.GetXByBarIndex(ChartBars, sIdx), xR = cc.GetXByBarIndex(ChartBars, eIdx);
-					float yHi = cs.GetYByValue(vp[1]), yLo = cs.GetYByValue(vp[2]);
-					RenderTarget.FillRectangle(new RectangleF(xL, Math.Min(yHi, yLo), Math.Max(xR - xL, 1f), Math.Max(Math.Abs(yLo - yHi), 1f)), boxBr);
-					float yPoc = cs.GetYByValue(vp[0]);
-					RenderTarget.DrawLine(new Vector2(xL, yPoc), new Vector2(xR, yPoc), pocBr, 1.5f);
+
+					List<DevSnap> hist;
+					if (_histDevTrailByDate.TryGetValue(s.date.Date, out hist) && hist.Count > 0)
+					{
+						DrawDevTrail(hist, s.dayEndBar, cc, cs, fromV, toV);
+					}
+					else
+					{
+						float yHi = cs.GetYByValue(vp[1]), yLo = cs.GetYByValue(vp[2]);
+						RenderTarget.FillRectangle(new RectangleF(xL, Math.Min(yHi, yLo), Math.Max(xR - xL, 1f), Math.Max(Math.Abs(yLo - yHi), 1f)), boxBr);
+						float yPoc = cs.GetYByValue(vp[0]);
+						RenderTarget.DrawLine(new Vector2(xL, yPoc), new Vector2(xR, yPoc), pocBr, 1.5f);
+					}
 
 					if (ShowPriorVp && k > 0)
 					{
@@ -1342,19 +1458,22 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			}
 		}
 
-		// Today's developing POC/VAH/VAL, drawn as a literal bar-by-bar step trail instead
-		// of one flat ray: each _devTrail entry holds flat from its own bar until the NEXT
-		// snapshot's bar (or "now" for the most recent one), so the line visibly steps up/
-		// down exactly where the developing value actually changed through the session.
-		private void DrawDevTrail(ChartControl cc, ChartScale cs, int fromV, int toV)
+		// A session's developing POC/VAH/VAL, drawn as a literal bar-by-bar step trail
+		// instead of one flat ray: each entry holds flat from its own bar until the NEXT
+		// snapshot's bar (or `endBar` for the most recent one — CurrentBar for today-live,
+		// that session's own dayEndBar for a completed historical day), so the line visibly
+		// steps up/down exactly where the developing value actually changed through the
+		// session. Shared by today's live _devTrail AND every backfilled historical day's
+		// _histDevTrailByDate entry (same rendering, different trail source).
+		private void DrawDevTrail(List<DevSnap> trail, int endBar, ChartControl cc, ChartScale cs, int fromV, int toV)
 		{
-			if (_devTrail.Count == 0) return;
+			if (trail.Count == 0) return;
 			var pocBr = new D2DSolidColorBrush(RenderTarget, ToColor4(PocColor, 1f));
 			var vaBr  = new D2DSolidColorBrush(RenderTarget, ToColor4(VaColor, 0.85f));
-			for (int i = 0; i < _devTrail.Count; i++)
+			for (int i = 0; i < trail.Count; i++)
 			{
-				DevSnap snap = _devTrail[i];
-				int segEnd = (i + 1 < _devTrail.Count) ? _devTrail[i + 1].bar : CurrentBar;
+				DevSnap snap = trail[i];
+				int segEnd = (i + 1 < trail.Count) ? trail[i + 1].bar : endBar;
 				int sIdx = Math.Max(snap.bar, fromV), eIdx = Math.Min(segEnd, toV);
 				if (eIdx < sIdx) continue;
 				float xL = cc.GetXByBarIndex(ChartBars, sIdx), xR = cc.GetXByBarIndex(ChartBars, eIdx);
@@ -2347,7 +2466,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 		public double VaPercent { get; set; }
 
 		[Range(0, 70)] [Display(Name = "Historical VA sessions (0 = off)", Order = 2, GroupName = "23 Volume Profile",
-			Description = "How many prior sessions' OWN VA boxes to draw (each confined to its own bars). Reads whatever is in session_vp_live_log.csv, live-written or backfilled.")]
+			Description = "How many prior sessions' OWN POC/VA to draw, confined to each one's own bars. Shows the real bar-by-bar developing trail (session_vp_dev_trail.csv) when backfill_vp_log.py has built one for that day; falls back to a single end-of-day box (session_vp_live_log.csv) if only the final value was ever backfilled.")]
 		public int VpHistSessions { get; set; }
 
 		[XmlIgnore] [Display(Name = "POC color (this session)", Order = 3, GroupName = "23 Volume Profile")] public WMBrush PocColor { get; set; }
