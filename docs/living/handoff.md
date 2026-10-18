@@ -44,7 +44,34 @@ repricing passive book, which is the real reason this class of signal keeps fail
 IBS (Internal Bar Strength) of the two pivots was also checked ad hoc on that one
 instance (both closed upper-half of range) but a same-direction comparative IBS test
 (mirroring the CVD logic) ALSO disagreed in that case — not independently validated
-across the dataset, not a lead to resume without a real systematic check.** S143: L1
+across the dataset, not a lead to resume without a real systematic check.
+**FOLLOW-UP same session, pushed back on "no edge" (fair — thousands of traders use
+order-flow divergence; was the raw-CVD construction even the right test?):** built
+`dtdb_vr_outcome_check.py` scoring with the VALIDATED bounded ratio formula instead
+(`BidAskVolumeRatio.cs`/`bid_ask_volume_ratio_l1.py`'s Sierra-spec VR, EMA-smoothed —
+genuinely different from the raw rolling-sum CVD, which is what actually produced the
+earlier null). On 2000-tick bars this DID show something CVD never did: DB-only,
+VR-agrees continued 48.8%/reversed 47.8% vs VR-disagrees continued 39.4%/reversed
+55.0% — a real-looking, correctly-directioned 9.4pt gap. Added `--renko` (Flex Renko
+16-8-4, reusing the validated brick builder) to both outcome scripts per explicit
+request to test a third bar type — **the DB gap did not replicate: it INVERTS on
+Renko** (disagrees beats agrees), and a new gap appears on DT instead (absent on
+ticks). Built `dtdb_sr_filter_check.py` (SR levels — prior-day HOY/LOY/COY, OoD/OoW/
+OoM, Settlement, prior-day POC/VAH/VAL, all computed directly from the L1 tape
+reusing `volume_profile.py`'s validated `value_area()` — NOT tickdata.py, to avoid a
+back-adjusted-continuous-vs-raw-contract price mismatch against the L1-tape-derived
+DT/DB pivots) per explicit request ("should only matter at SR") — **result was the
+OPPOSITE of the hypothesis**: the VR gap is bigger AWAY from SR (9.8pt) than near it
+(near-SR direction inverts). **FINAL READ: across ~8 independent cuts (CVD x ticks/
+5min/renko, VR x ticks/renko, VR x near-SR/away-SR) exactly ONE showed separation,
+and it failed to replicate on a different bar type AND failed to replicate under the
+SR filter, each time flipping which pattern/location it applied to. This is the
+signature of noise from slicing one ~1000-instance dataset enough ways, not a real
+effect — recommended stopping further cuts of this same dataset. CVD-divergence-at-
+DT/DB (any construction tried: raw CVD, Sierra VR ratio; any bar type: 2000-tick,
+5-min, Renko 16-8-4; any location filter: near/away from SR) is now a closed research
+line on ES — do not re-cut this same ~1000-instance dataset a ninth way without a
+genuinely new hypothesis.** S143: L1
 recorder restarted for
 ETH open (`L1TapeRecorderAddOn.cs` re-enabled — was renamed `.cs.disabled` on 10/14;
 `MyQuant L1 Rollover` + `MyQuant L1 Recorder Watchdog` scheduled tasks re-enabled); NT8
