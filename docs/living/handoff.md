@@ -44,6 +44,28 @@ cycle would see "last: never" and re-run). Made `save_state()` unconditional. Te
 logs without executing, live run executes + persists, immediate second run correctly skips
 (gate holds). Committed. **Not yet confirmed this survives a real Task Scheduler cycle live
 during RTH — only tested via manual `python scripts/desk_watchdog.py` invocations.**
+**Further same session — user's actual follow-up complaint on PATsProfile:** "the VA is
+developing but I can not see the true VA H/L at any given point in the earlier part of the
+session because the VA is extended from the current value all the way back to the beginning
+of the session." Asked for suggestions first (no code) — answered with how Sierra Chart
+(`Developing VAH`/`VAL`/`POC` subgraphs), NT8's own native Volume Profile ("Developing Value
+Area" mode), and ATAS all solve this: a separate migrating step-line series, not a static
+band. User then asked for BOTH the trim (stop backward-extending) AND the developing
+staircase, step-after rendering with risers ("steps connected by a line"), filled channel.
+Built both: the flat band/POC/VAH-VAL lines for the current window now stop at
+`todayStartBar` instead of spanning today's own bars (full-width only for genuinely
+completed prior sessions in a composite window — for the common `CompositeSessions=1` case
+this band is now zero-width, i.e. gone); new `devVah`/`devVal`/`devPoc`, folded incrementally
+once per closed bar (`FoldBarIntoDev`, driven by a `while` loop in `OnBarUpdate` keyed on
+`CurrentBar` having advanced — this also means it replays correctly on a fresh chart load for
+free, no separate seeding step needed, unlike `liveVolByRow`), rendered as a connected
+step-after line + filled VAH/VAL channel, final segment is a live tip (today-only VA as of
+right now) stretched into the VP margin. Reuses the existing `ShowVABand`/`ShowVAHVAL`/
+`ShowPOC` toggles and brushes rather than adding new ones. Compile-checked clean, deployed,
+byte-verified. **PENDING USER F5/verification — not confirmed visually correct by me, and
+user has explicitly stated distrust this session ("I don't trust you") — treat any claim of
+"this works" from me on this feature as unverified until the user confirms on their own
+screen.**
 **Last updated, prior block preserved below —**
 **Last Updated:** 2026-10-19 (machine-time W. Europe) — **S146 continued: found + fixed the
 REAL root cause of the BidAskVolumeRatio/Delta/Split flatline.** Morning health-check
