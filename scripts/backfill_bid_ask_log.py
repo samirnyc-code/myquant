@@ -128,7 +128,14 @@ def main() -> int:
         print(f"{day}: {len(buckets):,} bucket(s) @ {a.bucket_seconds}s ({len(trades):,} trades, {path.name})")
 
     if rows_new:
-        existing = pd.read_csv(OUT_LOG) if OUT_LOG.exists() and not a.force else pd.DataFrame(columns=["date", "timestamp", "ask_vol", "bid_vol"])
+        # ALWAYS load whatever's already on disk, even under --force -- force only means
+        # "recompute the targeted day(s)", never "discard every other day already backfilled".
+        # (2026-10-19: this exact line previously had "and not a.force" here, which skipped
+        # loading entirely under --force and wiped the whole file down to just the day(s)
+        # being recomputed -- lost 21 days of prior backfill in one `--day ... --force` run,
+        # caught immediately and restored from git. Not touching this logic again without
+        # re-reading this comment.)
+        existing = pd.read_csv(OUT_LOG) if OUT_LOG.exists() else pd.DataFrame(columns=["date", "timestamp", "ask_vol", "bid_vol"])
         if a.force:
             new_days = {r[0] for r in rows_new}
             existing = existing[~existing["date"].astype(str).isin(new_days)]

@@ -167,7 +167,12 @@ def main() -> int:
             print(f"{day}: dev trail {len(trail)} snapshot(s) @ {a.bucket_minutes}min buckets")
 
     if rows_new:
-        existing = pd.read_csv(VP_LOG) if VP_LOG.exists() and not a.force else pd.DataFrame(columns=["date", "vpoc", "vah", "val"])
+        # ALWAYS load existing data, even under --force -- force means "recompute the
+        # targeted day(s)", not "discard every other already-backfilled day". (2026-10-19:
+        # the sibling script backfill_bid_ask_log.py had exactly this bug with "and not
+        # a.force" here, wiped 21 days in one --day ... --force run; fixing here too even
+        # though this exact line hasn't been triggered yet, same latent landmine.)
+        existing = pd.read_csv(VP_LOG) if VP_LOG.exists() else pd.DataFrame(columns=["date", "vpoc", "vah", "val"])
         if a.force:
             new_days = {r[0] for r in rows_new}
             existing = existing[~existing["date"].astype(str).isin(new_days)]
@@ -182,7 +187,7 @@ def main() -> int:
         print("\nnothing new for the final-value log.")
 
     if trail_rows_new:
-        existing_t = pd.read_csv(TRAIL_LOG) if TRAIL_LOG.exists() and not a.force else pd.DataFrame(columns=["date", "timestamp", "poc", "vah", "val"])
+        existing_t = pd.read_csv(TRAIL_LOG) if TRAIL_LOG.exists() else pd.DataFrame(columns=["date", "timestamp", "poc", "vah", "val"])
         if a.force:
             new_days = {r[0] for r in trail_rows_new}
             existing_t = existing_t[~existing_t["date"].astype(str).isin(new_days)]
