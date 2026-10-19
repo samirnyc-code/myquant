@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Xml.Serialization;
+using NinjaTrader.Data;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
 using NinjaTrader.NinjaScript;
@@ -19,16 +20,28 @@ using SharpDX.DirectWrite;
 //
 //   Volume Profile : POC, 70% value area (MOM Appendix 1, two-at-a-time),
 //                    value-area band OR lines-only, HVN / LVN nodes,
-//                    initial balance, prior-session value (trade-from zone).
+//                    initial balance (RTH-anchored), prior-session value.
 //   Labels         : numeric VAH/VAL/POC (current + prior), de-collided with
 //                    leader lines so text never overlaps a line or another label.
 //   Composite      : merge the last N sessions into one profile.
 // Every band/line stops at its own session's left break.
 //
-// Volume-at-price is still approximated from bar OHLV (bar volume split evenly
-// across the rows its high-low range touches), NOT from tick-level trades —
-// precision is bounded by the chart's bar timeframe, not the actual print
-// distribution. See handoff/chat notes before changing this to tick replay.
+// Volume-at-price precision:
+//   - TODAY is always built from real trade ticks via OnMarketData — free,
+//     since live data streams tick-by-tick regardless of this indicator.
+//   - Earlier (closed) sessions use the OHLC bar-split approximation UNLESS
+//     you turn on "Tick Replay" in the chart's Data Series settings (NT8-level
+//     setting — an Indicator can't enable it from code, only read it via
+//     Bars.IsTickReplay). When it's on, NT8 replays historical ticks too
+//     (heavier chart load — depends on your feed actually serving tick-level
+//     history back that far).
+//   - Closed sessions are computed once and cached (barVolBySession) instead
+//     of being re-walked on every recompute.
+//
+// IB (Initial Balance) is anchored to RthStartHHMM (RTH open time-of-day),
+// not to the session's own start bar — on a chart whose session includes
+// overnight/ETH bars, the session start is NOT the RTH open, and classical
+// Market Profile IB is an RTH-only concept.
 //
 // Commit CS to: repo/nt8/indicators/PATsProfile.cs
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,12 +52,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double rowSize;
 		private List<int> sessionStarts;
 
-		private string sig = "";
 		private Dictionary<double, double> volByRow;
 		private List<double> hvn, lvn;
 		private double poc, vah, val, ibh, ibl, maxVol;
 		private double pPoc = double.NaN, pVah = double.NaN, pVal = double.NaN; // prior VOLUME VA
 		private int winStartBar, priorStartBar = -1;
+
+		// Tick-accurate accumulation (see header note).
+		private readonly object liveLock = new object();
+		private Dictionary<double, double> liveVolByRow;
+		private int liveSessionStartBar = -1;
+		private int obuSessionStartBar = -1;
+		private Dictionary<int, Dictionary<double, double>> tickHistBySession; // filled only when Bars.IsTickReplay is on
+		private Dictionary<int, Dictionary<double, double>> barVolBySession;   // cache of finalized (closed) sessions
 
 		#region Parameters
 		[NinjaScriptProperty] [Range(1, int.MaxValue)] [Display(Name = "Row height (ticks)", Order = 0, GroupName = "1 Profile")]
@@ -61,6 +81,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public int LabelFontSize { get; set; }
 		[NinjaScriptProperty] [Range(5, 240)] [Display(Name = "Initial balance minutes", Order = 6, GroupName = "1 Profile")]
 		public int IbMinutes { get; set; }
+		[NinjaScriptProperty] [Range(0, 2359)] [Display(Name = "RTH start (HHmm, chart time)", Order = 7, GroupName = "1 Profile")]
+		public int RthStartHHMM { get; set; }
 
 		[NinjaScriptProperty] [Display(Name = "Volume Profile", Order = 0, GroupName = "2 Show")]
 		public bool ShowVP { get; set; }
@@ -115,10 +137,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (State == State.SetDefaults)
 			{
 				Name = "PATs Profile (VP)";
-				Description = "Right-margin Volume Profile: POC, value area, HVN/LVN, initial balance, prior-session zone, labels, composite.";
+				Description = "Right-margin Volume Profile: POC, value area, HVN/LVN, RTH initial balance, prior-session zone, labels, composite.";
 				IsOverlay = true; IsChartOnly = true; DrawOnPricePanel = true; IsSuspendedWhileInactive = true;
 				RowTicks = 4; CompositeSessions = 1; VpWidthPx = 150; RightOffsetPx = 6;
-				Opacity = 0.85; LabelFontSize = 11; IbMinutes = 60;
+				Opacity = 0.85; LabelFontSize = 11; IbMinutes = 60; RthStartHHMM = 930;
 				ShowVP = true; ShowVAHVAL = true; ShowVABand = true; ShowPOC = true; ShowIB = true;
 				ShowHVN = true; ShowLVN = true; ShowPriorLines = true; ShowPriorBand = true; ShowLabels = true;
 				NodeLookback = 4; HvnFactor = 1.2; LvnFactor = 0.7;
@@ -130,14 +152,59 @@ namespace NinjaTrader.NinjaScript.Indicators
 				IbColor = System.Windows.Media.Brushes.Goldenrod;
 			}
 			else if (State == State.Configure) { rowSize = RowTicks * TickSize; }
-			else if (State == State.DataLoaded) { sessionStarts = new List<int>(); }
+			else if (State == State.DataLoaded)
+			{
+				sessionStarts = new List<int>();
+				tickHistBySession = new Dictionary<int, Dictionary<double, double>>();
+				barVolBySession = new Dictionary<int, Dictionary<double, double>>();
+				liveVolByRow = null; liveSessionStartBar = -1; obuSessionStartBar = -1;
+			}
 		}
 
 		protected override void OnBarUpdate()
 		{
 			if (CurrentBar < 0) return;
 			if (rowSize <= 0) rowSize = RowTicks * TickSize;
-			if (CurrentBar == 0 || Bars.IsFirstBarOfSession) sessionStarts.Add(CurrentBar);
+
+			bool newSession = (CurrentBar == 0 || Bars.IsFirstBarOfSession) &&
+			                   (sessionStarts.Count == 0 || sessionStarts[sessionStarts.Count - 1] != CurrentBar);
+			if (newSession)
+			{
+				sessionStarts.Add(CurrentBar);
+				obuSessionStartBar = CurrentBar;
+			}
+
+			// Historical tick-accurate accumulation — only active when the chart's
+			// Data Series "Tick Replay" setting is on (Bars.IsTickReplay); otherwise
+			// OnBarUpdate fires once per bar close exactly as before (no added cost).
+			if (Bars.IsTickReplay && State == State.Historical)
+			{
+				Dictionary<double, double> hist;
+				if (!tickHistBySession.TryGetValue(obuSessionStartBar, out hist))
+				{ hist = new Dictionary<double, double>(); tickHistBySession[obuSessionStartBar] = hist; }
+				double key = Math.Round(Math.Floor(Close[0] / rowSize) * rowSize, 5);
+				double cv; hist.TryGetValue(key, out cv); hist[key] = cv + Volume[0];
+			}
+		}
+
+		// Fires on every live trade print regardless of Calculate mode or
+		// TickReplayHistory — this is what keeps today's session tick-accurate
+		// for free, without opting into historical tick replay.
+		protected override void OnMarketData(MarketDataEventArgs e)
+		{
+			if (e.MarketDataType != MarketDataType.Last) return;
+			if (State != State.Realtime) return;
+			if (rowSize <= 0) return;
+			double key = Math.Round(Math.Floor(e.Price / rowSize) * rowSize, 5);
+			lock (liveLock)
+			{
+				if (liveVolByRow == null || liveSessionStartBar != obuSessionStartBar)
+				{
+					liveVolByRow = new Dictionary<double, double>();
+					liveSessionStartBar = obuSessionStartBar;
+				}
+				double cv; liveVolByRow.TryGetValue(key, out cv); liveVolByRow[key] = cv + e.Volume;
+			}
 		}
 
 		#region Computation
@@ -149,24 +216,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 			int startBar = sc > 0 ? sessionStarts[wIdx] : 0;
 			winStartBar = startBar;
 			int lastStart = sc > 0 ? sessionStarts[sc - 1] : 0;
-			DateTime lastSess = Time.GetValueAt(lastStart);
-			ibh = double.MinValue; ibl = double.MaxValue;
 
-			for (int i = startBar; i <= endBar; i++)
+			for (int k = wIdx; k < sc; k++)
 			{
-				double h = High.GetValueAt(i), l = Low.GetValueAt(i), v = Volume.GetValueAt(i);
-				DateTime t = Time.GetValueAt(i);
-				double lo = Math.Floor(l / rowSize) * rowSize;
-				int nrows = (int)Math.Round((h - lo) / rowSize) + 1;
-				if (nrows < 1) nrows = 1;
-				double vShare = v / nrows;
-				for (int r = 0; r < nrows; r++)
-				{
-					double key = Math.Round(lo + r * rowSize, 5);
-					double cv; volByRow.TryGetValue(key, out cv); volByRow[key] = cv + vShare;
-				}
-				if (i >= lastStart && t < lastSess.AddMinutes(IbMinutes)) { if (h > ibh) ibh = h; if (l < ibl) ibl = l; }
+				int a = sessionStarts[k];
+				int b = (k + 1 < sc) ? sessionStarts[k + 1] - 1 : endBar;
+				MergeSessionVolume(volByRow, a, a, b, k == sc - 1);
 			}
+
+			ComputeIB(lastStart, endBar);
 
 			poc = double.NaN; maxVol = 0;
 			foreach (KeyValuePair<double, double> kv in volByRow)
@@ -176,7 +234,62 @@ namespace NinjaTrader.NinjaScript.Indicators
 			ComputePriorLevels();
 		}
 
-		private Dictionary<double, double> BuildVolume(int a, int b, out double pocOut)
+		// IB is an RTH-only concept: anchor to the first bar in today's session
+		// whose time-of-day is >= RthStartHHMM (not to the session's own start
+		// bar, which on an ETH-inclusive chart is the overnight/Globex open),
+		// then take the high/low of the next IbMinutes of bars from there.
+		private void ComputeIB(int lastStart, int endBar)
+		{
+			ibh = double.MinValue; ibl = double.MaxValue;
+			TimeSpan rthTod = new TimeSpan(RthStartHHMM / 100, RthStartHHMM % 100, 0);
+			int rthOpenBar = -1;
+			for (int i = lastStart; i <= endBar; i++)
+				if (Time.GetValueAt(i).TimeOfDay >= rthTod) { rthOpenBar = i; break; }
+			if (rthOpenBar < 0) return; // today's session hasn't reached RTH open yet (or doesn't include it)
+
+			DateTime ibEnd = Time.GetValueAt(rthOpenBar).AddMinutes(IbMinutes);
+			for (int i = rthOpenBar; i <= endBar; i++)
+			{
+				if (Time.GetValueAt(i) >= ibEnd) break;
+				double h = High.GetValueAt(i), l = Low.GetValueAt(i);
+				if (h > ibh) ibh = h; if (l < ibl) ibl = l;
+			}
+		}
+
+		// Fills `target` with one session's volume-at-price. Prefers real trade-tick
+		// data when available (today always, via OnMarketData; earlier sessions only
+		// if TickReplayHistory replayed them). Closed sessions are computed once and
+		// cached — they never change, so there's no reason to re-walk their bars on
+		// every recompute.
+		private void MergeSessionVolume(Dictionary<double, double> target, int sessionStartBar, int a, int b, bool isToday)
+		{
+			Dictionary<double, double> snapshot = null;
+			if (isToday)
+			{
+				lock (liveLock)
+				{
+					if (liveVolByRow != null && liveSessionStartBar == sessionStartBar && liveVolByRow.Count > 0)
+						snapshot = new Dictionary<double, double>(liveVolByRow);
+				}
+				if (snapshot == null) snapshot = BuildFromBars(a, b); // no live ticks yet (e.g. pre-market attach)
+			}
+			else
+			{
+				if (!barVolBySession.TryGetValue(sessionStartBar, out snapshot))
+				{
+					Dictionary<double, double> hist;
+					snapshot = (tickHistBySession.TryGetValue(sessionStartBar, out hist) && hist.Count > 0) ? hist : BuildFromBars(a, b);
+					barVolBySession[sessionStartBar] = snapshot;
+				}
+			}
+			foreach (KeyValuePair<double, double> kv in snapshot)
+			{
+				double cv; target.TryGetValue(kv.Key, out cv); target[kv.Key] = cv + kv.Value;
+			}
+		}
+
+		// OHLC-bar-split approximation (fallback when no tick-level data is available).
+		private Dictionary<double, double> BuildFromBars(int a, int b)
 		{
 			Dictionary<double, double> vol = new Dictionary<double, double>();
 			for (int i = a; i <= b; i++)
@@ -192,8 +305,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 					double cv; vol.TryGetValue(key, out cv); vol[key] = cv + vShare;
 				}
 			}
-			pocOut = double.NaN; double mv = 0;
-			foreach (KeyValuePair<double, double> kv in vol) if (kv.Value > mv) { mv = kv.Value; pocOut = kv.Key; }
 			return vol;
 		}
 
@@ -257,10 +368,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			int pe = sessionStarts[sc - 1] - 1;
 			if (pe < ps) return;
 			priorStartBar = ps;
-			double ppoc;
-			Dictionary<double, double> pvol = BuildVolume(ps, pe, out ppoc);
-			pPoc = ppoc;
-			ValueAreaOf(pvol, pPoc, out pVal, out pVah);   // prior VOLUME value area
+			Dictionary<double, double> pvol = new Dictionary<double, double>();
+			MergeSessionVolume(pvol, ps, ps, pe, false);
+			if (pvol.Count == 0) return;
+			double mv = 0;
+			foreach (KeyValuePair<double, double> kv in pvol) if (kv.Value > mv) { mv = kv.Value; pPoc = kv.Key; }
+			ValueAreaOf(pvol, pPoc, out pVal, out pVah);
 		}
 		#endregion
 
@@ -279,8 +392,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (sessionStarts == null || RenderTarget == null || ChartBars == null || Bars == null) return;
 			int endBar = Bars.Count - 1;
 			if (endBar < 0) return;
-			string s = endBar + "|" + CompositeSessions + "|" + RowTicks + "|" + NodeLookback + "|" + HvnFactor + "|" + LvnFactor + "|" + IbMinutes;
-			if (s != sig || volByRow == null) { Recompute(endBar); sig = s; }
+			Recompute(endBar); // cheap now (cached closed sessions) — keeps today's VA current with live ticks
 			if (volByRow == null || volByRow.Count == 0 || maxVol <= 0) return;
 
 			float rowH = Math.Abs(chartScale.GetYByValue(0.0) - chartScale.GetYByValue(rowSize));
