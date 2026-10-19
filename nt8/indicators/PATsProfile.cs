@@ -159,6 +159,29 @@ namespace NinjaTrader.NinjaScript.Indicators
 				barVolBySession = new Dictionary<int, Dictionary<double, double>>();
 				liveVolByRow = null; liveSessionStartBar = -1; obuSessionStartBar = -1;
 			}
+			else if (State == State.Realtime) { SeedLiveFromHistory(); }
+		}
+
+		// Runs exactly once, at the historical->realtime handoff. Without this,
+		// the first live tick in OnMarketData would start today's session's
+		// liveVolByRow from empty, silently discarding every bar that already
+		// closed today before the chart/indicator was (re)loaded — today's VA
+		// would visibly collapse to "from this moment forward" instead of the
+		// full session. Seed with whatever's already known (tick-replayed
+		// history if Tick Replay was on, else the bar-split approximation),
+		// then let OnMarketData add real ticks on top from here forward.
+		private void SeedLiveFromHistory()
+		{
+			if (obuSessionStartBar < 0 || CurrentBar < obuSessionStartBar) return;
+			Dictionary<double, double> hist;
+			Dictionary<double, double> seed = (tickHistBySession != null && tickHistBySession.TryGetValue(obuSessionStartBar, out hist) && hist.Count > 0)
+				? new Dictionary<double, double>(hist)
+				: BuildFromBars(obuSessionStartBar, CurrentBar);
+			lock (liveLock)
+			{
+				liveVolByRow = seed;
+				liveSessionStartBar = obuSessionStartBar;
+			}
 		}
 
 		protected override void OnBarUpdate()
