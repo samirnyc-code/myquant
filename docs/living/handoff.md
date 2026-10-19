@@ -92,7 +92,34 @@ here — they haven't hit this error only because neither currently has an NT8-g
 wrapper region in its deployed copy (never gone through whatever triggers full wrapper
 generation), i.e. this is a LATENT, not-yet-triggered risk in both, left alone this round to
 keep the fix minimal — worth the same `BidAskSharedEnums.cs`-style treatment if either ever
-throws this. **PENDING USER F5 — third attempt.** S145: NT8 `SessionSRLevelsV10`
+throws this. **Inferred (not directly confirmed) the 3rd F5 compiled clean — user moved on
+to a data-content complaint rather than another compile-error screenshot.**
+**THIRD CORRECTION, same session — user: "I am only talking about today's session and you
+told me we had all the data recorded. WTF is going on?" (screenshot: Ratio/Split/
+CumulativeDelta all go dead flat/empty for the last several hours of today's session, while
+price candles + CVDDivergenceOscillator — which doesn't depend on OnMarketData at all —
+keep updating normally the whole way through).** Root cause, confirmed by checking the raw
+files directly rather than guessing: the `backfill_bid_ask_log.py` run that built today's
+(2026-10-19) bucket coverage happened once, this morning — last covered tick 01:44. The L1
+recorder kept running and the tape had grown to 04:53 by the time this was checked. Today's
+session is a MOVING TARGET; the backfill is a snapshot, not live — it will always need a
+fresh `--day 2026-10-19 --force` re-run to stay current for the REST of an in-progress
+session (already-closed days, 09-16→10-14, are final and never need re-running). Re-ran it
+— **and immediately caught a SECOND, worse bug in doing so**: `--force` was discarding the
+ENTIRE log, not just the targeted day — `existing = pd.read_csv(...) if ... and not a.force
+else empty_df` skipped loading the existing file whenever `--force` was passed at all,
+wiping all 21 other already-backfilled days down to just the 1 day being recomputed. Caught
+within the same turn (checked day-coverage count immediately after running it — 1 day
+instead of 22), restored the pre-bug file via `git checkout --` (uncommitted at the time,
+clean revert, zero data actually lost), fixed the condition (drop `and not a.force` — always
+load existing; the per-day filter two lines below already does the right thing), re-ran
+`--day 2026-10-19 --force` correctly: all 22 days intact, today extended 01:44→04:55. Fixed
+the IDENTICAL latent bug in `backfill_vp_log.py` (same pattern, two occurrences) before it
+ever got triggered there. Committed with a comment on both fixed lines warning not to touch
+this logic again without reading it first. **User still needs to verify the gap actually
+closed on their end (not confirmed by me) — this only extends coverage to ~04:55 "today,"
+will need another `--force` re-run for anything after that point in the session.**
+S145: NT8 `SessionSRLevelsV10`
 developing POC/Value-Area — backfilled from the recorded L1 tape instead of waiting on the
 live-only accumulation.** V10's `ShowDevPocVa` feature (S142+) bins price/volume per-tick via
 `OnMarketData`, which NT8 only fires on LIVE ticks (not historical bars) — by design, its
