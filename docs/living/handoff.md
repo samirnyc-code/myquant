@@ -42,8 +42,26 @@ confirmed deployed byte-identical to the repo copy. Nothing built for this part,
 pointed the user at the existing checkbox. All 4 backfilled files compile-checked (each
 individually clean; full-repo check shows only the same 3 pre-existing unrelated
 collisions already documented in S144/S145 — confirmed no new ones) and deployed to
-`Custom\Indicators\My\`, byte-verified via `diff`. **PENDING USER F5 — not visually
-verified by me.** S145: NT8 `SessionSRLevelsV10`
+`Custom\Indicators\My\`, byte-verified via `diff`.
+**CORRECTION, same session — user's actual F5 threw real errors** (`BavrDiffMethod`/
+`BavrMaType` not found in `BidAskVolumeRatio.cs`, `CvdResetMode` not found in
+`CumulativeDelta.cs`, CS0246 multiple times over). Root cause: the EXACT same known NT8 cross-namespace
+bug already fixed twice before in this repo (`LevelLineStyle` in SessionSRLevelsV9.cs,
+`CvdCumulativeMode` in CVDDivergenceOscillator.cs) — a `[NinjaScriptProperty]`-typed enum
+declared inside `NinjaTrader.NinjaScript.Indicators.My` compiles fine standalone but
+throws CS0246 in NT8's own generated wrapper code (for the sibling `.MarketAnalyzerColumns`/
+`.Strategies` namespaces, which reference the unqualified enum name) the moment the whole
+Custom tree builds together — `nt8_compile_check.ps1` does NOT catch this, it doesn't
+replicate NT8's own wrapper-generation step, only a real F5 does. These 3 enums
+(`BavrDiffMethod`/`BavrMaType`/`CvdResetMode`) predate this session's changes — this was
+just the first time either file got a real NT8 F5 since being added. Fixed the same way as
+both prior instances: moved all 3 into a `namespace NinjaTrader.NinjaScript { }` block
+(the shared parent) ahead of each file's `.Indicators.My` block. Verified no name collision
+with any other enum already in that parent namespace across `nt8/` (grepped). Compile-
+checked (both files individually clean; full-repo check unchanged — still only the same 3
+pre-existing unrelated collisions). Re-deployed both files, byte-verified. **PENDING USER
+F5 — this is now the SECOND F5 attempt; if it throws again, paste the exact error table
+again rather than assuming another blind guess will land.** S145: NT8 `SessionSRLevelsV10`
 developing POC/Value-Area — backfilled from the recorded L1 tape instead of waiting on the
 live-only accumulation.** V10's `ShowDevPocVa` feature (S142+) bins price/volume per-tick via
 `OnMarketData`, which NT8 only fires on LIVE ticks (not historical bars) — by design, its
