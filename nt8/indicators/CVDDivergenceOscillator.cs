@@ -66,21 +66,18 @@ using SharpDX;
 using SharpDX.Direct2D1;
 #endregion
 
-namespace NinjaTrader.NinjaScript
-{
-	// Defined in the PARENT namespace, NOT in .Indicators — same reason as
-	// SessionSRLevelsV9.cs's LevelLineStyle: NT8 regenerates wrapper code in the sibling
-	// .MarketAnalyzerColumns and .Strategies namespaces on every compile using the
-	// unqualified enum name, so a [NinjaScriptProperty] enum must live where all three
-	// child namespaces can see it by walking up to this common parent. Declaring it in
-	// .Indicators compiles fine standalone but throws CS0246 in NT8's own generated
-	// wrapper code the moment the whole Custom tree builds together (2026-10-18 — this
-	// exact bug blocked a full Custom rebuild; root-caused and fixed same session).
-	public enum CvdCumulativeMode { Periodic, EMA }
-}
-
 namespace NinjaTrader.NinjaScript.Indicators.My
 {
+	// CvdCumulativeMode lives in BidAskSharedEnums.cs (namespace NinjaTrader.NinjaScript) —
+	// NOT redeclared here, and deliberately NOT a second namespace block in THIS file either.
+	// 2026-10-19: moved out after confirming (on BidAskVolumeRatio.cs/CumulativeDelta.cs)
+	// that a SECOND top-level namespace block in a file that ALSO contains an Indicator class
+	// breaks NT8's "My." relative-prefix generation for that class's own convenience-
+	// constructor wrapper (a real, confirmed bug, not the original enum-visibility one this
+	// pattern was first built for — see BidAskSharedEnums.cs's header for the full story).
+	// This file hadn't hit that error yet, but it had the exact same two-block structure that
+	// caused it elsewhere, so fixed proactively while already in this file for the
+	// unfrozen-brush bug below.
     public class CVDDivergenceOscillator : Indicator
     {
         private Series<double> deltaSeries;
@@ -122,8 +119,23 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 DivLabelFontSize = 10;
                 BullColor = Brushes.LimeGreen;
                 BearColor = Brushes.Firebrick;
-                PosHistColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(140, 76, 175, 79));
-                NegHistColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(140, 255, 82, 82));
+                // .Freeze() both -- 2026-10-19: these were the ONLY two brushes in this file
+                // built from a custom ARGB color instead of a pre-frozen named Brushes.X
+                // constant (BullColor/BearColor etc. all use Brushes.X, already frozen/thread-
+                // safe). An unfrozen WPF Freezable is owned by whatever thread constructed it
+                // (the UI thread, here, since SetDefaults runs there) -- assigning it to
+                // PlotBrushes[] from OnBarUpdate running on a DIFFERENT thread (confirmed via
+                // NT8's own log: custom bar types like Flex Renko apparently run historical
+                // calculation on a background thread, unlike standard bar types) threw "The
+                // calling thread cannot access this object because a different thread owns
+                // it" on bar 0 every time -- killed the indicator immediately, which is why
+                // the whole panel rendered completely empty, not just the colors being wrong.
+                var posHist = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(140, 76, 175, 79));
+                posHist.Freeze();
+                PosHistColor = posHist;
+                var negHist = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(140, 255, 82, 82));
+                negHist.Freeze();
+                NegHistColor = negHist;
 
                 AddPlot(new Stroke(Brushes.Gray, 2), PlotStyle.Bar, "CVD Hist");
             }

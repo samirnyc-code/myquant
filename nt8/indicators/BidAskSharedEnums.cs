@@ -1,6 +1,9 @@
-// BidAskSharedEnums.cs — [NinjaScriptProperty]-typed enums shared by BidAskVolumeRatio.cs
-// and CumulativeDelta.cs, kept in their OWN standalone file rather than prepended as a
-// second namespace block inside each indicator's own .cs file.
+// BidAskSharedEnums.cs — [NinjaScriptProperty]-typed enums shared by BidAskVolumeRatio.cs,
+// CumulativeDelta.cs, and CVDDivergenceOscillator.cs, kept in their OWN standalone file
+// rather than prepended as a second namespace block inside each indicator's own .cs file.
+// Name predates CvdCumulativeMode joining it (2026-10-19) — kept as-is rather than renamed,
+// since renaming would mean re-deploying + removing the old filename from Custom for no
+// functional benefit (NT8 compiles the whole Custom tree together regardless of filename).
 //
 // WHY A SEPARATE FILE (2026-10-19, learned the hard way): a [NinjaScriptProperty] enum must
 // live in the NinjaTrader.NinjaScript namespace (the common ancestor of .Indicators,
@@ -27,4 +30,5 @@ namespace NinjaTrader.NinjaScript
     public enum BavrDiffMethod { AskMinusBid, BidMinusAsk }                                  // BidAskVolumeRatio.cs
     public enum BavrMaType { Simple, Exponential, Weighted, LinearRegression, Wilders, Smoothed }   // BidAskVolumeRatio.cs
     public enum CvdResetMode { Session, None }                                               // CumulativeDelta.cs
+    public enum CvdCumulativeMode { Periodic, EMA }                                          // CVDDivergenceOscillator.cs
 }

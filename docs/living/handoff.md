@@ -145,6 +145,40 @@ layered on top ONLY where `cvLiveFlag` says the bar is actually tick-accurate �
 rather than faking candle detail the backfill resolution can't actually support. Compile-
 checked (clean; same 3 pre-existing unrelated collisions). Deployed, byte-verified.
 **PENDING USER verification — not confirmed working by me, fourth round on this feature.**
+**FIFTH item, same session — user: "why is the oscillator not showing anything on the flex
+renko" (CVDDivergenceOscillator, Flex Renko 16-8-4 chart — panel completely blank, not even
+a flat zero-line).** This one had NOTHING to do with any of this session's backfill work —
+`CVDDivergenceOscillator.cs` is pure bar-close math (`Volume[0]`/`High`/`Low`/`Close`), no
+tick/OnMarketData dependency at all, untouched until now. Root-caused via NT8's own log file
+(`Documents\NinjaTrader 8\log\log.20261019.00000.en.txt`) instead of guessing — found the
+exact error: `Indicator 'CVDDivergenceOscillator': Error on calling 'OnBarUpdate' method on
+bar 0: The calling thread cannot access this object because a different thread owns it.`
+Classic WPF cross-thread Freezable violation: `PosHistColor`/`NegHistColor` were the only
+two brushes in the file built from a custom ARGB color (`new SolidColorBrush(Color.FromArgb(...))`)
+instead of a pre-frozen named `Brushes.X` constant (everything else in the file — BullColor/
+BearColor etc — already used those, already thread-safe). An unfrozen WPF Freezable is owned
+by whichever thread constructed it (the UI thread, in `SetDefaults`); assigning it to
+`PlotBrushes[]` from `OnBarUpdate` running on a DIFFERENT thread — confirmed custom bar types
+like Flex Renko run historical calculation on a background thread, unlike standard bar types
+— threw on bar 0 every time, killing the indicator immediately (NOT a rendering/color issue,
+a fatal crash each run — that's why the WHOLE panel was empty, not just miscolored). Fixed by
+`.Freeze()`-ing both brushes right after construction. **Grepped the rest of `nt8/` for the
+same anti-pattern while already in this file — found it's WIDESPREAD: 13 files construct a
+custom-ARGB `SolidColorBrush`, several already correctly `.Freeze()` it (`Regime2ESetups.cs`,
+`Regime2EStrategy.cs`), several do NOT (`AMASignalOverlay.cs`, `RegimePhaseMachine.cs`,
+`RegimeTracker.cs`, `RegimeTrackerBox.cs`, `RegimeTrackerPanel.cs`, `RegimeTrackerV2.cs`,
+`TempoSpeedometer.cs`, plus third-party files) — a real, confirmed, repeat-prone bug class in
+this codebase, latent until something runs its historical calc off the UI thread (custom bar
+types being the one now-confirmed trigger). Deliberately did NOT fix those 13 — out of scope
+for what was asked, left as a flagged risk for whenever one of them is actually touched or
+hits the same symptom.** Also proactively fixed a SECOND latent bug in the same file while
+already there: `CVDDivergenceOscillator.cs` had the same two-top-level-namespace-block
+structure (`CvdCumulativeMode` prepended) that broke `BidAskVolumeRatio.cs`/
+`CumulativeDelta.cs` earlier this session — moved `CvdCumulativeMode` into the shared
+`BidAskSharedEnums.cs` (now covers 4 enums across 3 files) before it could cause the same
+surprise CS0246 on a future compile. Compile-checked (both files individually clean;
+full-repo check unchanged, same 3 pre-existing unrelated collisions). Deployed, byte-
+verified. **PENDING USER F5/verification on the Flex Renko chart — not confirmed by me.**
 S145: NT8 `SessionSRLevelsV10`
 developing POC/Value-Area — backfilled from the recorded L1 tape instead of waiting on the
 live-only accumulation.** V10's `ShowDevPocVa` feature (S142+) bins price/volume per-tick via
