@@ -70,6 +70,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private List<double> devVal = new List<double>();
 		private List<double> devPoc = new List<double>();
 
+		// Session VWAP + volume-weighted SD bands -- unlike VA, VWAP is ALWAYS a running
+		// series by definition (every platform plots it developing), so it uses the exact
+		// same per-bar fold as devVah/devVal/devPoc above, just a different running stat:
+		// cumPV/cumV/cumPV2 -> vwap = cumPV/cumV, sd = sqrt(cumPV2/cumV - vwap^2).
+		private double devCumPV, devCumV, devCumPV2;
+		private List<double> devVwap = new List<double>();
+		private List<double> devVwapSd = new List<double>();
+		private double curVwap = double.NaN; // today-only VWAP as of now; set by DrawDevelopingVA, read by the label block
+
 		// Tick-accurate accumulation (see header note).
 		private readonly object liveLock = new object();
 		private Dictionary<double, double> liveVolByRow;
@@ -116,6 +125,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public bool ShowPriorBand { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Labels", Order = 9, GroupName = "2 Show")]
 		public bool ShowLabels { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Session VWAP + bands", Order = 10, GroupName = "2 Show")]
+		public bool ShowVWAP { get; set; }
 
 		[NinjaScriptProperty] [Range(1, 20)] [Display(Name = "Node lookback (rows)", Order = 0, GroupName = "3 Nodes")]
 		public int NodeLookback { get; set; }
@@ -123,6 +134,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public double HvnFactor { get; set; }
 		[NinjaScriptProperty] [Range(0.0, 1.0)] [Display(Name = "LVN factor (x avg)", Order = 2, GroupName = "3 Nodes")]
 		public double LvnFactor { get; set; }
+
+		[NinjaScriptProperty] [Range(0.1, 5.0)] [Display(Name = "VWAP band 1 (x SD)", Order = 0, GroupName = "5 VWAP")]
+		public double VwapSdMult1 { get; set; }
+		[NinjaScriptProperty] [Range(0.1, 5.0)] [Display(Name = "VWAP band 2 (x SD)", Order = 1, GroupName = "5 VWAP")]
+		public double VwapSdMult2 { get; set; }
 
 		[XmlIgnore] [Display(Name = "POC", Order = 0, GroupName = "4 Colors")]
 		public System.Windows.Media.Brush PocColor { get; set; }
@@ -142,6 +158,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[XmlIgnore] [Display(Name = "Initial balance", Order = 5, GroupName = "4 Colors")]
 		public System.Windows.Media.Brush IbColor { get; set; }
 		[Browsable(false)] public string IbColorSerialize { get { return Serialize.BrushToString(IbColor); } set { IbColor = Serialize.StringToBrush(value); } }
+		[XmlIgnore] [Display(Name = "VWAP", Order = 6, GroupName = "4 Colors")]
+		public System.Windows.Media.Brush VwapColor { get; set; }
+		[Browsable(false)] public string VwapColorSerialize { get { return Serialize.BrushToString(VwapColor); } set { VwapColor = Serialize.StringToBrush(value); } }
 		#endregion
 
 		protected override void OnStateChange()
@@ -149,19 +168,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (State == State.SetDefaults)
 			{
 				Name = "PATs Profile (VP)";
-				Description = "Right-margin Volume Profile: POC, value area, HVN/LVN, RTH initial balance, prior-session zone, labels, composite.";
+				Description = "Right-margin Volume Profile: POC, value area, HVN/LVN, RTH initial balance, prior-session zone, developing VA staircase, session VWAP+SD bands, labels, composite.";
 				IsOverlay = true; IsChartOnly = true; DrawOnPricePanel = true; IsSuspendedWhileInactive = true;
 				RowTicks = 4; CompositeSessions = 1; VpWidthPx = 150; RightOffsetPx = 6;
 				Opacity = 0.85; LabelFontSize = 11; IbMinutes = 60; RthStartHHMM = 930;
 				ShowVP = true; ShowVAHVAL = true; ShowVABand = true; ShowPOC = true; ShowIB = true;
 				ShowHVN = true; ShowLVN = true; ShowPriorLines = true; ShowPriorBand = true; ShowLabels = true;
+				ShowVWAP = true;
 				NodeLookback = 4; HvnFactor = 1.2; LvnFactor = 0.7;
+				VwapSdMult1 = 1.0; VwapSdMult2 = 2.0;
 				PocColor = System.Windows.Media.Brushes.Orange;
 				VaColor = System.Windows.Media.Brushes.MediumPurple;
 				PriorColor = System.Windows.Media.Brushes.SteelBlue;
 				HvnColor = System.Windows.Media.Brushes.DarkTurquoise;
 				LvnColor = System.Windows.Media.Brushes.IndianRed;
 				IbColor = System.Windows.Media.Brushes.Goldenrod;
+				VwapColor = System.Windows.Media.Brushes.White;
 			}
 			else if (State == State.Configure) { rowSize = RowTicks * TickSize; }
 			else if (State == State.DataLoaded)
@@ -209,6 +231,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				obuSessionStartBar = CurrentBar;
 				devCumVol = new Dictionary<double, double>();
 				devVah.Clear(); devVal.Clear(); devPoc.Clear();
+				devVwap.Clear(); devVwapSd.Clear();
+				devCumPV = 0; devCumV = 0; devCumPV2 = 0;
 				devSessionStart = CurrentBar;
 				devFoldedThroughBar = CurrentBar - 1;
 			}
@@ -362,10 +386,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		// Merges one bar's OHLC-approx volume into the running devCumVol total, then
-		// records the resulting VA/POC as that bar's developing-series point. Always uses
+		// records the resulting VA/POC as that bar's developing-series point. Also folds
+		// the SAME bar's rows into the running VWAP sums (cumPV/cumV/cumPV2) in the same
+		// pass -- one dictionary built, two running series updated from it. Always uses
 		// the bar-split approximation (not tick data) -- this trail is about showing the
-		// TRUE SHAPE of how VA moved through the session, not matching the main numbers'
-		// tick-for-tick precision; keeping it simple also keeps the per-bar fold cheap.
+		// TRUE SHAPE of how VA/VWAP moved through the session, not matching the main
+		// numbers' tick-for-tick precision; keeping it simple also keeps the fold cheap.
 		private void FoldBarIntoDev(int barIndex)
 		{
 			if (barIndex < devSessionStart) return;
@@ -373,12 +399,34 @@ namespace NinjaTrader.NinjaScript.Indicators
 			foreach (KeyValuePair<double, double> kv in barVol)
 			{
 				double cv; devCumVol.TryGetValue(kv.Key, out cv); devCumVol[kv.Key] = cv + kv.Value;
+				devCumPV += kv.Key * kv.Value;
+				devCumV += kv.Value;
+				devCumPV2 += kv.Key * kv.Key * kv.Value;
 			}
 			double p = double.NaN, mv = 0;
 			foreach (KeyValuePair<double, double> kv in devCumVol) if (kv.Value > mv) { mv = kv.Value; p = kv.Key; }
 			double vl, vh;
 			ValueAreaOf(devCumVol, p, out vl, out vh);
 			devVah.Add(vh); devVal.Add(vl); devPoc.Add(p);
+
+			double vwap = devCumV > 0 ? devCumPV / devCumV : double.NaN;
+			double variance = devCumV > 0 ? Math.Max(0, devCumPV2 / devCumV - vwap * vwap) : 0;
+			devVwap.Add(vwap); devVwapSd.Add(Math.Sqrt(variance));
+		}
+
+		// Volume-weighted mean + SD of `vol` (same stats as the fold above, computed
+		// once from a full dictionary instead of incrementally) -- used for the VWAP
+		// live tip, which needs today's FULL current total, not a per-bar increment.
+		private void VwapOf(Dictionary<double, double> vol, out double vwap, out double sd)
+		{
+			double pv = 0, v = 0, pv2 = 0;
+			foreach (KeyValuePair<double, double> kv in vol)
+			{
+				pv += kv.Key * kv.Value; v += kv.Value; pv2 += kv.Key * kv.Key * kv.Value;
+			}
+			vwap = v > 0 ? pv / v : double.NaN;
+			double variance = v > 0 ? Math.Max(0, pv2 / v - vwap * vwap) : 0;
+			sd = Math.Sqrt(variance);
 		}
 
 		// Dalton volume value area (MOM Appendix 1): from POC, add the heavier of
@@ -487,6 +535,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush priorBandBr = new SolidColorBrush(RenderTarget, Dx(PriorColor, 0.14f));
 			SolidColorBrush hvnBr = new SolidColorBrush(RenderTarget, Dx(HvnColor, 0.95f));
 			SolidColorBrush lvnBr = new SolidColorBrush(RenderTarget, Dx(LvnColor, 0.95f));
+			SolidColorBrush vwapBr = new SolidColorBrush(RenderTarget, Dx(VwapColor, 0.9f));
 			HashSet<double> hvnSet = new HashSet<double>(hvn ?? new List<double>());
 			HashSet<double> lvnSet = new HashSet<double>(lvn ?? new List<double>());
 
@@ -529,7 +578,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (ShowVAHVAL && !double.IsNaN(vah)) { DrawLevel(chartScale, winStartX, todayStartX, vah, vaLineBr, 1.0f); DrawLevel(chartScale, winStartX, todayStartX, val, vaLineBr, 1.0f); }
 			}
 			if (ShowIB && ibh > double.MinValue) { DrawLevel(chartScale, todayStartX, vpMaxRight, ibh, ibBr, 0.9f); DrawLevel(chartScale, todayStartX, vpMaxRight, ibl, ibBr, 0.9f); }
-			DrawDevelopingVA(chartScale, chartControl, todayStartX, vpMaxRight, endBar, pocBr, vaLineBr, vaBandBr);
+			DrawDevelopingVA(chartScale, chartControl, todayStartX, vpMaxRight, endBar, pocBr, vaLineBr, vaBandBr, vwapBr);
 			// lines (prior)
 			if (ShowPriorLines && !double.IsNaN(pVah))
 			{
@@ -547,6 +596,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (ShowPOC && !double.IsNaN(poc)) AddLbl(labels, chartScale, "POC " + FmtP(poc), poc, pocBr, 0);
 				if (ShowVAHVAL && !double.IsNaN(vah)) { AddLbl(labels, chartScale, "VAH " + FmtP(vah), vah, vaLineBr, 0); AddLbl(labels, chartScale, "VAL " + FmtP(val), val, vaLineBr, 0); }
 				if (ShowIB && ibh > double.MinValue) { AddLbl(labels, chartScale, "IBH " + FmtP(ibh), ibh, ibBr, 0); AddLbl(labels, chartScale, "IBL " + FmtP(ibl), ibl, ibBr, 0); }
+				if (ShowVWAP && !double.IsNaN(curVwap)) AddLbl(labels, chartScale, "VWAP " + FmtP(curVwap), curVwap, vwapBr, 0);
 				// column 1 = prior VOLUME value area
 				if (ShowPriorLines && !double.IsNaN(pVah)) { AddLbl(labels, chartScale, "pVAH " + FmtP(pVah), pVah, priorLineBr, 1); AddLbl(labels, chartScale, "pPOC " + FmtP(pPoc), pPoc, priorLineBr, 1); AddLbl(labels, chartScale, "pVAL " + FmtP(pVal), pVal, priorLineBr, 1); }
 				DrawLabels(labels, labelX, vpMaxRight);
@@ -554,13 +604,29 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			teal.Dispose(); pocBr.Dispose(); vaLineBr.Dispose(); vaBandBr.Dispose(); ibBr.Dispose();
 			priorLineBr.Dispose(); priorBandBr.Dispose();
-			hvnBr.Dispose(); lvnBr.Dispose();
+			hvnBr.Dispose(); lvnBr.Dispose(); vwapBr.Dispose();
 		}
 
 		private void DrawLevel(ChartScale cs, float x0, float x1, double price, SolidColorBrush br, float wdt)
 		{
 			float y = cs.GetYByValue(price);
 			RenderTarget.DrawLine(new SharpDX.Vector2(x0, y), new SharpDX.Vector2(x1, y), br, wdt);
+		}
+
+		private void PolyLine(ChartScale cs, float x0, double price0, float x1, double price1, SolidColorBrush br, float wdt)
+		{
+			RenderTarget.DrawLine(new SharpDX.Vector2(x0, cs.GetYByValue(price0)), new SharpDX.Vector2(x1, cs.GetYByValue(price1)), br, wdt);
+		}
+
+		// VWAP center + both SD band pairs for one segment. Each endpoint uses its OWN sd
+		// (sd0 at x0, sd1 at x1), so the band width is itself a sloped line, not a fixed offset.
+		private void DrawVwapBand(ChartScale cs, float x0, double v0, double sd0, float x1, double v1, double sd1, SolidColorBrush br)
+		{
+			PolyLine(cs, x0, v0, x1, v1, br, 1.4f);
+			PolyLine(cs, x0, v0 + sd0 * VwapSdMult1, x1, v1 + sd1 * VwapSdMult1, br, 0.8f);
+			PolyLine(cs, x0, v0 - sd0 * VwapSdMult1, x1, v1 - sd1 * VwapSdMult1, br, 0.8f);
+			PolyLine(cs, x0, v0 + sd0 * VwapSdMult2, x1, v1 + sd1 * VwapSdMult2, br, 0.5f);
+			PolyLine(cs, x0, v0 - sd0 * VwapSdMult2, x1, v1 - sd1 * VwapSdMult2, br, 0.5f);
 		}
 
 		// Today's VA as a connected, filled staircase instead of a flat backward-extended
@@ -574,7 +640,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// static band/lines above -- this IS that same concept, just rendered honestly for
 		// a still-developing session instead of as a single backward-projected snapshot.
 		private void DrawDevelopingVA(ChartScale cs, ChartControl cc, float startX, float vpRight, int endBar,
-			SolidColorBrush pocBr, SolidColorBrush lineBr, SolidColorBrush fillBr)
+			SolidColorBrush pocBr, SolidColorBrush lineBr, SolidColorBrush fillBr, SolidColorBrush vwapBr)
 		{
 			if (devSessionStart < 0 || todayStartBar < 0) return;
 
@@ -583,14 +649,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 			List<double> vhs = new List<double>(n + 1);
 			List<double> vls = new List<double>(n + 1);
 			List<double> ps = new List<double>(n + 1);
+			List<double> vws = new List<double>(n + 1);
+			List<double> sds = new List<double>(n + 1);
 			for (int k = 0; k < n; k++)
 			{
 				xs.Add(cc.GetXByBarIndex(ChartBars, devSessionStart + k + 1)); // boundary = start of next bar
 				vhs.Add(devVah[k]); vls.Add(devVal[k]); ps.Add(devPoc[k]);
+				vws.Add(devVwap[k]); sds.Add(devVwapSd[k]);
 			}
 
-			// live tip: today-only VA as of right now (correct regardless of CompositeSessions
-			// -- reuses the exact same today-prefers-live-ticks logic the main VA uses).
+			// live tip: today-only VA/VWAP as of right now (correct regardless of
+			// CompositeSessions -- reuses the exact same today-prefers-live-ticks logic the
+			// main numbers use, ONE dict shared by both the VA and VWAP live calculations).
 			Dictionary<double, double> todayNow = new Dictionary<double, double>();
 			MergeSessionVolume(todayNow, todayStartBar, todayStartBar, endBar, true);
 			if (todayNow.Count > 0)
@@ -599,12 +669,35 @@ namespace NinjaTrader.NinjaScript.Indicators
 				foreach (KeyValuePair<double, double> kv in todayNow) if (kv.Value > tmv) { tmv = kv.Value; tp = kv.Key; }
 				double tvl, tvh;
 				ValueAreaOf(todayNow, tp, out tvl, out tvh);
+				double tvwap, tsd;
+				VwapOf(todayNow, out tvwap, out tsd);
 				xs.Add(vpRight); // stretch the final segment into the VP margin panel
 				vhs.Add(tvh); vls.Add(tvl); ps.Add(tp);
+				vws.Add(tvwap); sds.Add(tsd);
+				curVwap = tvwap;
 			}
+			else curVwap = double.NaN;
 
 			int cnt = xs.Count;
 			if (cnt == 0) return;
+
+			// VWAP + bands: a normal connected (sloping) line through each point, NOT a step --
+			// unlike VA, VWAP is a continuously-defined running mean, so a straight segment
+			// between consecutive values is both the standard rendering and the honest one.
+			// Each endpoint's band offset uses THAT point's own SD (not a single shared value),
+			// so the band width itself is a sloped line too, correctly narrow early/wide later.
+			if (ShowVWAP && cnt > 0 && !double.IsNaN(vws[0]))
+			{
+				// flat lead-in from session start to the first fold point, using bar 0's own
+				// value (there's no VWAP "before" any bar has closed) -- without this the line
+				// visibly started one bar later than the VA staircase and the price itself.
+				DrawVwapBand(cs, startX, vws[0], sds[0], xs[0], vws[0], sds[0], vwapBr);
+				for (int k = 0; k + 1 < cnt; k++)
+				{
+					if (double.IsNaN(vws[k]) || double.IsNaN(vws[k + 1])) continue;
+					DrawVwapBand(cs, xs[k], vws[k], sds[k], xs[k + 1], vws[k + 1], sds[k + 1], vwapBr);
+				}
+			}
 
 			float prevX = startX;
 			for (int k = 0; k < cnt; k++)
