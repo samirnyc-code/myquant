@@ -105,13 +105,16 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 				SignalBarIBS  = 66.0;
 				ContinueMC    = false;
 				ContinueOnGap = false;
-				// Lag=1: canonical value established in S124 ("matches the live chart"), reaffirmed
-				// in S137 when a Panel=1/Box=0 mismatch caused the two indicators to disagree on
-				// the same instrument/period. A later perf-focused session (S-2026-10-14) reset
-				// this Panel default to 0 without reconciling against that decision -- restored to
-				// 1 so Panel and Box ship with matching defaults (existing deployed instances keep
-				// whatever Lag they were set to; this only affects brand-new instances).
-				Lag           = 1;
+				// Lag=0: 2026-10-19, user explicit correction ("lag 0 is correct") while re-adding
+				// this exact indicator after the .My namespace move broke its saved chart
+				// reference (see handoff S146). S124's "Lag=1 is canonical" was established for
+				// RegimeTracker.cs (the base indicator), NOT this Panel specifically; S137/S138
+				// assumed Panel should match that value for "settings parity" with RegimeTrackerBox
+				// and changed Panel's default 0->1 on that INFERENCE, never a direct confirmation
+				// for Panel. That inference was wrong -- Panel's actual correct/intended value is 0,
+				// per this direct statement. Do not "reconcile" this back to 1 again without a fresh
+				// explicit user confirmation specifically about Panel.
+				Lag           = 0;
 				ResetOnNewSession  = true;
 				WeeklyResetOnly    = false;
 				CurrentSessionOnly = true;    // default ON: skip historical calc (O(n^2) swing rescan over the full lookback) — the 37.6s Utilization cost.
