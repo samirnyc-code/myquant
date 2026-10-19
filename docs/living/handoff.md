@@ -31,6 +31,15 @@ successfully (why that one never flatlined). Compile-checked clean (only the 3 p
 unrelated collisions: `SessionSRLevelsV9`/`V7` `LevelLineStyle`, `ClaudeTrackerV2`/
 `ClaudeTracker`/`TradeLifecycle` `ApproxExtensions`). Deployed to `Custom\Indicators\My\`,
 byte-verified. **PENDING USER verification via F5 — not confirmed live-correct by me.**
+**RE-VERIFIED (different chat, same day, in response to "ratio dying again???" with a fresh
+screenshot): the Custom-folder copies of all 3 files had DRIFTED back out of sync with this
+fix — a fresh `diff` found them stale, needing redeploy, despite the "Deployed... byte-
+verified" claim directly above. Cause not fully pinned down (plausible: two concurrent chats
+deploying to the same `Custom\Indicators\My\` files around the same time, one's write
+landing after the other's verification). Re-deployed + re-verified byte-identical just now.
+If this keeps happening, don't trust a prior session's "byte-verified" claim on these 3
+specific files without re-diffing first — cheap to check, confirmed cheap to be burned by
+not checking.**
 Also found and documented (separate, unrelated to the above): Friday 2026-10-16's L1
 recording is a stub — `ES_12-26_l1_2026-10-16.parquet` has only 476 rows, all stamped the
 identical timestamp `16:40:07.824` (a real session is hundreds of thousands of rows across
