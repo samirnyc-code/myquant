@@ -49,6 +49,14 @@ COOLDOWN_S = 600          # min seconds between restarts of one component
 DAILY_CAP = 5             # max restarts per component per day
 HEARTBEAT = ROOT / "data" / "_catalog" / "watchdog_heartbeat.txt"
 
+# 2026-10-19 (S146-recurring): data/bid_ask/bid_ask_vol_buckets.csv is a manual
+# snapshot, not a live stream -- BidAskVolumeRatio/Delta/Split and CumulativeDelta
+# (NT8, all OnMarketData-dependent) fall back to it for any bar whose live
+# accumulator was lost (e.g. a chart reload). Without a periodic re-run it falls
+# behind and reopens the exact gap it was built to close -- happened 3+ times in
+# one session before this was wired in. 30 min caps the worst-case gap.
+BID_ASK_BACKFILL_INTERVAL_S = 1800
+
 # staleness thresholds (seconds): slow = 5-min one-shot mode, fast = 10s daemon
 THRESH = {
     "feed":  {"slow": 180, "fast": 45},    # live.json writes every ~5s
@@ -199,6 +207,35 @@ COMPONENTS = [
 ]
 
 
+def refresh_bid_ask_backfill(state, today, dry_run=False):
+    """Periodic timer action, not a check-then-restart component: re-runs
+    backfill_bid_ask_log.py --day <today> --force on a fixed interval so the NT8
+    bid/ask bucket log never falls more than ~BID_ASK_BACKFILL_INTERVAL_S behind
+    live. Returns a problem string on failure, else None (success is silent/logged,
+    not notified -- this is routine, not an outage)."""
+    st = state.get("bid_ask_backfill", {})
+    since_last = ((dt.datetime.now() - dt.datetime.fromisoformat(st["last"])).total_seconds()
+                  if st.get("last") else 1e9)
+    if since_last < BID_ASK_BACKFILL_INTERVAL_S:
+        return None
+    if dry_run:
+        log(f"bid_ask_backfill: due for refresh (dry-run, not executing) — {since_last:.0f}s since last")
+        return None
+    script = ROOT / "scripts" / "backfill_bid_ask_log.py"
+    try:
+        r = subprocess.run([sys.executable, str(script), "--day", today, "--force"],
+                           capture_output=True, text=True, timeout=180,
+                           creationflags=0x08000000, cwd=str(ROOT))
+        ok = r.returncode == 0
+        tail = (r.stdout.strip().splitlines() or [""])[-1]
+        detail = tail[:200] if ok else (r.stderr.strip().splitlines() or [""])[-1][:200]
+    except Exception as e:
+        ok, detail = False, str(e)[:200]
+    state["bid_ask_backfill"] = {"last": dt.datetime.now().isoformat(timespec="seconds"), "ok": ok}
+    log(f"bid_ask_backfill: {'ok' if ok else 'FAILED'} — {detail}")
+    return None if ok else f"bid_ask_backfill: refresh failed — {detail}"
+
+
 def load_state():
     try:
         return json.loads(STATE.read_text())
@@ -284,8 +321,20 @@ def cycle(dry_run):
     except Exception as e:
         log(f"claude_tracker check failed: {e}")
 
+    try:
+        prob = refresh_bid_ask_backfill(state, today, dry_run)
+        if prob:
+            problems.append(prob)
+    except Exception as e:
+        log(f"bid_ask_backfill refresh failed: {e}")
+
+    # Always persist state, not just on problems: refresh_bid_ask_backfill updates
+    # state[...]["last"] on a SUCCESSFUL run (no problem appended) -- if save only
+    # happened inside the `if problems` branch below, that timestamp would never
+    # reach disk, load_state() would see it as "never run" every cycle, and the
+    # 30-min gate above would never actually hold (re-run every cycle instead).
+    save_state(state)
     if problems:
-        save_state(state)
         body = " | ".join(problems)
         log("ACTION " + body)
         try:
