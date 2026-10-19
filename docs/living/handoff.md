@@ -1,6 +1,45 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-19 (machine-time W. Europe) — **S146: NT8 bid/ask + CVD
+**Last Updated:** 2026-10-19 (machine-time W. Europe) — **S146 continued: found + fixed the
+REAL root cause of the BidAskVolumeRatio/Delta/Split flatline.** Morning health-check
+(`options_healthcheck.py`) run first: GATEWAY ok (paper, DUQ159823), LEVELS ok (GexLog GO,
+EM 7569.0–7750.0), GAMEPLAN ok (10 triggers armed) — FEED showed stale/closed and DAEMON
+showed a false "OK" because the check shells out to `wmic`, removed on this Windows build
+(silently no-ops instead of failing); verified directly via `Get-CimInstance Win32_Process`
+and `desk_watchdog.log` that this was just pre-market (watchdog's own CT clock: 08:05, before
+its 08:15/08:30/08:40 component-start windows) — not an actual outage. **Separately — user
+reported the bid/ask ratio panel dead flat for hours during LIVE RTH, called it impossible
+since price was moving.** First misdiagnosed as the already-documented backfill-snapshot gap
+(`bid_ask_vol_buckets.csv` cutoff lagging the L1 tape — re-ran `backfill_bid_ask_log.py
+--day 2026-10-19 --force` three times over the session, each time closing the gap to then-
+current CT, each time it reopened ~1-1.5h later since the script is a manual one-shot, not a
+continuous process — offered wiring it into `desk_watchdog.py` as a scheduled component,
+not yet done, awaiting user go-ahead). **User correctly rejected this as insufficient**
+("I will not accept not having a solution") and pushed for the real mechanism. Found it by
+reading `L1TapeRecorderAddOn.cs`: it subscribes to `Instrument.MarketData.Update` directly
+at the AddOn level and has recorded real Bid/Ask (Aggr A/B tags) flawlessly all month,
+including live through this exact "flat" window — proving the feed/connection was never
+the problem. `BidAskVolumeRatio.cs`/`BidAskVolumeDelta.cs`/`BidAskVolumeSplit.cs` instead
+each cached `lastAsk`/`lastBid` from separate `MarketDataType.Ask`/`Bid` push events inside
+the chart-indicator's own `OnMarketData` — a DIFFERENT subscription path than the AddOn's,
+and apparently not reliably delivered to this chart's indicator pipeline (any single missed
+Ask/Bid event starves ask/bid classification for the rest of the session with zero error).
+**Fix** (commit `fc71fac`): switched all 3 to read `e.Ask`/`e.Bid` — embedded directly in
+every `Last` tick's own event args regardless of `MarketDataType`, no dependency on a
+separate push event ever arriving — the same mechanism `CumulativeDelta.cs` already used
+successfully (why that one never flatlined). Compile-checked clean (only the 3 pre-existing
+unrelated collisions: `SessionSRLevelsV9`/`V7` `LevelLineStyle`, `ClaudeTrackerV2`/
+`ClaudeTracker`/`TradeLifecycle` `ApproxExtensions`). Deployed to `Custom\Indicators\My\`,
+byte-verified. **PENDING USER verification via F5 — not confirmed live-correct by me.**
+Also found and documented (separate, unrelated to the above): Friday 2026-10-16's L1
+recording is a stub — `ES_12-26_l1_2026-10-16.parquet` has only 476 rows, all stamped the
+identical timestamp `16:40:07.824` (a real session is hundreds of thousands of rows across
+~6.5h) — fed a degenerate value area into `session_vp_live_log.csv` (POC 7741.5/VAH 7742/
+VAL 7740.25, a 1.75pt spread vs normal tens-of-points), which is why "Y VA" (prior-session
+value area projected forward) looked invisible on today's chart — it's rendering, just as a
+near-zero-height box. Not fixable (the real Friday ticks were never captured); not touched.
+**Last updated, prior block preserved below —**
+**S146: NT8 bid/ask + CVD
 indicators — same "reloaded chart loses the plot" problem as S145's VP/POC-VA fix, now
 applied to `BidAskVolumeRatio.cs`, `BidAskVolumeDelta.cs`, `BidAskVolumeSplit.cs`, and
 `CumulativeDelta.cs` (all 4 depend on `OnMarketData`, which only fires on LIVE ticks —
