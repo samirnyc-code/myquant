@@ -1,5 +1,50 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-19 (machine-time W. Europe) — **S146 continued (separate chat):
+PATsProfile VP/TPO rewrite + the bid/ask backfill gap finally wired to auto-refresh.**
+User asked for a review of `nt8/indicators/PATsProfile.cs` ("PATS VP TPO indicator"), then
+had it acted on: removed TPO entirely (VP-only now, "PATs Profile (VP)"); fixed float-
+accumulation drift in the row-walk loops (integer-indexed instead of repeated `+= rowSize`);
+fixed HVN/LVN marking every row in a tied-volume run instead of once. Added real tick-level
+VP precision: today's session now accumulates from genuine trade prints via `OnMarketData`
+(free — live data is already tick-by-tick regardless of this indicator), earlier sessions
+stay on the OHLC bar-split approximation unless the chart's own Data Series "Tick Replay"
+is on (`Bars.IsTickReplay`, read-only from an Indicator — confirmed via
+`NinjaTrader.Core.xml` that `IsTickReplay` is settable only on Strategies, not Indicators,
+after an initial attempt didn't compile). Closed sessions are now cached per-session instead
+of re-walked every recompute, which also made it cheap to drop the old "only recompute on
+new bar" gate — VAH/VAL/POC now track live ticks intrabar instead of sitting stale until bar
+close. IB (Initial Balance) now anchors to `RthStartHHMM` (default 0930, user must confirm
+this matches their chart's *displayed* timezone — not verified from this chat) instead of
+the session's own start bar, since on an ETH-inclusive chart the session start is the
+overnight/Globex open, not RTH open, and classical IB is RTH-only. **Caught and fixed a real
+bug of my own mid-session:** the first cut of the live-tick accumulator made `OnMarketData`
+switch today's volume source to `liveVolByRow` the instant the first live tick arrived post-
+reload, but nothing had seeded `liveVolByRow` with the session's already-elapsed bars first —
+today's VA visibly collapsed to "building from this moment" on reload (user: "this is BS").
+Fixed with `SeedLiveFromHistory()`, run once at the `State.Realtime` transition, backfilling
+from tick-replayed history if available else the bar-split approximation, before any live
+tick arrives. All compile-checked clean individually, deployed to `Custom\Indicators\`.
+**PENDING USER F5/verification — not confirmed live-correct by me.**
+**Separately, same session:** user hit the already-documented S146 bid/ask backfill gap (see
+block below) a 4th time ("why is the fucking bidaskvolume ratio flatlining AGIN!!!!",
+screenshot matching the exact known pattern — flat ~11:07–12:59 CT, moving again only at the
+live edge). Root-caused the same way as before (not a code bug — `bid_ask_vol_buckets.csv`
+was stuck at this morning's ~10:32 CT coverage), re-ran `backfill_bid_ask_log.py --day
+2026-10-19 --force` to close the gap to ~13:12 CT, committed. **This time, instead of just
+closing the gap again, wired the standing-but-unactioned proposal into `desk_watchdog.py`:**
+new `refresh_bid_ask_backfill()` re-runs the backfill script on a 30-min timer
+(`BID_ASK_BACKFILL_INTERVAL_S`), independent of the existing check-then-restart `COMPONENTS`
+loop (this is a periodic job, not a process to monitor for death/staleness). User explicitly
+approved via AskUserQuestion before this was wired in (scheduled-task-adjacent change).
+Caught a real bug while building it: `cycle()` only called `save_state()` inside `if
+problems:` — a successful backfill refresh updates `state` in memory but appends no problem,
+so the timestamp would never reach disk and the 30-min gate would never actually hold (every
+cycle would see "last: never" and re-run). Made `save_state()` unconditional. Tested: dry-run
+logs without executing, live run executes + persists, immediate second run correctly skips
+(gate holds). Committed. **Not yet confirmed this survives a real Task Scheduler cycle live
+during RTH — only tested via manual `python scripts/desk_watchdog.py` invocations.**
+**Last updated, prior block preserved below —**
 **Last Updated:** 2026-10-19 (machine-time W. Europe) — **S146 continued: found + fixed the
 REAL root cause of the BidAskVolumeRatio/Delta/Split flatline.** Morning health-check
 (`options_healthcheck.py`) run first: GATEWAY ok (paper, DUQ159823), LEVELS ok (GexLog GO,
