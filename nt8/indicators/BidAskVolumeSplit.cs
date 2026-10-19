@@ -41,7 +41,6 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 {
     public class BidAskVolumeSplit : Indicator
     {
-        private double lastAsk, lastBid;
         private double curAskVol, curBidVol;
         private int    accBar = -1;   // CurrentBar the live accumulators belong to
 
@@ -131,15 +130,19 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
         protected override void OnMarketData(MarketDataEventArgs e)
         {
-            if (e.MarketDataType == MarketDataType.Ask) { lastAsk = e.Price; return; }
-            if (e.MarketDataType == MarketDataType.Bid) { lastBid = e.Price; return; }
             if (e.MarketDataType != MarketDataType.Last) return;
 
             if (CurrentBar != accBar) { curAskVol = 0; curBidVol = 0; accBar = CurrentBar; }
 
-            if (lastAsk <= 0 || lastBid <= 0) return;   // quotes not seeded yet this session
-            if (e.Price >= lastAsk)      curAskVol += e.Volume;
-            else if (e.Price <= lastBid) curBidVol += e.Volume;
+            // 2026-10-19 FIX: see BidAskVolumeRatio.cs's OnMarketData for the full root-cause
+            // note — was caching lastAsk/lastBid from separate MarketDataType.Ask/Bid push
+            // events that this chart's indicator pipeline wasn't reliably delivering. e.Ask/
+            // e.Bid are embedded in every Last event's own args; use those instead (same fix
+            // as BidAskVolumeRatio.cs / BidAskVolumeDelta.cs, matches CumulativeDelta.cs).
+            double ask = e.Ask, bid = e.Bid;
+            if (ask <= 0 || bid <= 0) return;   // quotes not seeded yet this session
+            if (e.Price >= ask)      curAskVol += e.Volume;
+            else if (e.Price <= bid) curBidVol += e.Volume;
         }
 
         protected override void OnBarUpdate()

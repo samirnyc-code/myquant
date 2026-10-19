@@ -59,7 +59,6 @@ namespace NinjaTrader.NinjaScript.Indicators.My
     // choice).
     public class BidAskVolumeRatio : Indicator
     {
-        private double lastAsk, lastBid;
         private double curAskVol, curBidVol;
         private int    accBar = -1;   // CurrentBar the live accumulators belong to
 
@@ -166,15 +165,24 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
         protected override void OnMarketData(MarketDataEventArgs e)
         {
-            if (e.MarketDataType == MarketDataType.Ask) { lastAsk = e.Price; return; }
-            if (e.MarketDataType == MarketDataType.Bid) { lastBid = e.Price; return; }
             if (e.MarketDataType != MarketDataType.Last) return;
 
             if (CurrentBar != accBar) { curAskVol = 0; curBidVol = 0; accBar = CurrentBar; }
 
-            if (lastAsk <= 0 || lastBid <= 0) return;   // quotes not seeded yet this session
-            if (e.Price >= lastAsk)      curAskVol += e.Volume;
-            else if (e.Price <= lastBid) curBidVol += e.Volume;
+            // 2026-10-19 FIX: was caching lastAsk/lastBid from separate MarketDataType.Ask/
+            // Bid push events, which this chart's indicator pipeline was not reliably
+            // delivering (confirmed live: price ticked all session, ratio stayed dead flat
+            // for hours, while L1TapeRecorderAddOn's own independent MarketData.Update
+            // subscription on the same instrument/connection recorded Bid/Ask fine the whole
+            // time — so the feed was never the problem, this indicator's event-type
+            // dependency was). e.Ask/e.Bid are embedded directly in every Last event's own
+            // args (NT8 always stamps the current top-of-book snapshot onto each tick,
+            // regardless of MarketDataType) — same mechanism CumulativeDelta.cs already uses
+            // successfully, no dependency on a separate push event ever arriving.
+            double ask = e.Ask, bid = e.Bid;
+            if (ask <= 0 || bid <= 0) return;   // quotes not seeded yet this session
+            if (e.Price >= ask)      curAskVol += e.Volume;
+            else if (e.Price <= bid) curBidVol += e.Volume;
             // price strictly between a stale/wide bid-ask: left unclassified, same as the
             // standard NT8 tick-rule pattern (no documented Sierra tie-break to match).
         }
