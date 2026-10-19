@@ -66,6 +66,25 @@ byte-verified. **PENDING USER F5/verification — not confirmed visually correct
 user has explicitly stated distrust this session ("I don't trust you") — treat any claim of
 "this works" from me on this feature as unverified until the user confirms on their own
 screen.**
+**Follow-up same session — user asked why the new developing VA staircase lagged price on a
+sustained down-move.** Explained this is expected/correct for a session-expanding developing
+VA (the Dalton/CBOT standard — VA reflects cumulative volume, not price location, and
+legitimately lags during trend days; the separation is itself a trend-day signal, not a bug).
+User then asked "what do the pros use" — laid out the real menu (session-expanding VA as-is;
+rolling/fixed-window VP; VWAP+-SD bands, the actual prop/bank-desk default for a continuously-
+current fair-value reference; Sierra's split/multiple-distribution profile; or running two
+side by side) and recommended keeping the expanding VA as the diagnostic + adding VWAP+-SD as
+the fast-tracking companion. User said "build it." Built: new `ShowVWAP` toggle, `VwapSdMult1`/
+`VwapSdMult2` (default 1.0/2.0), `VwapColor` (White default). Reuses the exact same
+`FoldBarIntoDev` incremental fold already built for the VA staircase — same per-bar dict, two
+running stats (`cumPV`/`cumV`/`cumPV2` -> vwap/sd) instead of one. Rendered as a normal
+connected sloping line (not stepped, unlike VA — VWAP is continuously-defined), each band
+segment's two endpoints using their own SD so the band width itself slopes correctly. Live tip
+reuses the same `todayNow` dict already built for the VA live tip. Caught a bug before
+deploying: the VWAP line's first segment only started at the first fold boundary, visibly one
+bar later than price/VA — fixed with an explicit flat lead-in from session start using bar 0's
+own value. Compile-checked clean, deployed, byte-verified. **PENDING USER F5/verification —
+not confirmed visually correct by me.**
 **Last updated, prior block preserved below —**
 **Last Updated:** 2026-10-19 (machine-time W. Europe) — **S146 continued: found + fixed the
 REAL root cause of the BidAskVolumeRatio/Delta/Split flatline.** Morning health-check
