@@ -79,18 +79,13 @@ using SharpDX;
 using SharpDX.Direct2D1;
 #endregion
 
-namespace NinjaTrader.NinjaScript
-{
-    // Defined in the PARENT namespace, NOT in .Indicators — same NT8 cross-namespace
-    // wrapper-regeneration issue as BavrDiffMethod/BavrMaType in BidAskVolumeRatio.cs and
-    // CvdCumulativeMode in CVDDivergenceOscillator.cs. See that file's comment for the full
-    // explanation; hit on F5 2026-10-19 (pre-existing enum, surfaced on this file's first
-    // real NT8 build since being added, same as BidAskVolumeRatio.cs).
-    public enum CvdResetMode { Session, None }
-}
-
 namespace NinjaTrader.NinjaScript.Indicators.My
 {
+    // CvdResetMode lives in BidAskSharedEnums.cs (namespace NinjaTrader.NinjaScript) — NOT
+    // redeclared here, and deliberately NOT a second namespace block in THIS file either;
+    // see that file's header for why (a real, confirmed NT8 wrapper-generation bug: a second
+    // top-level namespace block in a file that ALSO contains an Indicator class breaks NT8's
+    // "My." relative-prefix generation for that class's own convenience-constructor wrapper).
     public class CumulativeDelta : Indicator
     {
         private Series<double> cvO, cvH, cvL, cvC;   // per-bar CVD open/high/low/close

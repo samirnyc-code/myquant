@@ -51,25 +51,12 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
-namespace NinjaTrader.NinjaScript
-{
-    // Defined in the PARENT namespace, NOT in .Indicators — same reason as
-    // SessionSRLevelsV9.cs's LevelLineStyle / CVDDivergenceOscillator.cs's CvdCumulativeMode:
-    // NT8 regenerates wrapper code in the sibling .MarketAnalyzerColumns and .Strategies
-    // namespaces on every compile using the unqualified enum name, so a [NinjaScriptProperty]
-    // enum must live where all three child namespaces can see it by walking up to this common
-    // parent. Declaring it in .Indicators compiles fine standalone (nt8_compile_check.ps1 does
-    // NOT catch this — it doesn't replicate NT8's own wrapper-generation step) but throws
-    // CS0246 in NT8's own generated wrapper code the moment the whole Custom tree builds
-    // together (2026-10-19 — hit this exact error on F5 after adding the L1-tape backfill;
-    // these two enums existed before that change too, so the backfill wasn't the actual
-    // cause, just the point this file got its first real NT8 F5 since being added).
-    public enum BavrDiffMethod { AskMinusBid, BidMinusAsk }
-    public enum BavrMaType { Simple, Exponential, Weighted, LinearRegression, Wilders, Smoothed }
-}
-
 namespace NinjaTrader.NinjaScript.Indicators.My
 {
+    // BavrDiffMethod/BavrMaType live in BidAskSharedEnums.cs (namespace NinjaTrader.NinjaScript)
+    // — NOT redeclared here, and deliberately NOT a second namespace block in THIS file either;
+    // see that file's header for why (a real, confirmed NT8 wrapper-generation bug, not a style
+    // choice).
     public class BidAskVolumeRatio : Indicator
     {
         private double lastAsk, lastBid;

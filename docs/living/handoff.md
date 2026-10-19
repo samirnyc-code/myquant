@@ -59,9 +59,40 @@ both prior instances: moved all 3 into a `namespace NinjaTrader.NinjaScript { }`
 (the shared parent) ahead of each file's `.Indicators.My` block. Verified no name collision
 with any other enum already in that parent namespace across `nt8/` (grepped). Compile-
 checked (both files individually clean; full-repo check unchanged — still only the same 3
-pre-existing unrelated collisions). Re-deployed both files, byte-verified. **PENDING USER
-F5 — this is now the SECOND F5 attempt; if it throws again, paste the exact error table
-again rather than assuming another blind guess will land.** S145: NT8 `SessionSRLevelsV10`
+pre-existing unrelated collisions). Re-deployed both files, byte-verified.
+**SECOND CORRECTION, same session — user's SECOND F5 threw a DIFFERENT error**
+("BidAskVolumeRatio"/"CumulativeDelta" — the CLASS names themselves — "could not be found"/
+"does not exist in the namespace 'NinjaTrader.NinjaScript.Indicators'", not the enum names
+this time). Root-caused by DIRECTLY COMPARING the deployed file against a known-working
+file instead of guessing again: NT8 appends a "#region NinjaScript generated code" block to
+the bottom of an indicator's .cs file on compile (confirmed by reading the actual deployed
+bytes — this is NOT a separate generated file, it's appended IN PLACE). For a correctly-
+structured single-namespace-block file (checked `MyWedge.cs`, `SessionSRLevelsV10.cs`, both
+long-working), NT8 writes the convenience-constructor wrapper using a `My.ClassName`
+relative-qualified reference — and it resolves fine. For `BidAskVolumeRatio.cs`/
+`CumulativeDelta.cs`, after the FIRST fix added a SECOND top-level `namespace
+NinjaTrader.NinjaScript { enum... }` block ahead of the class's own namespace block in the
+SAME file, NT8's generator instead wrote the BARE unqualified class name (no `My.` prefix)
+— which can't resolve from `namespace NinjaTrader.NinjaScript.Indicators` (a sibling of,
+not an ancestor of, `.Indicators.My`, where the class actually lives). **A second, distinct
+NT8 generator quirk, not the same bug as the enum one** — having TWO top-level namespace
+blocks in one indicator file breaks NT8's "My." prefix detection for that file's generated
+wrapper, independent of what's inside either block. Fix: moved `BavrDiffMethod`/
+`BavrMaType`/`CvdResetMode` OUT of both indicator files entirely, into a new standalone
+`nt8/indicators/BidAskSharedEnums.cs` (single file, single `namespace
+NinjaTrader.NinjaScript { }` block, no Indicator class — nothing for NT8's generator to
+produce wrapper code FOR, so it can't collide with anything). `BidAskVolumeRatio.cs` and
+`CumulativeDelta.cs` are back to exactly ONE namespace block each, matching the proven-
+working `MyWedge.cs`/`SessionSRLevelsV10.cs` pattern byte-for-byte. Compile-checked (all 3
+files individually clean; full-repo check unchanged, still only the same 3 pre-existing
+unrelated collisions). Deployed (new file + both fixes), byte-verified. **NOTE for later:**
+`SessionSRLevelsV9.cs`'s `LevelLineStyle` and `CVDDivergenceOscillator.cs`'s
+`CvdCumulativeMode` both use the SAME two-namespace-block-per-file pattern that just broke
+here — they haven't hit this error only because neither currently has an NT8-generated
+wrapper region in its deployed copy (never gone through whatever triggers full wrapper
+generation), i.e. this is a LATENT, not-yet-triggered risk in both, left alone this round to
+keep the fix minimal — worth the same `BidAskSharedEnums.cs`-style treatment if either ever
+throws this. **PENDING USER F5 — third attempt.** S145: NT8 `SessionSRLevelsV10`
 developing POC/Value-Area — backfilled from the recorded L1 tape instead of waiting on the
 live-only accumulation.** V10's `ShowDevPocVa` feature (S142+) bins price/volume per-tick via
 `OnMarketData`, which NT8 only fires on LIVE ticks (not historical bars) — by design, its
