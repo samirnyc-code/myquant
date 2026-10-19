@@ -21,11 +21,25 @@
 // bars. Every bar before this indicator was actually running live on a connected feed
 // will show 0, not a reconstructed value. This is not a bug to fix; it is the same
 // limitation Sierra documents for its own study.
+//
+// 2026-10-19 BACKFILL: the above is still true of OnMarketData itself, but a bar that has
+// NO live tick data now falls back to data/bid_ask/bid_ask_vol_buckets.csv — built by
+// scripts/backfill_bid_ask_log.py, which replays the recorded L1 tape (data/l1_tape/) into
+// 1-second (ask_vol,bid_vol) buckets via the tape's own Aggr aggressor tag. Each bar sums
+// exactly the buckets inside its own (prevBarClose, thisBarClose] window — bar-ACCURATE
+// regardless of bar type (tick/time/renko), not a pre-baked guess at one granularity. A bar
+// that received live ticks keeps using the live accumulators (accBar==CurrentBar), unchanged
+// and exact; only bars that never went live fall back. Days with no backfill file still read
+// 0, same as before. NOT guaranteed byte-identical to the live tick-rule (price vs last
+// quote) — Aggr is the tape's own independently-resolved aggressor tag, a very close proxy.
 
 #region Using declarations
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.IO;
 using System.Windows.Media;
 using System.Xml.Serialization;
 using NinjaTrader.Cbi;
@@ -52,6 +66,75 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         [XmlIgnore] [Browsable(false)] public Series<double> BidVol;
         [XmlIgnore] [Browsable(false)] public Series<double> RawRatio;   // unsmoothed per-bar VR
 
+        // ── L1-tape backfill for bars with no live tick data (2026-10-19) ──────────────
+        private struct BidAskBucket { public DateTime ts; public double askVol, bidVol; }
+        private const string BucketLogPath = @"C:\Users\Admin\myquant\data\bid_ask\bid_ask_vol_buckets.csv";
+        private List<BidAskBucket> _buckets = new List<BidAskBucket>();
+        private int _bucketCursor;
+        // Shared across instances of THIS class within one NT8 session (not across the other
+        // 3 indicator classes — each is a separate type with its own static cache) so adding
+        // several of these to the same chart / reloading repeatedly doesn't re-parse a ~30MB
+        // file every time; invalidated automatically if the backfill file's write time changes.
+        private static List<BidAskBucket> _bucketsCache;
+        private static DateTime _bucketsCacheFileTime = DateTime.MinValue;
+        private TimeZoneInfo _ctTz;
+
+        private void LoadBidAskBuckets()
+        {
+            _buckets = new List<BidAskBucket>(); _bucketCursor = 0;
+            try { _ctTz = TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time"); }
+            catch { _ctTz = null; }
+            if (!File.Exists(BucketLogPath)) return;
+
+            DateTime fileTime = File.GetLastWriteTimeUtc(BucketLogPath);
+            if (_bucketsCache != null && fileTime == _bucketsCacheFileTime)
+            { _buckets = _bucketsCache; return; }
+
+            var list = new List<BidAskBucket>();
+            try
+            {
+                foreach (string line in File.ReadAllLines(BucketLogPath))
+                {
+                    if (line.Length == 0 || line[0] == 'd') continue;   // header: "date,..."
+                    string[] p = line.Split(',');
+                    if (p.Length < 4) continue;
+                    DateTime ts; double a, b;
+                    if (DateTime.TryParse(p[1], CultureInfo.InvariantCulture, DateTimeStyles.None, out ts)
+                        && double.TryParse(p[2], NumberStyles.Any, CultureInfo.InvariantCulture, out a)
+                        && double.TryParse(p[3], NumberStyles.Any, CultureInfo.InvariantCulture, out b))
+                        list.Add(new BidAskBucket { ts = ts, askVol = a, bidVol = b });
+                }
+                list.Sort((x, y) => x.ts.CompareTo(y.ts));
+            }
+            catch (Exception ex) { Print(Name + ": could not read bid/ask bucket log: " + ex.Message); return; }
+
+            _bucketsCache = list; _bucketsCacheFileTime = fileTime;
+            _buckets = list;
+        }
+
+        private DateTime ConvertToCt(DateTime t)
+        {
+            if (_ctTz == null) return t;
+            TimeZoneInfo displayTz = NinjaTrader.Core.Globals.GeneralOptions.TimeZoneInfo;
+            return displayTz.Equals(_ctTz) ? t : TimeZoneInfo.ConvertTime(t, displayTz, _ctTz);
+        }
+
+        // Sums every bucket with ts in (whatever the cursor already consumed, barCloseTime] —
+        // a monotonic forward-only walk, correct because NT8 always calls OnBarUpdate in
+        // strict chronological order (historical replay AND live) for a single primary series.
+        private void AdvanceBucketCursor(DateTime barCloseTime, out double ask, out double bid)
+        {
+            ask = 0; bid = 0;
+            if (_buckets.Count == 0) return;
+            DateTime t = ConvertToCt(barCloseTime);
+            while (_bucketCursor < _buckets.Count && _buckets[_bucketCursor].ts <= t)
+            {
+                ask += _buckets[_bucketCursor].askVol;
+                bid += _buckets[_bucketCursor].bidVol;
+                _bucketCursor++;
+            }
+        }
+
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
@@ -76,6 +159,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 AskVol   = new Series<double>(this, MaximumBarsLookBack.Infinite);
                 BidVol   = new Series<double>(this, MaximumBarsLookBack.Infinite);
                 RawRatio = new Series<double>(this, MaximumBarsLookBack.Infinite);
+                LoadBidAskBuckets();
             }
         }
 
@@ -96,12 +180,18 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
         protected override void OnBarUpdate()
         {
-            AskVol[0] = curAskVol;
-            BidVol[0] = curBidVol;
+            double histAsk, histBid;
+            AdvanceBucketCursor(Time[0], out histAsk, out histBid);
+            bool liveThisBar = accBar == CurrentBar;
+            double ask = liveThisBar ? curAskVol : histAsk;
+            double bid = liveThisBar ? curBidVol : histBid;
 
-            double denom = curAskVol + curBidVol;
+            AskVol[0] = ask;
+            BidVol[0] = bid;
+
+            double denom = ask + bid;
             double sign  = DiffMethod == BavrDiffMethod.AskMinusBid ? 1.0 : -1.0;
-            RawRatio[0]  = denom > 0 ? 100.0 * sign * (curAskVol - curBidVol) / denom : 0.0;
+            RawRatio[0]  = denom > 0 ? 100.0 * sign * (ask - bid) / denom : 0.0;
 
             Values[0][0] = ComputeMA();
         }

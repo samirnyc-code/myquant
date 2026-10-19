@@ -1,6 +1,49 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-18 (machine-time W. Europe) — **S145: NT8 `SessionSRLevelsV10`
+**Last Updated:** 2026-10-19 (machine-time W. Europe) — **S146: NT8 bid/ask + CVD
+indicators — same "reloaded chart loses the plot" problem as S145's VP/POC-VA fix, now
+applied to `BidAskVolumeRatio.cs`, `BidAskVolumeDelta.cs`, `BidAskVolumeSplit.cs`, and
+`CumulativeDelta.cs` (all 4 depend on `OnMarketData`, which only fires on LIVE ticks —
+every bar before the indicator went live reads 0/flatline, documented NT8 limitation, not
+a bug). User: "the L1 recorder works and the bid ask vol ratio works but when I reloaded
+the data the bid ask ratio plot was gone... rebuild the plots if the L1 data is available
+recorded, also rebuild the cumulative delta plot, rebuild all bid ask plots." Built new
+`scripts/backfill_bid_ask_log.py`: replays the recorded L1 tape into 1-second
+(ask_vol,bid_vol) buckets via the tape's own `Aggr` aggressor tag (same classification
+`bid_ask_volume_ratio_l1.py` already uses, NOT guaranteed byte-identical to each
+indicator's own live tick-rule — documented, not hidden) → ONE shared file,
+`data/bid_ask/bid_ask_vol_buckets.csv`. Ran it for all 22 available L1 days (21 backfilled
++ today 10-19, which crossed the stub threshold since the recorder kept running): 849,565
+new rows, ~1m22s, file now 897,670 rows / 33MB. **NT8 side, same pattern in all 4 files:**
+a `List<BidAskBucket>` loaded once at `State.DataLoaded` (static-cached per class, keyed by
+the file's own write-time, so repeated F5 reloads on the same NT8 session don't re-parse a
+33MB file every time) + a single forward-only cursor per indicator instance that sums
+exactly the buckets inside each bar's own `(prevClose, thisClose]` window — bar-ACCURATE
+regardless of bar type (tick/time/renko/whatever the chart uses), not a pre-baked guess at
+one granularity; correct because NT8 always calls `OnBarUpdate` in strict chronological
+order. A bar that DID get live tick data (`accBar==CurrentBar`) is left completely
+untouched — exact, unchanged. `CumulativeDelta.cs` needed the harder cumulative version:
+walks buckets adding `(ask-bid)` into the running `runCum` (not reset per bar) and tracks
+real open/high/low/close along the way — same session-reset (`ResetMode==Session`) applied
+before reconstructing — so historical bars now get REAL candles, not the old flatlined
+"last known value," and the existing live divergence tracker (`UpdateDivergence`) now
+naturally works back through backfilled history too, since it just reads `cvC[]` same as
+always. **Separately, caught and fixed a real bug while investigating the user's live
+follow-up ("I dont think the Bid Ask Volume Delta graph makes much sense... it plots blue
+bars every once in a while, thats it?"):** `BidAskVolumeDelta.cs`'s `DownColor` AND
+`BidAskVolumeSplit.cs`'s "Bid Vol" plot both defaulted to `Brushes.LightGray` — nearly
+invisible against NT8's dark panel background, so negative-delta/bid-side bars WERE
+rendering, just unseeable; only the positive side ever registered visually. Fixed both to
+`Firebrick` (matches `CumulativeDelta.cs`'s own established down-color convention).
+**CVD Oscillator label-toggle ask turned out to already exist:** `CVDDivergenceOscillator.cs`
+already has `ShowLabels` (bool, "2. Display Setting" group) gating the `+RD`/`-RD`
+`Draw.Text` calls while the `Draw.Line` connecting lines (both panels) stay unconditional —
+confirmed deployed byte-identical to the repo copy. Nothing built for this part, just
+pointed the user at the existing checkbox. All 4 backfilled files compile-checked (each
+individually clean; full-repo check shows only the same 3 pre-existing unrelated
+collisions already documented in S144/S145 — confirmed no new ones) and deployed to
+`Custom\Indicators\My\`, byte-verified via `diff`. **PENDING USER F5 — not visually
+verified by me.** S145: NT8 `SessionSRLevelsV10`
 developing POC/Value-Area — backfilled from the recorded L1 tape instead of waiting on the
 live-only accumulation.** V10's `ShowDevPocVa` feature (S142+) bins price/volume per-tick via
 `OnMarketData`, which NT8 only fires on LIVE ticks (not historical bars) — by design, its
@@ -2303,7 +2346,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 
 | # | workstream | status | next action |
 |---|---|---|---|
-| 24 | **NT8 order-flow build: Bid/Ask Delta+Split, CVD live divergence, SessionSRLevelsV10 POC/VA, L1 recorder restart** | 🟡 PENDING USER F5 (S143 2026-10-18); **VP log backfilled from L1 tape (S145 2026-10-18)** | User is compiling live now as ETH opens. Watch for: `DrawOnPricePanel` actually routing CVD divergence lines to the price panel (unverified mechanism); label overlap if divergences cluster (no de-collision yet); `ReversalTicks` default (8t/2pt) likely too sensitive for the usual 16t/4pt Flex Renko box — raise it there; V9.cs must stay deployed alongside V10.cs (shared `LevelLineStyle` enum). **S145: `data/vp_levels/session_vp_live_log.csv` backfilled 21 real days (09-16→10-14) via new `scripts/backfill_vp_log.py`, off the recorded L1 tape — no longer empty-until-live-runs-forward.** User still needs to enable `ShowDevPocVa` + raise `VpHistSessions` on the live indicator + F5 to see it. See S143 + S145 blocks. |
+| 24 | **NT8 order-flow build: Bid/Ask Delta+Split, CVD live divergence, SessionSRLevelsV10 POC/VA, L1 recorder restart** | 🟡 PENDING USER F5 (S143 2026-10-18); VP log backfilled (S145 2026-10-18); **bid/ask + CVD plots backfilled (S146 2026-10-19)** | User is compiling live now as ETH opens. Watch for: `DrawOnPricePanel` actually routing CVD divergence lines to the price panel (unverified mechanism); label overlap if divergences cluster (no de-collision yet); `ReversalTicks` default (8t/2pt) likely too sensitive for the usual 16t/4pt Flex Renko box — raise it there; V9.cs must stay deployed alongside V10.cs (shared `LevelLineStyle` enum). S145: `data/vp_levels/session_vp_live_log.csv` backfilled 21 real days via `scripts/backfill_vp_log.py`. **S146: `BidAskVolumeRatio.cs`/`BidAskVolumeDelta.cs`/`BidAskVolumeSplit.cs`/`CumulativeDelta.cs` all now fall back to `data/bid_ask/bid_ask_vol_buckets.csv` (new `scripts/backfill_bid_ask_log.py`, 1-sec buckets off the L1 tape's `Aggr` tag) for any bar with no live tick data — reloading no longer loses the plot. Also fixed a real LightGray-on-dark-background invisible-bar bug in Delta/Split's down-color defaults (→ Firebrick). CVD Oscillator's "turn off labels, keep lines" ask already existed (`ShowLabels` property) — nothing built, just pointed at it.** User still needs to F5. See S143 + S145 + S146 blocks. |
 | 1 | 0DTE live desk (paper) | 🟢 RUNNING | trades daily; just watch the book |
 | 2 | ThetaData fill-validation | ✅ DONE (S113) | validated; report built; nothing pending |
 | 3 | **Stress-test SANDBOX + July-2026 TD-only model** | 🔜 NEXT (primary) | build sandbox per S113 spec; exit-rule slider incl. zone-anchored |

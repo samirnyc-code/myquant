@@ -46,12 +46,27 @@
 // becoming an overlay itself — these two mechanisms are independent, so the same
 // instance can target both panels simultaneously.
 // RULE (CLAUDE.md): this .cs lives in nt8/ and stays committed.
+//
+// 2026-10-19 BACKFILL: a bar with no live tick data (accumBar != CurrentBar, i.e. OnMarketData
+// never touched it) now reconstructs its own cvO/cvH/cvL/cvC candle from
+// data/bid_ask/bid_ask_vol_buckets.csv (scripts/backfill_bid_ask_log.py, 1-second (ask_vol,
+// bid_vol) buckets from the recorded L1 tape's own Aggr aggressor tag — same file the three
+// BidAskVolume*.cs indicators read). Walking the buckets inside a bar's own (prevClose,
+// thisClose] window and tracking the running cumulative's min/max along the way gives a REAL
+// open/high/low/close reconstruction, not a flatlined "last known value" — the existing
+// NaN-seed fallback below stays as the final safety net for days with no backfill at all. This
+// also means the existing live divergence tracker (UpdateDivergence) now naturally works back
+// through backfilled history too, since it just reads cvC[]/GetValueAt() same as always. NOT
+// guaranteed byte-identical to the live embedded-quote+midpoint-tiebreak classification — Aggr
+// is the tape's own independently-resolved aggressor tag, a very close but different method.
 
 #region Using declarations
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.IO;
 using System.Windows.Media;
 using System.Xml.Serialization;
 using NinjaTrader.Cbi;
@@ -88,6 +103,76 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         private struct DivMark { public int barA, barB; public double cvdA, cvdB; public bool bearish; }
         private List<DivMark> hist = new List<DivMark>();           // frozen, historical marks (CVD-panel side)
         private DivMark? liveMark;                                   // currently-growing mark, or null
+
+        // ── L1-tape backfill for bars with no live tick data (2026-10-19) ──────────────
+        private struct BidAskBucket { public DateTime ts; public double askVol, bidVol; }
+        private const string BucketLogPath = @"C:\Users\Admin\myquant\data\bid_ask\bid_ask_vol_buckets.csv";
+        private List<BidAskBucket> _buckets = new List<BidAskBucket>();
+        private int _bucketCursor;
+        private static List<BidAskBucket> _bucketsCache;
+        private static DateTime _bucketsCacheFileTime = DateTime.MinValue;
+        private TimeZoneInfo _ctTz;
+
+        private void LoadBidAskBuckets()
+        {
+            _buckets = new List<BidAskBucket>(); _bucketCursor = 0;
+            try { _ctTz = TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time"); }
+            catch { _ctTz = null; }
+            if (!File.Exists(BucketLogPath)) return;
+
+            DateTime fileTime = File.GetLastWriteTimeUtc(BucketLogPath);
+            if (_bucketsCache != null && fileTime == _bucketsCacheFileTime)
+            { _buckets = _bucketsCache; return; }
+
+            var list = new List<BidAskBucket>();
+            try
+            {
+                foreach (string line in File.ReadAllLines(BucketLogPath))
+                {
+                    if (line.Length == 0 || line[0] == 'd') continue;
+                    string[] p = line.Split(',');
+                    if (p.Length < 4) continue;
+                    DateTime ts; double a, b;
+                    if (DateTime.TryParse(p[1], CultureInfo.InvariantCulture, DateTimeStyles.None, out ts)
+                        && double.TryParse(p[2], NumberStyles.Any, CultureInfo.InvariantCulture, out a)
+                        && double.TryParse(p[3], NumberStyles.Any, CultureInfo.InvariantCulture, out b))
+                        list.Add(new BidAskBucket { ts = ts, askVol = a, bidVol = b });
+                }
+                list.Sort((x, y) => x.ts.CompareTo(y.ts));
+            }
+            catch (Exception ex) { Print(Name + ": could not read bid/ask bucket log: " + ex.Message); return; }
+
+            _bucketsCache = list; _bucketsCacheFileTime = fileTime;
+            _buckets = list;
+        }
+
+        private DateTime ConvertToCt(DateTime t)
+        {
+            if (_ctTz == null) return t;
+            TimeZoneInfo displayTz = NinjaTrader.Core.Globals.GeneralOptions.TimeZoneInfo;
+            return displayTz.Equals(_ctTz) ? t : TimeZoneInfo.ConvertTime(t, displayTz, _ctTz);
+        }
+
+        // Cumulative variant of the other 3 indicators' AdvanceBucketCursor: walks every
+        // bucket up to barCloseTime, ADDING (ask-bid) into the running `runCum` (not
+        // resetting per bar — CVD is cumulative) and tracking this bar's own open/high/low/
+        // close along the way. `any` is false if no buckets were consumed (nothing to
+        // reconstruct for this bar — caller falls through to the existing NaN-seed fallback).
+        private void AdvanceCvdBuckets(DateTime barCloseTime, out double o, out double h, out double l, out double c, out bool any)
+        {
+            o = h = l = c = runCum; any = false;
+            if (_buckets.Count == 0) return;
+            DateTime t = ConvertToCt(barCloseTime);
+            while (_bucketCursor < _buckets.Count && _buckets[_bucketCursor].ts <= t)
+            {
+                runCum += _buckets[_bucketCursor].askVol - _buckets[_bucketCursor].bidVol;
+                if (runCum > h) h = runCum;
+                if (runCum < l) l = runCum;
+                _bucketCursor++;
+                any = true;
+            }
+            c = runCum;
+        }
 
         protected override void OnStateChange()
         {
@@ -127,6 +212,10 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 cvH = new Series<double>(this);
                 cvL = new Series<double>(this);
                 cvC = new Series<double>(this);
+            }
+            else if (State == State.DataLoaded)
+            {
+                LoadBidAskBuckets();
             }
             else if (State == State.Terminated)
             {
@@ -172,8 +261,28 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
         protected override void OnBarUpdate()
         {
-            // seed a value on bars with no ticks so the plot/scale stay continuous
             if (CurrentBar < 0) return;
+
+            // Historical bar (OnMarketData never touched it this chart load) — reconstruct
+            // a real open/high/low/close from the L1-tape backfill instead of leaving it to
+            // flatline. Skipped entirely for a bar that WAS live: OnMarketData already built
+            // its exact cvO/cvH/cvL/cvC/runCum during the tick stream, don't touch it.
+            bool liveThisBar = accumBar == CurrentBar;
+            if (!liveThisBar)
+            {
+                if (ResetMode == CvdResetMode.Session && Bars.IsFirstBarOfSession) runCum = 0;
+                double bo, bh, bl, bc; bool any;
+                AdvanceCvdBuckets(Time[0], out bo, out bh, out bl, out bc, out any);
+                if (any)
+                {
+                    cvO[0] = bo; cvH[0] = bh; cvL[0] = bl; cvC[0] = bc;
+                    Values[0][0] = bc; Values[1][0] = bh; Values[2][0] = bl;
+                }
+            }
+
+            // seed a flat value on bars with no data at all — neither live nor backfilled
+            // (no bucket file, or a day it doesn't cover) — so the plot/scale stay
+            // continuous. Final safety net, unchanged from before the backfill.
             if (double.IsNaN(cvC[0]))
             {
                 cvO[0] = cvH[0] = cvL[0] = cvC[0] = runCum;
