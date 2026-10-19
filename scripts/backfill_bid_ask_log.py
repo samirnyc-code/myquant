@@ -8,13 +8,15 @@ Writes ONE shared file every one of those indicators reads:
 
     data/bid_ask/bid_ask_vol_buckets.csv   date,timestamp,ask_vol,bid_vol
 
-`timestamp` is a full CT-naive calendar+clock time (not time-of-day — avoids
-midnight-wrap ambiguity for overnight buckets, same reasoning as
-session_vp_dev_trail.csv). Buckets are `--bucket-seconds` wide (default 1s — far
-finer than any realistic bar), so the NT8 side can sum exactly the buckets that fall
-inside each bar's own (prevClose, thisClose] window and get a bar-ACCURATE
-reconstruction regardless of bar type (tick/time/renko/whatever the chart uses),
-instead of a pre-baked bar-type-specific guess.
+`timestamp` is a full CT-naive calendar+clock time, millisecond precision (not
+time-of-day — avoids midnight-wrap ambiguity for overnight buckets, same reasoning
+as session_vp_dev_trail.csv). Buckets are `--bucket-trades` TRADES wide (default 50
+— NOT a fixed time width; see build_buckets()'s docstring for why: a fixed-time
+bucket is too coarse during a fast burst, which is exactly when a tick-based bar
+rolls fastest and needs the MOST resolution. Trade-count buckets adapt automatically
+instead), so the NT8 side can sum exactly the buckets that fall inside each bar's
+own (prevClose, thisClose] window and get a bar-ACCURATE reconstruction regardless
+of bar type (tick/time/renko/whatever the chart uses).
 
 Ask/bid volume per trade comes straight from the L1 tape's own `Aggr` column
 (A=ask aggressor, B=bid aggressor) — the SAME classification
@@ -29,7 +31,7 @@ Only ADDS days missing from the log; never overwrites a day already written, unl
 
     python scripts/backfill_bid_ask_log.py                  # all L1 tape days found
     python scripts/backfill_bid_ask_log.py --day 2026-10-13
-    python scripts/backfill_bid_ask_log.py --bucket-seconds 2
+    python scripts/backfill_bid_ask_log.py --bucket-trades 25
     python scripts/backfill_bid_ask_log.py --force
 """
 from __future__ import annotations
@@ -39,6 +41,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -79,13 +82,20 @@ def load_trades(path: Path) -> pd.DataFrame:
     return trades
 
 
-def build_buckets(trades: pd.DataFrame, bucket_seconds: int) -> pd.DataFrame:
-    t = trades.copy()
+def build_buckets(trades: pd.DataFrame, bucket_trades: int) -> pd.DataFrame:
+    """Bucket by a FIXED TRADE COUNT, not fixed time (2026-10-19 revision — fixed-time
+    buckets were too coarse during fast bursts: a 500-tick bar can complete in 1-2 seconds
+    during an active move, so a 1-second bucket gave that bar almost no intrabar variation
+    to reconstruct, which is exactly why CumulativeDelta.cs's historical candles looked like
+    a flat smooth line instead of real texture. Trade-count buckets adapt automatically: tight
+    in TIME exactly when trading is fast (matching a tick-based bar's own pacing), wide during
+    quiet periods (where the underlying bar is also slow, so there's nothing lost)."""
+    t = trades.sort_values("Time").reset_index(drop=True)
     t["ask"] = (t["Aggr"].astype(str) == "A") * t["Size"]
     t["bid"] = (t["Aggr"].astype(str) == "B") * t["Size"]
-    t["bucket"] = t["Time"].dt.floor(f"{bucket_seconds}s")
-    g = t.groupby("bucket", sort=True).agg(ask_vol=("ask", "sum"), bid_vol=("bid", "sum")).reset_index()
-    g = g[(g["ask_vol"] > 0) | (g["bid_vol"] > 0)]   # drop empty buckets (shouldn't exist after groupby, but cheap safety)
+    t["bucket"] = np.arange(len(t)) // bucket_trades
+    g = t.groupby("bucket", sort=True).agg(timestamp=("Time", "last"), ask_vol=("ask", "sum"), bid_vol=("bid", "sum")).reset_index(drop=True)
+    g = g[(g["ask_vol"] > 0) | (g["bid_vol"] > 0)]
     return g
 
 
@@ -98,7 +108,7 @@ def existing_days(log_path: Path) -> set[str]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--day", default=None, help="single day YYYY-MM-DD (default: every L1 tape day found)")
-    ap.add_argument("--bucket-seconds", type=int, default=1, help="bucket width in seconds (default 1 -- widen if this proves too large/slow)")
+    ap.add_argument("--bucket-trades", type=int, default=50, help="bucket width in TRADE COUNT, not time (default 50 -- adapts to bar speed; see build_buckets() docstring)")
     ap.add_argument("--force", action="store_true", help="recompute days already in the log and overwrite them")
     a = ap.parse_args()
 
@@ -122,10 +132,10 @@ def main() -> int:
             skipped.append((day, f"stub/partial file ({len(trades)} trade rows)"))
             continue
 
-        buckets = build_buckets(trades, a.bucket_seconds)
+        buckets = build_buckets(trades, a.bucket_trades)
         for _, r in buckets.iterrows():
-            rows_new.append((day, r["bucket"].strftime("%Y-%m-%d %H:%M:%S"), int(r["ask_vol"]), int(r["bid_vol"])))
-        print(f"{day}: {len(buckets):,} bucket(s) @ {a.bucket_seconds}s ({len(trades):,} trades, {path.name})")
+            rows_new.append((day, r["timestamp"].strftime("%Y-%m-%d %H:%M:%S.%f")[:-3], int(r["ask_vol"]), int(r["bid_vol"])))
+        print(f"{day}: {len(buckets):,} bucket(s) @ {a.bucket_trades} trades/bucket ({len(trades):,} trades, {path.name})")
 
     if rows_new:
         # ALWAYS load whatever's already on disk, even under --force -- force only means

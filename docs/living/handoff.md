@@ -119,6 +119,32 @@ ever got triggered there. Committed with a comment on both fixed lines warning n
 this logic again without reading it first. **User still needs to verify the gap actually
 closed on their end (not confirmed by me) — this only extends coverage to ~04:55 "today,"
 will need another `--force` re-run for anything after that point in the session.**
+**FOURTH round, same session — user screenshot: CumulativeDelta's panel rendered as a flat,
+near-smooth diagonal line, no visible texture ("not usable like this... maybe mountains?
+this doesn't show me anything") + "which indicator is producing all the text on the
+chart???"** Text answer: confirmed by exact string match (`"Bear Div"`/`"Bull Div"`/
+`"H.Bear Div"`/`"H.Bull Div"`) it's `CumulativeDelta.cs`'s OWN live divergence tracker —
+unlike `CVDDivergenceOscillator.cs` (which already has `ShowLabels`), this file had NO way
+to hide the text and keep just the lines. Added `ShowLabels` here too (`Draw.Line`
+unconditional, `Draw.Text` gated), same property name/behavior as the Oscillator's. Flat-line
+root cause: the bid/ask bucket backfill used FIXED 1-SECOND time buckets — on a fast
+tick-based chart (500-tick, confirmed from the screenshot), a bar can complete in 1-2
+seconds during an active move, so a 1-second bucket gave that bar almost no intrabar range
+to reconstruct; combined with each bar's open == the prior bar's close exactly (continuous
+by construction for a cumulative series), near-zero-range "candles" visually merged into one
+flat smooth line. Fixed TWO ways: (1) `backfill_bid_ask_log.py` now buckets by a FIXED TRADE
+COUNT (`--bucket-trades`, default 50) instead of fixed time — adapts automatically, tight in
+time exactly during fast bursts (matching a tick-based bar's own pacing), wide during quiet
+periods where it doesn't cost anything; re-ran the full backfill (480,238 rows now, DOWN
+from ~900K despite better resolution where it matters — fewer wasted buckets during quiet
+stretches). (2) `CumulativeDelta.cs` OnRender now ALWAYS draws a continuous close-to-close
+"backbone" line across every bar (new `cvLiveFlag` Series<double>, 1.0=genuinely live/tick-
+accurate, 0.0=reconstructed-or-flatlined, set in `OnBarUpdate`), with full candle body+wick
+layered on top ONLY where `cvLiveFlag` says the bar is actually tick-accurate — directly the
+"mountains" ask, and honest about which portions have real intrabar texture vs. which don't,
+rather than faking candle detail the backfill resolution can't actually support. Compile-
+checked (clean; same 3 pre-existing unrelated collisions). Deployed, byte-verified.
+**PENDING USER verification — not confirmed working by me, fourth round on this feature.**
 S145: NT8 `SessionSRLevelsV10`
 developing POC/Value-Area — backfilled from the recorded L1 tape instead of waiting on the
 live-only accumulation.** V10's `ShowDevPocVa` feature (S142+) bins price/volume per-tick via

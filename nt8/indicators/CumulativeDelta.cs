@@ -89,6 +89,11 @@ namespace NinjaTrader.NinjaScript.Indicators.My
     public class CumulativeDelta : Indicator
     {
         private Series<double> cvO, cvH, cvL, cvC;   // per-bar CVD open/high/low/close
+        // 1.0 = this bar got real live ticks (cvO/cvH/cvL/cvC are tick-accurate), 0.0 = it
+        // was reconstructed from the L1-tape bucket backfill (or flatlined, if neither was
+        // available) -- OnRender uses this to draw full candle detail only where it's
+        // actually trustworthy; see OnRender's comment.
+        private Series<double> cvLiveFlag;
         private double runCum;                        // running cumulative delta
         private int accumBar = -1;
         private double barOpen, barHi, barLo, barClose;
@@ -198,6 +203,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 ShowHiddenDivergence = false;
                 ReversalTicks = 8;
                 DivLabelFontSize = 10;
+                ShowLabels = true;
                 BearColor = Brushes.OrangeRed;
                 BullColor = Brushes.Lime;
                 HiddenBearColor = Brushes.DarkOrange;
@@ -215,6 +221,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 cvH = new Series<double>(this);
                 cvL = new Series<double>(this);
                 cvC = new Series<double>(this);
+                cvLiveFlag = new Series<double>(this);
             }
             else if (State == State.DataLoaded)
             {
@@ -271,6 +278,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             // flatline. Skipped entirely for a bar that WAS live: OnMarketData already built
             // its exact cvO/cvH/cvL/cvC/runCum during the tick stream, don't touch it.
             bool liveThisBar = accumBar == CurrentBar;
+            cvLiveFlag[0] = liveThisBar ? 1.0 : 0.0;
             if (!liveThisBar)
             {
                 if (ResetMode == CvdResetMode.Session && Bars.IsFirstBarOfSession) runCum = 0;
@@ -398,15 +406,22 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         }
 
         // price-panel connecting line + label (drawing-object API; auto-persists/auto-
-        // renders itself via NT8, routed to the price panel by DrawOnPricePanel=true)
+        // renders itself via NT8, routed to the price panel by DrawOnPricePanel=true).
+        // 2026-10-19: this was the source of the "Bear Div"/"Bull Div"/"H.Bear Div"/
+        // "H.Bull Div" text cluttering the price panel — unlike CVDDivergenceOscillator.cs's
+        // own ShowLabels, there was no way to turn the text off and keep just the lines.
+        // Added ShowLabels here too (same property name/behavior as that file).
         private void DrawLivePrice(string tag, int barA, double priceA, int barB, double priceB, System.Windows.Media.Brush color, string label, bool above)
         {
             int baA = CurrentBar - barA, baB = CurrentBar - barB;
             Draw.Line(this, tag, false, baA, priceA, baB, priceB, color, DashStyleHelper.Solid, 2);
-            double off = 8 * (TickSize > 0 ? TickSize : 0.25);
-            Draw.Text(this, tag + "_txt", false, label, baB, above ? priceB + off : priceB - off, 0,
-                      color, new NinjaTrader.Gui.Tools.SimpleFont("Arial", DivLabelFontSize), System.Windows.TextAlignment.Center,
-                      Brushes.Transparent, Brushes.Transparent, 0);
+            if (ShowLabels)
+            {
+                double off = 8 * (TickSize > 0 ? TickSize : 0.25);
+                Draw.Text(this, tag + "_txt", false, label, baB, above ? priceB + off : priceB - off, 0,
+                          color, new NinjaTrader.Gui.Tools.SimpleFont("Arial", DivLabelFontSize), System.Windows.TextAlignment.Center,
+                          Brushes.Transparent, Brushes.Transparent, 0);
+            }
         }
 
         private void DrawFinalPrice(string tag, int barA, double priceA, int barB, double priceB, System.Windows.Media.Brush color, string label)
@@ -431,16 +446,43 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             }
         }
 
-        // draw the CVD candlesticks + CVD-panel-side divergence connecting lines
+        // draw the CVD candlesticks + CVD-panel-side divergence connecting lines.
+        // 2026-10-19: user — "cum delta plot is not usable like this... maybe mountains?
+        // this doesn't show me anything currently." A reconstructed bar's O/H/L only
+        // reflects whatever fell inside its own 50-trade buckets, not true tick-level
+        // range — rendering THAT as a full candle on a fast tick-bar chart produced a
+        // string of near-zero-range bodies that, since each bar's open == the prior bar's
+        // close exactly (continuous by construction), visually merged into one flat smooth
+        // line with no legible texture. Fix: ALWAYS draw a continuous close-to-close
+        // backbone line (the "mountain" ask) across every bar, live or reconstructed; layer
+        // full candle body+wick on TOP of that line only where cvLiveFlag says the bar is
+        // genuinely tick-accurate, so real intrabar texture is still visible exactly where
+        // it's trustworthy, without faking it where it isn't.
         protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
         {
             base.OnRender(chartControl, chartScale);
             if (Bars == null || ChartBars == null || RenderTarget == null || upBrush == null) return;
 
             float w = (float)Math.Max(1.0, chartControl.Properties.BarDistance * 0.30);
+
+            float prevX = 0, prevYc = 0; bool havePrev = false;
+            var lineBr = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, new Color4(0.55f, 0.55f, 0.55f, 1f));
+            for (int idx = ChartBars.FromIndex; idx <= ChartBars.ToIndex; idx++)
+            {
+                if (idx < 0 || idx > cvC.Count - 1) { havePrev = false; continue; }
+                double c0 = cvC.GetValueAt(idx);
+                if (double.IsNaN(c0)) { havePrev = false; continue; }
+                float x0 = chartControl.GetXByBarIndex(ChartBars, idx);
+                float yC0 = chartScale.GetYByValue(c0);
+                if (havePrev) RenderTarget.DrawLine(new Vector2(prevX, prevYc), new Vector2(x0, yC0), lineBr, 1.5f);
+                prevX = x0; prevYc = yC0; havePrev = true;
+            }
+            lineBr.Dispose();
+
             for (int idx = ChartBars.FromIndex; idx <= ChartBars.ToIndex; idx++)
             {
                 if (idx < 0 || idx > cvC.Count - 1) continue;
+                if (cvLiveFlag.GetValueAt(idx) < 0.5) continue;   // reconstructed bar -- backbone line only, no fake candle
                 double o = cvO.GetValueAt(idx), h = cvH.GetValueAt(idx),
                        l = cvL.GetValueAt(idx), c = cvC.GetValueAt(idx);
                 if (double.IsNaN(o)) continue;
@@ -526,26 +568,31 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         [Display(Name = "Label font size", GroupName = "2. Divergence", Order = 3)]
         public int DivLabelFontSize { get; set; }
 
+        [NinjaScriptProperty]
+        [Display(Name = "Show Labels", Description = "Draw Bear Div/Bull Div/H.Bear Div/H.Bull Div text on the price panel at each divergence. Turn off to keep just the connecting lines — same property as CVDDivergenceOscillator.cs's own Show Labels.",
+                 GroupName = "2. Divergence", Order = 4)]
+        public bool ShowLabels { get; set; }
+
         [XmlIgnore]
-        [Display(Name = "Bearish color", GroupName = "2. Divergence", Order = 4)]
+        [Display(Name = "Bearish color", GroupName = "2. Divergence", Order = 5)]
         public System.Windows.Media.Brush BearColor { get; set; }
         [Browsable(false)]
         public string BearColorSerialize { get { return Serialize.BrushToString(BearColor); } set { BearColor = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
-        [Display(Name = "Bullish color", GroupName = "2. Divergence", Order = 5)]
+        [Display(Name = "Bullish color", GroupName = "2. Divergence", Order = 6)]
         public System.Windows.Media.Brush BullColor { get; set; }
         [Browsable(false)]
         public string BullColorSerialize { get { return Serialize.BrushToString(BullColor); } set { BullColor = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
-        [Display(Name = "Hidden bearish color", GroupName = "2. Divergence", Order = 6)]
+        [Display(Name = "Hidden bearish color", GroupName = "2. Divergence", Order = 7)]
         public System.Windows.Media.Brush HiddenBearColor { get; set; }
         [Browsable(false)]
         public string HiddenBearColorSerialize { get { return Serialize.BrushToString(HiddenBearColor); } set { HiddenBearColor = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
-        [Display(Name = "Hidden bullish color", GroupName = "2. Divergence", Order = 7)]
+        [Display(Name = "Hidden bullish color", GroupName = "2. Divergence", Order = 8)]
         public System.Windows.Media.Brush HiddenBullColor { get; set; }
         [Browsable(false)]
         public string HiddenBullColorSerialize { get { return Serialize.BrushToString(HiddenBullColor); } set { HiddenBullColor = Serialize.StringToBrush(value); } }
