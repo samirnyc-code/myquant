@@ -230,8 +230,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				LvnColor = System.Windows.Media.Brushes.IndianRed;
 				IbColor = System.Windows.Media.Brushes.Goldenrod;
 				VwapColor = System.Windows.Media.Brushes.White;
-				DevVaStroke = new Stroke(System.Windows.Media.Brushes.MediumPurple, 1.2);
-				DevPocStroke = new Stroke(System.Windows.Media.Brushes.Orange, 1.2);
+				DevVaStroke = new Stroke(System.Windows.Media.Brushes.MediumPurple, 1.2f);
+				DevPocStroke = new Stroke(System.Windows.Media.Brushes.Orange, 1.2f);
 			}
 			else if (State == State.Configure) { rowSize = RowTicks * TickSize; }
 			else if (State == State.DataLoaded)
@@ -744,15 +744,33 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (ShowVAHVAL && !double.IsNaN(vah)) { DrawLevel(chartScale, winStartX, todayStartX, vah, vaLineBr, 1.0f); DrawLevel(chartScale, winStartX, todayStartX, val, vaLineBr, 1.0f); }
 			}
 			if (ShowIB && ibh > double.MinValue) { DrawLevel(chartScale, todayStartX, vpMaxRight, ibh, ibBr, 0.9f); DrawLevel(chartScale, todayStartX, vpMaxRight, ibl, ibBr, 0.9f); }
-			DrawDevelopingVA(chartScale, chartControl, todayStartX, vpMaxRight, endBar, pocBr, vaLineBr, vaBandBr, vwapBr);
+			DrawDevelopingVA(chartScale, chartControl, todayStartX, vpMaxRight, endBar, vaBandBr, vwapBr);
 			int sc2 = sessionStarts.Count;
 			if (DevHistSessions > 0)
 			{
 				List<string> histDates = new List<string>();
 				for (int back = 1; back <= DevHistSessions && sc2 - 1 - back >= 0; back++)
 				{
-					int sBar = sessionStarts[sc2 - 1 - back];
-					DrawHistSessionDevVA(chartScale, chartControl, sBar, panelLeft, pocBr, vaLineBr, vaBandBr, vwapBr);
+					int idxH = sc2 - 1 - back;
+					int sBar = sessionStarts[idxH];
+					DrawHistSessionDevVA(chartScale, chartControl, sBar, panelLeft, vaBandBr, vwapBr);
+					// IB, generalized the same way as the VA/prior-VA fixes above: was only ever
+					// computed for today (2026-10-20 user: "IBH/L only gets calculated from the
+					// RTH open onwards!" -- true, but also only for the LIVE session, never shown
+					// on any DevHistSessions entry).
+					if (ShowIB)
+					{
+						int sEnd = sessionStarts[idxH + 1] - 1;
+						double hibh, hibl;
+						ComputeIBFor(sBar, sEnd, out hibh, out hibl);
+						if (hibh > double.MinValue)
+						{
+							float hLeftIb = Math.Max(panelLeft, chartControl.GetXByBarIndex(ChartBars, sBar));
+							float hRightIb = chartControl.GetXByBarIndex(ChartBars, sessionStarts[idxH + 1]);
+							DrawLevel(chartScale, hLeftIb, hRightIb, hibh, ibBr, 0.9f);
+							DrawLevel(chartScale, hLeftIb, hRightIb, hibl, ibBr, 0.9f);
+						}
+					}
 					histDates.Add("H-" + back + " " + Time.GetValueAt(sBar).ToString("MM/dd"));
 				}
 				// Diagnostic readout: which actual calendar dates DevHistSessions resolved to --
@@ -837,10 +855,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// fixed, no live tip -- the session is over, its last point IS its final value).
 		private void DrawDevSeries(ChartScale cs, float startX, List<float> xs, List<double> vhs, List<double> vls,
 			List<double> ps, List<double> vws, List<double> sds,
-			SolidColorBrush pocBr, SolidColorBrush lineBr, SolidColorBrush fillBr, SolidColorBrush vwapBr)
+			bool showBand, bool showLines, bool showPoc, SolidColorBrush fillBr, SolidColorBrush vwapBr)
 		{
 			int cnt = xs.Count;
 			if (cnt == 0) return;
+			bool haveVa = DevVaStroke != null, havePoc = DevPocStroke != null;
 
 			// VWAP + bands: a normal connected (sloping) line through each point, NOT a step --
 			// unlike VA, VWAP is a continuously-defined running mean, so a straight segment
@@ -869,17 +888,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				int last = cnt - 1;
 				float yh0 = cs.GetYByValue(vhs[last]), yl0 = cs.GetYByValue(vls[last]);
-				if (ShowVABand)
+				if (showBand)
 					RenderTarget.FillRectangle(new SharpDX.RectangleF(startX, Math.Min(yh0, yl0), xs[last] - startX, Math.Abs(yl0 - yh0)), fillBr);
-				if (ShowVAHVAL)
+				if (showLines && haveVa)
 				{
-					RenderTarget.DrawLine(new SharpDX.Vector2(startX, yh0), new SharpDX.Vector2(xs[last], yh0), lineBr, 1.2f);
-					RenderTarget.DrawLine(new SharpDX.Vector2(startX, yl0), new SharpDX.Vector2(xs[last], yl0), lineBr, 1.2f);
+					RenderTarget.DrawLine(new SharpDX.Vector2(startX, yh0), new SharpDX.Vector2(xs[last], yh0), DevVaStroke.BrushDX, DevVaStroke.Width, DevVaStroke.StrokeStyle);
+					RenderTarget.DrawLine(new SharpDX.Vector2(startX, yl0), new SharpDX.Vector2(xs[last], yl0), DevVaStroke.BrushDX, DevVaStroke.Width, DevVaStroke.StrokeStyle);
 				}
-				if (ShowPOC)
+				if (showPoc && havePoc)
 				{
 					float yp0 = cs.GetYByValue(ps[last]);
-					RenderTarget.DrawLine(new SharpDX.Vector2(startX, yp0), new SharpDX.Vector2(xs[last], yp0), pocBr, 1.2f);
+					RenderTarget.DrawLine(new SharpDX.Vector2(startX, yp0), new SharpDX.Vector2(xs[last], yp0), DevPocStroke.BrushDX, DevPocStroke.Width, DevPocStroke.StrokeStyle);
 				}
 				return;
 			}
@@ -891,32 +910,32 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (x > prevX)
 				{
 					float yh = cs.GetYByValue(vhs[k]), yl = cs.GetYByValue(vls[k]);
-					if (ShowVABand)
+					if (showBand)
 						RenderTarget.FillRectangle(new SharpDX.RectangleF(prevX, Math.Min(yh, yl), x - prevX, Math.Abs(yl - yh)), fillBr);
-					if (ShowVAHVAL)
+					if (showLines && haveVa)
 					{
-						RenderTarget.DrawLine(new SharpDX.Vector2(prevX, yh), new SharpDX.Vector2(x, yh), lineBr, 1.2f);
-						RenderTarget.DrawLine(new SharpDX.Vector2(prevX, yl), new SharpDX.Vector2(x, yl), lineBr, 1.2f);
+						RenderTarget.DrawLine(new SharpDX.Vector2(prevX, yh), new SharpDX.Vector2(x, yh), DevVaStroke.BrushDX, DevVaStroke.Width, DevVaStroke.StrokeStyle);
+						RenderTarget.DrawLine(new SharpDX.Vector2(prevX, yl), new SharpDX.Vector2(x, yl), DevVaStroke.BrushDX, DevVaStroke.Width, DevVaStroke.StrokeStyle);
 					}
-					if (ShowPOC)
+					if (showPoc && havePoc)
 					{
 						float yp = cs.GetYByValue(ps[k]);
-						RenderTarget.DrawLine(new SharpDX.Vector2(prevX, yp), new SharpDX.Vector2(x, yp), pocBr, 1.2f);
+						RenderTarget.DrawLine(new SharpDX.Vector2(prevX, yp), new SharpDX.Vector2(x, yp), DevPocStroke.BrushDX, DevPocStroke.Width, DevPocStroke.StrokeStyle);
 					}
 				}
 				if (k + 1 < cnt)
 				{
-					if (ShowVAHVAL)
+					if (showLines && haveVa)
 					{
 						float yh = cs.GetYByValue(vhs[k]), yhN = cs.GetYByValue(vhs[k + 1]);
 						float yl = cs.GetYByValue(vls[k]), ylN = cs.GetYByValue(vls[k + 1]);
-						RenderTarget.DrawLine(new SharpDX.Vector2(x, yh), new SharpDX.Vector2(x, yhN), lineBr, 1.2f);
-						RenderTarget.DrawLine(new SharpDX.Vector2(x, yl), new SharpDX.Vector2(x, ylN), lineBr, 1.2f);
+						RenderTarget.DrawLine(new SharpDX.Vector2(x, yh), new SharpDX.Vector2(x, yhN), DevVaStroke.BrushDX, DevVaStroke.Width, DevVaStroke.StrokeStyle);
+						RenderTarget.DrawLine(new SharpDX.Vector2(x, yl), new SharpDX.Vector2(x, ylN), DevVaStroke.BrushDX, DevVaStroke.Width, DevVaStroke.StrokeStyle);
 					}
-					if (ShowPOC)
+					if (showPoc && havePoc)
 					{
 						float yp = cs.GetYByValue(ps[k]), ypN = cs.GetYByValue(ps[k + 1]);
-						RenderTarget.DrawLine(new SharpDX.Vector2(x, yp), new SharpDX.Vector2(x, ypN), pocBr, 1.2f);
+						RenderTarget.DrawLine(new SharpDX.Vector2(x, yp), new SharpDX.Vector2(x, ypN), DevPocStroke.BrushDX, DevPocStroke.Width, DevPocStroke.StrokeStyle);
 					}
 				}
 				prevX = x;
@@ -934,7 +953,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// static band/lines above -- this IS that same concept, just rendered honestly for
 		// a still-developing session instead of as a single backward-projected snapshot.
 		private void DrawDevelopingVA(ChartScale cs, ChartControl cc, float startX, float vpRight, int endBar,
-			SolidColorBrush pocBr, SolidColorBrush lineBr, SolidColorBrush fillBr, SolidColorBrush vwapBr)
+			SolidColorBrush fillBr, SolidColorBrush vwapBr)
 		{
 			if (devSessionStart < 0 || todayStartBar < 0) return;
 
@@ -973,14 +992,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 			else curVwap = double.NaN;
 
 			if (xs.Count == 0) return;
-			DrawDevSeries(cs, startX, xs, vhs, vls, ps, vws, sds, pocBr, lineBr, fillBr, vwapBr);
+			// Today's own VA is unaffected by the "VA" toolbar button (that now scopes
+			// historical sessions only) -- always uses the dialog-configured toggles directly.
+			DrawDevSeries(cs, startX, xs, vhs, vls, ps, vws, sds, ShowVABand, ShowVAHVAL, ShowPOC, fillBr, vwapBr);
 		}
 
 		// One CLOSED session's own developing trail, drawn only over its own bars (fixed,
 		// archived at DevSeries -- never recomputed, never extends into the next session).
-		// Reuses the exact same ShowVABand/ShowVAHVAL/ShowPOC/ShowVWAP toggles as today's.
+		// Band+lines gated by the "VA" toolbar button (showHistVA) ANDed with the dialog
+		// toggles -- 2026-10-20: user wants the VA button to control PRIOR/historical
+		// sessions specifically, not today's own (that's DrawDevelopingVA, unaffected).
 		private void DrawHistSessionDevVA(ChartScale cs, ChartControl cc, int sessionStartBar, float panelLeft,
-			SolidColorBrush pocBr, SolidColorBrush lineBr, SolidColorBrush fillBr, SolidColorBrush vwapBr)
+			SolidColorBrush fillBr, SolidColorBrush vwapBr)
 		{
 			DevSeries d;
 			if (!devHistBySession.TryGetValue(sessionStartBar, out d) || d.Vah.Count == 0) return;
@@ -989,7 +1012,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			for (int k = 0; k < n; k++)
 				xs.Add(cc.GetXByBarIndex(ChartBars, sessionStartBar + k + 1));
 			float startX = Math.Max(panelLeft, cc.GetXByBarIndex(ChartBars, sessionStartBar));
-			DrawDevSeries(cs, startX, xs, d.Vah, d.Val, d.Poc, d.Vwap, d.VwapSd, pocBr, lineBr, fillBr, vwapBr);
+			DrawDevSeries(cs, startX, xs, d.Vah, d.Val, d.Poc, d.Vwap, d.VwapSd,
+				ShowVABand && showHistVA, ShowVAHVAL && showHistVA, ShowPOC, fillBr, vwapBr);
 		}
 
 		private void AddLbl(List<Lbl> list, ChartScale cs, string text, double price, SolidColorBrush br, int col)
