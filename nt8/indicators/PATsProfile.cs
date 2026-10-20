@@ -109,7 +109,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool toolbarAdded;
 		private bool showAll = true;
 		private bool devStairstep = true; // false = flat current-level line across the whole session instead of the per-bar staircase
-		private bool showHistVA = true; // 2026-10-20: VA button now controls PRIOR/historical sessions' VA, not today's
 		private int lastDevHistSessions = 1;
 		private Button btnVpAll, btnVpVaToday, btnVpVaPrior, btnVpStair, btnVpHist, btnVpLbl;
 
@@ -267,7 +266,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			btnStyle.Setters.Add(new Setter(Button.MarginProperty, new Thickness(2, 0, 2, 0)));
 			btnStyle.Setters.Add(new Setter(Button.PaddingProperty, new Thickness(4, 2, 4, 2)));
 			btnStyle.Setters.Add(new Setter(Button.ForegroundProperty, System.Windows.Media.Brushes.Blue));
-			btnStyle.Setters.Add(new Setter(Button.BackgroundProperty, System.Windows.Media.Brushes.LightGray));
+			btnStyle.Setters.Add(new Setter(Button.BackgroundProperty, new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 200, 120)))); // light orange
 			btnStyle.Setters.Add(new Setter(Button.HorizontalAlignmentProperty, HorizontalAlignment.Center));
 
 			btnVpAll = new Button { Content = "VP", Style = btnStyle, Visibility = Visibility.Visible };
@@ -286,7 +285,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowVABand = on; ShowVAHVAL = on;
 				ForceRefresh();
 			};
-			btnVpVaPrior.Click += (s, e) => { showHistVA = !showHistVA; ForceRefresh(); };
+			// 2026-10-20 correction: VAp controls the PRIOR SESSION'S VA PROJECTED FORWARD
+			// onto each shown session (today gets yesterday's final VA; a historical session
+			// shown via DevHistSessions gets ITS OWN predecessor's -- e.g. Friday's VA on
+			// Monday) -- i.e. ShowPriorBand+ShowPriorLines, NOT a filter on the staircase.
+			btnVpVaPrior.Click += (s, e) =>
+			{
+				bool on = !ShowPriorBand;
+				ShowPriorBand = on; ShowPriorLines = on;
+				ForceRefresh();
+			};
 			btnVpStair.Click += (s, e) => { devStairstep = !devStairstep; ForceRefresh(); };
 			btnVpHist.Click += (s, e) =>
 			{
@@ -1001,16 +1009,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 			else curVwap = double.NaN;
 
 			if (xs.Count == 0) return;
-			// Today's own VA is unaffected by the "VA" toolbar button (that now scopes
-			// historical sessions only) -- always uses the dialog-configured toggles directly.
 			DrawDevSeries(cs, startX, xs, vhs, vls, ps, vws, sds, ShowVABand, ShowVAHVAL, ShowPOC, fillBr, vwapBr);
 		}
 
 		// One CLOSED session's own developing trail, drawn only over its own bars (fixed,
 		// archived at DevSeries -- never recomputed, never extends into the next session).
-		// Band+lines gated by the "VA" toolbar button (showHistVA) ANDed with the dialog
-		// toggles -- 2026-10-20: user wants the VA button to control PRIOR/historical
-		// sessions specifically, not today's own (that's DrawDevelopingVA, unaffected).
+		// 2026-10-20 correction: uses the SAME ShowVABand/ShowVAHVAL/ShowPOC globals as
+		// today's own (DrawDevelopingVA) -- VAt is the master for "developing VA
+		// shading+stepline" across every shown session, today or historical, since they're
+		// the same rendering concept per session. VAp is a DIFFERENT, orthogonal layer (the
+		// prior session's VA projected forward -- see DrawPriorOnSession), not a filter here.
 		private void DrawHistSessionDevVA(ChartScale cs, ChartControl cc, int sessionStartBar, float panelLeft,
 			SolidColorBrush fillBr, SolidColorBrush vwapBr)
 		{
@@ -1022,7 +1030,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				xs.Add(cc.GetXByBarIndex(ChartBars, sessionStartBar + k + 1));
 			float startX = Math.Max(panelLeft, cc.GetXByBarIndex(ChartBars, sessionStartBar));
 			DrawDevSeries(cs, startX, xs, d.Vah, d.Val, d.Poc, d.Vwap, d.VwapSd,
-				ShowVABand && showHistVA, ShowVAHVAL && showHistVA, ShowPOC, fillBr, vwapBr);
+				ShowVABand, ShowVAHVAL, ShowPOC, fillBr, vwapBr);
 		}
 
 		private void AddLbl(List<Lbl> list, ChartScale cs, string text, double price, SolidColorBrush br, int col)
