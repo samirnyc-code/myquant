@@ -1,5 +1,40 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-20 (machine-time W. Europe, this chat) — **S146 continued: PATsProfile
+VA-button rescoped to prior/historical sessions, native Stroke line styling, IB generalized to
+historical sessions.** Continuing the same PATsProfile thread as the earlier 2026-10-20 blocks
+below (developing VA, DevHistSessions, chart-toolbar buttons). This round, three user
+corrections in sequence: (1) "I did at no point ask u to build those buttons... VA button only
+removes the shading but it should remove the stepline as well... Pri I dont like but I want a
+button that switches the developing VA from stairstep to just showing the current level" — fixed
+VA to toggle `ShowVABand`+`ShowVAHVAL` together, replaced the Pri button with a new `Stair`
+toggle (`devStairstep` field; off = draw one flat segment from the LAST fold point instead of
+the per-bar step/riser rendering, reusing the shared `DrawDevSeries` renderer so it applies to
+today AND every historical session automatically). (2) "The VA button currently removes the
+current session's VA, we need it to remove the prior sessions instead" + "I need to customize
+the stair step line color/type/style/opacity, same for VA lines" — repurposed VA to a new
+`showHistVA` field gating ONLY `DrawHistSessionDevVA`'s band/lines (today's own, via
+`DrawDevelopingVA`, now always uses the dialog toggles directly, unaffected by this button);
+required refactoring `DrawDevSeries` to take explicit `showBand/showLines/showPoc` params
+instead of reading the globals, so today vs historical can differ. Added native NT8 `Stroke`
+properties `DevVaStroke`/`DevPocStroke` (color+width+dash+opacity in one dialog control — found
+the working pattern in `nt8/vendor/ntlambda/NT8/DrawingTools/NTLambda/NTLAnchoredVwap.cs`'s own
+Stroke properties, `.BrushDX`/`.Width`/`.StrokeStyle` feed straight into
+`RenderTarget.DrawLine`). (3) "IBH/L only gets calculated from the RTH open onwards!" — same
+gap pattern as VA/prior-VA before it: `ComputeIBFor()` already existed (built earlier) but was
+only ever CALLED for today; now called once per `DevHistSessions` entry too, rendered bounded
+to that session's own bar range. Also found and persisted `nt8/vendor/ab/MyABToolbarButtons.cs`
+(the `chartWindow.MainMenu.Add()` toolbar-button pattern the user pointed to as reference — was
+only on the NT8 machine, a hard-rule violation, now committed). **Found via git diff that a 5th
+toolbar button (`Lbl` = `ShowLabels` toggle) was already on disk, uncommitted, from earlier in
+this same session (not from another chat — consistent style/naming) — kept it, committed with
+everything else.** **Also found, mid-session: a SEPARATE chat is concurrently fixing a THIRD,
+independent root cause of the BidAskVolumeRatio flatline (see the block directly below) — no
+file overlap with this PATsProfile work, flagged here only so neither chat assumes the other's
+silence means nothing is happening.** Compile-checked clean (one float-vs-double literal fix
+needed for the `Stroke` constructor), deployed, byte-verified. **PENDING USER F5 — none of this
+round confirmed visually/functionally correct by me.**
+**Last updated, prior block preserved below —**
 **Last Updated:** 2026-10-20 (machine-time W. Europe, separate chat) — **S146 continued: found +
 fixed a SECOND, independent root cause of the recurring BAVR flatline — the bucket backfill file
 was only ever read ONCE per indicator load.**
@@ -2764,6 +2799,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 
 | # | workstream | status | next action |
 |---|---|---|---|
+| 25 | **PATsProfile.cs — VP/TPO indicator rewrite (developing VA, VWAP, historical sessions, toolbar buttons)** | 🟡 PENDING USER F5 (this chat, 2026-10-20) | Removed TPO entirely (VP-only now). Built: tick-accurate live VP via `OnMarketData`; developing (per-bar) VA staircase for today + N historical sessions (`DevHistSessions`, archived per-session in `devHistBySession`); prior-session VA projection generalized to every shown session (was today-only); RTH-anchored IB generalized to every shown session too; session VWAP+SD bands (built then set `ShowVWAP=false` by default — user is using Lizard Trader's VWAP instead, code left dormant); 4 chart-toolbar buttons via `chartWindow.MainMenu.Add()` (VP=master kill, VA=toggles PRIOR/historical sessions' band+stepline specifically — NOT today's own, Stair=stairstep vs flat-current-level toggle, Hist=`DevHistSessions` 0⇄last-value, Lbl=`ShowLabels`); native `Stroke`-typed `DevVaStroke`/`DevPocStroke` properties (color+width+dash+opacity in one NT8 dialog control, pattern from `nt8/vendor/ntlambda/.../NTLAnchoredVwap.cs`) for the developing VA/POC lines. Also fixed a real off-by-one (archived historical sessions were one bar short of their own close) and a VWAP NaN-gate bug (one bad point could kill a whole session's VWAP line). Persisted `nt8/vendor/ab/MyABToolbarButtons.cs` (was only on the NT8 machine — hard-rule violation, fixed). **Nothing in this row has been F5-verified by me.** Full narrative in the block(s) at/near the top of this file dated 2026-10-20. |
 | 24 | **NT8 order-flow build: Bid/Ask Delta+Split, CVD live divergence, SessionSRLevelsV10 POC/VA, L1 recorder restart** | 🟡 PENDING USER F5 (S143 2026-10-18); VP log backfilled (S145 2026-10-18); **bid/ask + CVD plots backfilled (S146 2026-10-19)** | User is compiling live now as ETH opens. Watch for: `DrawOnPricePanel` actually routing CVD divergence lines to the price panel (unverified mechanism); label overlap if divergences cluster (no de-collision yet); `ReversalTicks` default (8t/2pt) likely too sensitive for the usual 16t/4pt Flex Renko box — raise it there; V9.cs must stay deployed alongside V10.cs (shared `LevelLineStyle` enum). S145: `data/vp_levels/session_vp_live_log.csv` backfilled 21 real days via `scripts/backfill_vp_log.py`. **S146: `BidAskVolumeRatio.cs`/`BidAskVolumeDelta.cs`/`BidAskVolumeSplit.cs`/`CumulativeDelta.cs` all now fall back to `data/bid_ask/bid_ask_vol_buckets.csv` (new `scripts/backfill_bid_ask_log.py`, 1-sec buckets off the L1 tape's `Aggr` tag) for any bar with no live tick data — reloading no longer loses the plot. Also fixed a real LightGray-on-dark-background invisible-bar bug in Delta/Split's down-color defaults (→ Firebrick). CVD Oscillator's "turn off labels, keep lines" ask already existed (`ShowLabels` property) — nothing built, just pointed at it. S146 later (2026-10-20, separate chat): fixed write-race/TOCTOU CSV corruption (atomic write + cross-process lock, see block below) AND separately a one-shot-load bug — all 4 indicators only ever read the bucket file once at `State.DataLoaded`, so the cursor ran out and flatlined forever regardless of later backfill refreshes; now re-checked every bar (throttled 30s) with a timestamp-based cursor reseek. Compiled+deployed+byte-verified, committed `c47ac9a`.** User still needs to F5. See S143 + S145 + S146 blocks. |
 | 1 | 0DTE live desk (paper) | 🟢 RUNNING | trades daily; just watch the book |
 | 2 | ThetaData fill-validation | ✅ DONE (S113) | validated; report built; nothing pending |
