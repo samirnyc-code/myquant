@@ -1,5 +1,27 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-20 (machine-time W. Europe, this chat) — **S146 continued: VA button
+split into VAt/VAp, new PATsChartButtons.cs (ClaudeTrackerV2 status light + Lizard VWAP toggle).**
+User: "VA button needs 2 versions, 1 for VA prior, 1 for VA today" + "a button that shows if
+ClaudeTracker strategy is enabled on this chart, green/red" + "a VWAP button that turns the
+Lizard Trader Daily VWAP on and off." Split PATsProfile's VA button into `VAt`
+(`ShowVABand`+`ShowVAHVAL`, today's own) and `VAp` (`showHistVA`, prior/historical). New
+`nt8/indicators/PATsChartButtons.cs` (separate file — unrelated concern from VP), two buttons:
+**CT status light** — researched the API before building, given false-status risk (this is
+literally what got `ClaudeTrackerHealthLight.cs` deleted before). Confirmed via
+`NinjaTrader.Core.xml`: `StrategyBase` has no `.Enabled` property. Correct source is
+`ChartControl.Strategies` (not `ChartObjects`, confirmed via `NinjaTrader.Gui.xml` doc strings —
+that only holds indicators), matched by `Name=="ClaudeTrackerV2"`, enabled = found AND
+`State != State.Terminated`. This resolves correctly under EITHER possible NT8 behavior for a
+disabled instance (removed from the collection vs kept with `State.Terminated`) — both land on
+red — so no live-chart pre-verification was needed. Reflects ONLY the literal checkbox state, no
+health/correctness inference. **VWAP toggle** — shows/hides Lizard Trader's `LT_Current_Day_VWAP`,
+matched by .NET type full name (certain, from the generated wrapper) rather than its display Name
+string (unverifiable — obfuscated vendor DLL, string not present in plain text anywhere). Compile-
+checked clean (both files + full-repo check, only the same 3 pre-existing unrelated collisions),
+deployed, byte-verified. **PENDING USER F5 — especially the CT light, which can't be verified
+without a live chart with ClaudeTrackerV2 actually on it.**
+**Last updated, prior block preserved below —**
 **Last Updated:** 2026-10-20 (machine-time W. Europe, this chat) — **S146 continued: PATsProfile
 VA-button rescoped to prior/historical sessions, native Stroke line styling, IB generalized to
 historical sessions.** Continuing the same PATsProfile thread as the earlier 2026-10-20 blocks
