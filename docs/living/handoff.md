@@ -1,5 +1,44 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-20 (machine-time W. Europe, separate chat) — **S146 continued: TWO MORE
+real bid/ask bugs found + fixed after the one-shot-load fix (own block further below), then a
+THIRD report checked and found to be legitimate (not a bug).**
+User kept hitting flatlines on different charts after the one-shot-load fix deployed. Each one
+checked against the actual data before touching any code again, per two in a row.
+**Bug #2 — stale incomplete-day backfill, 2026-10-19 ~14:49-16:00 CT:** `bid_ask_vol_buckets.csv`
+for 2026-10-19 stopped dead at 14:49:43 CT even though the raw L1 tape has continuous real trades
+through 15:59:59 (confirmed 104,543 real trades in that window directly from the parquet). Cause:
+that day's last backfill run landed against a still-growing parquet snapshot, and
+`desk_watchdog.py`'s `refresh_bid_ask_backfill` only ever re-forces TODAY's calendar date — once a
+day stops being "today" it's never revisited even if left incomplete. Re-ran
+`backfill_bid_ask_log.py --day 2026-10-19 --force` against the now-complete file; full RTH
+coverage confirmed. New `scripts/bid_ask_coverage_gap_scan.py` scans the whole log for the same
+pattern — only one other gap found (2026-09-16, old, pre-existing, not addressed). Committed
+`d5e1f0dd`. **The underlying "today-only" design gap in `refresh_bid_ask_backfill` itself is NOT
+fixed** — this was a one-off manual repair of the specific day that was reported; a day that falls
+behind today will still get silently orphaned tomorrow unless someone notices and re-forces it.
+**Bug #3 report, 2026-10-20 ~04:51-05:26 CT overnight — CHECKED, found NOT to be a bug.** Built
+`scripts/bid_ask_window_check.py` (aggregates the bucket log into fixed time bins for a requested
+window) to verify against real data instead of guessing. Result: no data gap — buckets present and
+continuously varying right up to the live edge (04:55:35 CT, 29min before the complaint, within
+the normal 30-min refresh cadence). But the 2-min-binned ratio genuinely whipsaws sign every couple
+minutes (+10.7%, −0.9%, −18.3%, +9.4%, −9.2%, −14.3%, +10.4%, +14.3%) — an EMA(14) legitimately
+settles near zero averaging through that, then snaps up once real one-sided volume showed up
+(matches the green histogram burst in the user's screenshot right after). Flagged to the user as
+"checked against the data, looks legitimate" not "fixed" — did NOT claim certainty about the live
+NT8-side tick accumulator's behavior in that same window, which isn't inspectable from the
+filesystem. Committed `c97525f8`.
+**Separately, same session: added a 5th chart-toolbar button to `PATsProfile.cs`.** User asked for
+"a button for all the labels on off." Added `btnVpLbl` ("Lbl"), same click→`ForceRefresh()` pattern
+as VP/VA/Stair/Hist, toggling the existing `ShowLabels` property (already gates both the per-level
+VAH/VAL/POC text and the `DevHistSessions` diagnostic date readout — confirmed via grep, both
+`DrawText` call sites in the file are gated by it, so one switch covers "all labels"). This landed
+while ANOTHER parallel chat was actively mid-edit on the same file (`DevVaStroke`/`DevPocStroke`
+stroke-editor properties + `ComputeIB`→`ComputeIBFor` generalization, confirmed via an on-disk-
+modified-since-read warning) — compiled clean together, deployed, byte-verified, and committed as
+one commit (`5b857fb`) since both parts were already in a coherent, compiling state; did not alter
+or review the other session's logic, just carried it through the same build+deploy step. **PENDING
+USER F5 on all of this — not confirmed visually correct by me.**
 **Last Updated:** 2026-10-20 (machine-time W. Europe, this chat) — **SESSION END: PATsChartButtons
 CT light + VWAP toggle STILL BROKEN after the ChartControl fix attempt. User stopped the session
 here, out of resources, stated disappointment with this thread's back-and-forth on these two
