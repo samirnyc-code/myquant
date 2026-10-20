@@ -63,17 +63,32 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         private static List<BidAskBucket> _bucketsCache;
         private static DateTime _bucketsCacheFileTime = DateTime.MinValue;
         private TimeZoneInfo _ctTz;
+        private DateTime _lastConsumedTs = DateTime.MinValue;
+        private DateTime _lastBucketFileCheckUtc = DateTime.MinValue;
 
         private void LoadBidAskBuckets()
         {
-            _buckets = new List<BidAskBucket>(); _bucketCursor = 0;
+            _buckets = new List<BidAskBucket>(); _bucketCursor = 0; _lastConsumedTs = DateTime.MinValue;
             try { _ctTz = TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time"); }
             catch { _ctTz = null; }
+            ReadBucketFile();
+        }
+
+        // 2026-10-20 FIX: see BidAskVolumeRatio.cs's ReadBucketFile for the full root-cause
+        // note — this used to be a one-shot load at State.DataLoaded, so the cursor walked off
+        // the end of a frozen snapshot and flatlined forever regardless of later backfill
+        // refreshes. Now re-checked every AdvanceBucketCursor, throttled to once per 30s, and
+        // re-seeks the cursor by TIMESTAMP via ReseekCursor so nothing is ever double-counted.
+        private void ReadBucketFile()
+        {
             if (!File.Exists(BucketLogPath)) return;
 
             DateTime fileTime = File.GetLastWriteTimeUtc(BucketLogPath);
             if (_bucketsCache != null && fileTime == _bucketsCacheFileTime)
-            { _buckets = _bucketsCache; return; }
+            {
+                if (!ReferenceEquals(_buckets, _bucketsCache)) { _buckets = _bucketsCache; ReseekCursor(); }
+                return;
+            }
 
             var list = new List<BidAskBucket>();
             try
@@ -95,6 +110,14 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
             _bucketsCache = list; _bucketsCacheFileTime = fileTime;
             _buckets = list;
+            ReseekCursor();
+        }
+
+        private void ReseekCursor()
+        {
+            _bucketCursor = 0;
+            while (_bucketCursor < _buckets.Count && _buckets[_bucketCursor].ts <= _lastConsumedTs)
+                _bucketCursor++;
         }
 
         private DateTime ConvertToCt(DateTime t)
@@ -107,12 +130,15 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         private void AdvanceBucketCursor(DateTime barCloseTime, out double ask, out double bid)
         {
             ask = 0; bid = 0;
+            if ((DateTime.UtcNow - _lastBucketFileCheckUtc).TotalSeconds >= 30)
+            { _lastBucketFileCheckUtc = DateTime.UtcNow; ReadBucketFile(); }
             if (_buckets.Count == 0) return;
             DateTime t = ConvertToCt(barCloseTime);
             while (_bucketCursor < _buckets.Count && _buckets[_bucketCursor].ts <= t)
             {
                 ask += _buckets[_bucketCursor].askVol;
                 bid += _buckets[_bucketCursor].bidVol;
+                _lastConsumedTs = _buckets[_bucketCursor].ts;
                 _bucketCursor++;
             }
         }

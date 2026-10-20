@@ -78,17 +78,37 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         private static List<BidAskBucket> _bucketsCache;
         private static DateTime _bucketsCacheFileTime = DateTime.MinValue;
         private TimeZoneInfo _ctTz;
+        private DateTime _lastConsumedTs = DateTime.MinValue;
+        private DateTime _lastBucketFileCheckUtc = DateTime.MinValue;
 
         private void LoadBidAskBuckets()
         {
-            _buckets = new List<BidAskBucket>(); _bucketCursor = 0;
+            _buckets = new List<BidAskBucket>(); _bucketCursor = 0; _lastConsumedTs = DateTime.MinValue;
             try { _ctTz = TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time"); }
             catch { _ctTz = null; }
+            ReadBucketFile();
+        }
+
+        // 2026-10-20 FIX: this used to be the ONLY read of the backfill file (called once, at
+        // State.DataLoaded) -- the cursor then walked off the end of that one frozen snapshot
+        // and every later non-live bar read 0 forever, no matter how much new data the 30-min
+        // desk_watchdog backfill refresh appended to the file afterward. That was the actual
+        // cause of the recurring "BAVR flatlines for hours" complaints: re-running the backfill
+        // script never fixed it because nothing ever told an already-running indicator to look
+        // at the file again. Now called from AdvanceBucketCursor too, throttled to a real file
+        // stat once per 30s. Re-seeks the cursor by TIMESTAMP (not index) via ReseekCursor so
+        // already-consumed buckets are never re-summed even though the backing List<> instance
+        // gets swapped out from under it.
+        private void ReadBucketFile()
+        {
             if (!File.Exists(BucketLogPath)) return;
 
             DateTime fileTime = File.GetLastWriteTimeUtc(BucketLogPath);
             if (_bucketsCache != null && fileTime == _bucketsCacheFileTime)
-            { _buckets = _bucketsCache; return; }
+            {
+                if (!ReferenceEquals(_buckets, _bucketsCache)) { _buckets = _bucketsCache; ReseekCursor(); }
+                return;
+            }
 
             var list = new List<BidAskBucket>();
             try
@@ -110,6 +130,14 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
             _bucketsCache = list; _bucketsCacheFileTime = fileTime;
             _buckets = list;
+            ReseekCursor();
+        }
+
+        private void ReseekCursor()
+        {
+            _bucketCursor = 0;
+            while (_bucketCursor < _buckets.Count && _buckets[_bucketCursor].ts <= _lastConsumedTs)
+                _bucketCursor++;
         }
 
         private DateTime ConvertToCt(DateTime t)
@@ -125,12 +153,15 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         private void AdvanceBucketCursor(DateTime barCloseTime, out double ask, out double bid)
         {
             ask = 0; bid = 0;
+            if ((DateTime.UtcNow - _lastBucketFileCheckUtc).TotalSeconds >= 30)
+            { _lastBucketFileCheckUtc = DateTime.UtcNow; ReadBucketFile(); }
             if (_buckets.Count == 0) return;
             DateTime t = ConvertToCt(barCloseTime);
             while (_bucketCursor < _buckets.Count && _buckets[_bucketCursor].ts <= t)
             {
                 ask += _buckets[_bucketCursor].askVol;
                 bid += _buckets[_bucketCursor].bidVol;
+                _lastConsumedTs = _buckets[_bucketCursor].ts;
                 _bucketCursor++;
             }
         }
