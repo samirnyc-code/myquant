@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Windows;
+using System.Windows.Controls;
 using System.Xml.Serialization;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
@@ -95,6 +97,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 			public List<double> VwapSd = new List<double>();
 		}
 		private Dictionary<int, DevSeries> devHistBySession = new Dictionary<int, DevSeries>();
+
+		// Chart-toolbar declutter buttons (2026-10-20) -- pattern copied from
+		// nt8/vendor/ab/MyABToolbarButtons.cs (chartWindow.MainMenu.Add()), the same
+		// technique the now-deleted ClaudeTrackerHealthLight.cs used. Lets the user instantly
+		// kill rendering to grab a chart drawing object sitting under a VA fill, instead of
+		// digging through the Indicators dialog. Runtime-only state (not NinjaScriptProperty):
+		// these are UI toggles, not template-saved preferences.
+		private Chart chartWindow;
+		private bool toolbarAdded;
+		private bool showAll = true;
+		private int lastDevHistSessions = 1;
+		private Button btnVpAll, btnVpVa, btnVpPrior, btnVpHist;
 
 		// Tick-accurate accumulation (see header note).
 		private readonly object liveLock = new object();
@@ -213,7 +227,69 @@ namespace NinjaTrader.NinjaScript.Indicators
 				devHistBySession = new Dictionary<int, DevSeries>();
 				liveVolByRow = null; liveSessionStartBar = -1; obuSessionStartBar = -1;
 			}
-			else if (State == State.Realtime) { SeedLiveFromHistory(); }
+			else if (State == State.Realtime)
+			{
+				SeedLiveFromHistory();
+				if (ChartControl != null && !toolbarAdded)
+					ChartControl.Dispatcher.InvokeAsync((Action)(() => AddToolbarButtons()));
+			}
+			else if (State == State.Terminated)
+			{
+				if (chartWindow != null)
+					ChartControl.Dispatcher.InvokeAsync((Action)(() => RemoveToolbarButtons()));
+			}
+		}
+
+		// Chart-toolbar declutter buttons -- see field comments above for why/pattern source.
+		private void AddToolbarButtons()
+		{
+			chartWindow = Window.GetWindow(ChartControl.Parent) as Chart;
+			if (chartWindow == null || chartWindow.MainMenu == null) return;
+
+			Style btnStyle = new Style(typeof(Button));
+			btnStyle.Setters.Add(new Setter(Button.FontSizeProperty, 12.0));
+			btnStyle.Setters.Add(new Setter(Button.FontWeightProperty, FontWeights.Bold));
+			btnStyle.Setters.Add(new Setter(Button.MarginProperty, new Thickness(2, 0, 2, 0)));
+			btnStyle.Setters.Add(new Setter(Button.PaddingProperty, new Thickness(4, 2, 4, 2)));
+			btnStyle.Setters.Add(new Setter(Button.ForegroundProperty, System.Windows.Media.Brushes.Blue));
+			btnStyle.Setters.Add(new Setter(Button.BackgroundProperty, System.Windows.Media.Brushes.LightGray));
+			btnStyle.Setters.Add(new Setter(Button.HorizontalAlignmentProperty, HorizontalAlignment.Center));
+
+			btnVpAll = new Button { Content = "VP", Style = btnStyle, Visibility = Visibility.Visible };
+			btnVpVa = new Button { Content = "VA", Style = btnStyle, Visibility = Visibility.Visible };
+			btnVpPrior = new Button { Content = "Pri", Style = btnStyle, Visibility = Visibility.Visible };
+			btnVpHist = new Button { Content = "Hist", Style = btnStyle, Visibility = Visibility.Visible };
+
+			btnVpAll.Click += (s, e) => { showAll = !showAll; ForceRefresh(); };
+			btnVpVa.Click += (s, e) => { ShowVABand = !ShowVABand; ForceRefresh(); };
+			btnVpPrior.Click += (s, e) =>
+			{
+				bool on = !ShowPriorBand;
+				ShowPriorBand = on; ShowPriorLines = on;
+				ForceRefresh();
+			};
+			btnVpHist.Click += (s, e) =>
+			{
+				if (DevHistSessions > 0) { lastDevHistSessions = DevHistSessions; DevHistSessions = 0; }
+				else DevHistSessions = lastDevHistSessions;
+				ForceRefresh();
+			};
+
+			chartWindow.MainMenu.Add(btnVpAll);
+			chartWindow.MainMenu.Add(btnVpVa);
+			chartWindow.MainMenu.Add(btnVpPrior);
+			chartWindow.MainMenu.Add(btnVpHist);
+			toolbarAdded = true;
+		}
+
+		private void RemoveToolbarButtons()
+		{
+			if (chartWindow == null) return;
+			if (btnVpAll != null) chartWindow.MainMenu.Remove(btnVpAll);
+			if (btnVpVa != null) chartWindow.MainMenu.Remove(btnVpVa);
+			if (btnVpPrior != null) chartWindow.MainMenu.Remove(btnVpPrior);
+			if (btnVpHist != null) chartWindow.MainMenu.Remove(btnVpHist);
+			toolbarAdded = false;
 		}
 
 		// Runs exactly once, at the historical->realtime handoff. Without this,
@@ -521,16 +597,51 @@ namespace NinjaTrader.NinjaScript.Indicators
 			priorStartBar = -1;
 			int sc = sessionStarts.Count;
 			if (sc < 2) return;
-			int ps = sessionStarts[sc - 2];
-			int pe = sessionStarts[sc - 1] - 1;
+			priorStartBar = sessionStarts[sc - 2];
+			ComputePriorFor(sc - 1, out pVal, out pVah, out pPoc);
+		}
+
+		// The predecessor-session's FINAL VA for sessionIdx (an index into sessionStarts).
+		// Generalizes what ComputePriorLevels used to hardcode as "only today vs yesterday" --
+		// 2026-10-20: user pointed out the prior-VA projection never showed on HISTORICAL
+		// sessions (e.g. Friday's final VA projected onto Monday), only on today vs yesterday,
+		// because this computation only ever ran once, for the last session. Now callable for
+		// any session shown (today, or any DevHistSessions entry), each projecting ITS OWN
+		// predecessor's final VA onto itself.
+		private void ComputePriorFor(int sessionIdx, out double pval, out double pvah, out double ppoc)
+		{
+			pval = pvah = ppoc = double.NaN;
+			if (sessionIdx < 1 || sessionIdx >= sessionStarts.Count) return;
+			int ps = sessionStarts[sessionIdx - 1];
+			int pe = sessionStarts[sessionIdx] - 1;
 			if (pe < ps) return;
-			priorStartBar = ps;
 			Dictionary<double, double> pvol = new Dictionary<double, double>();
 			MergeSessionVolume(pvol, ps, ps, pe, false);
 			if (pvol.Count == 0) return;
 			double mv = 0;
-			foreach (KeyValuePair<double, double> kv in pvol) if (kv.Value > mv) { mv = kv.Value; pPoc = kv.Key; }
-			ValueAreaOf(pvol, pPoc, out pVal, out pVah);
+			foreach (KeyValuePair<double, double> kv in pvol) if (kv.Value > mv) { mv = kv.Value; ppoc = kv.Key; }
+			ValueAreaOf(pvol, ppoc, out pval, out pvah);
+		}
+
+		// Renders one session's OWN predecessor's final VA as a flat band+lines, bounded to
+		// [leftX, rightX] -- for today that's todayStartX..vpMaxRight (extends into the live VP
+		// margin, as before); for a historical session shown via DevHistSessions, that's its own
+		// start..its own end (the next session's start), never spilling into neighboring sessions.
+		private void DrawPriorOnSession(ChartScale cs, float leftX, float rightX, double pval, double pvah, double ppoc,
+			SolidColorBrush lineBr, SolidColorBrush bandBr)
+		{
+			if (double.IsNaN(pvah) || rightX <= leftX) return;
+			if (ShowPriorBand)
+			{
+				float y1 = cs.GetYByValue(pvah), y2 = cs.GetYByValue(pval);
+				RenderTarget.FillRectangle(new SharpDX.RectangleF(leftX, Math.Min(y1, y2), rightX - leftX, Math.Abs(y2 - y1)), bandBr);
+			}
+			if (ShowPriorLines)
+			{
+				DrawLevel(cs, leftX, rightX, pvah, lineBr, 1.0f);
+				DrawLevel(cs, leftX, rightX, pval, lineBr, 1.0f);
+				DrawLevel(cs, leftX, rightX, ppoc, lineBr, 1.5f);
+			}
 		}
 		#endregion
 
@@ -551,13 +662,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (endBar < 0) return;
 			Recompute(endBar); // cheap now (cached closed sessions) — keeps today's VA current with live ticks
 			if (volByRow == null || volByRow.Count == 0 || maxVol <= 0) return;
+			if (!showAll) return; // "VP" toolbar button -- Recompute above still ran (keeps state current), nothing drawn
 
 			float rowH = Math.Abs(chartScale.GetYByValue(0.0) - chartScale.GetYByValue(rowSize));
 			if (rowH < 1f) rowH = 1f;
 			float panelLeft = (float)ChartPanel.X;
 			float winStartX = Math.Max(panelLeft, chartControl.GetXByBarIndex(ChartBars, winStartBar));
 			float todayStartX = Math.Max(panelLeft, chartControl.GetXByBarIndex(ChartBars, todayStartBar));
-			float priorStartX = priorStartBar >= 0 ? Math.Max(panelLeft, chartControl.GetXByBarIndex(ChartBars, priorStartBar)) : panelLeft;
 			float vpLeft = chartControl.GetXByBarIndex(ChartBars, endBar) + RightOffsetPx;
 			float vpMaxRight = vpLeft + VpWidthPx;
 
@@ -584,12 +695,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				float y1 = chartScale.GetYByValue(vah), y2 = chartScale.GetYByValue(val);
 				RenderTarget.FillRectangle(new SharpDX.RectangleF(winStartX, Math.Min(y1, y2), todayStartX - winStartX, Math.Abs(y2 - y1)), vaBandBr);
 			}
-			if (ShowPriorBand && !double.IsNaN(pVah))
-			{
-				float y1 = chartScale.GetYByValue(pVah), y2 = chartScale.GetYByValue(pVal);
-				RenderTarget.FillRectangle(new SharpDX.RectangleF(priorStartX, Math.Min(y1, y2), vpMaxRight - priorStartX, Math.Abs(y2 - y1)), priorBandBr);
-			}
-
 			// rows: VP bars (with node coloring)
 			if (ShowVP)
 			{
@@ -615,9 +720,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			if (ShowIB && ibh > double.MinValue) { DrawLevel(chartScale, todayStartX, vpMaxRight, ibh, ibBr, 0.9f); DrawLevel(chartScale, todayStartX, vpMaxRight, ibl, ibBr, 0.9f); }
 			DrawDevelopingVA(chartScale, chartControl, todayStartX, vpMaxRight, endBar, pocBr, vaLineBr, vaBandBr, vwapBr);
+			int sc2 = sessionStarts.Count;
 			if (DevHistSessions > 0)
 			{
-				int sc2 = sessionStarts.Count;
 				List<string> histDates = new List<string>();
 				for (int back = 1; back <= DevHistSessions && sc2 - 1 - back >= 0; back++)
 				{
@@ -641,12 +746,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 					diagTf.Dispose();
 				}
 			}
-			// lines (prior)
-			if (ShowPriorLines && !double.IsNaN(pVah))
+
+			// Prior-session VA projected onto EACH shown session's own bars, not just today's --
+			// 2026-10-20: this used to run once (today vs yesterday only), so it never appeared
+			// on any DevHistSessions session (e.g. Friday's final VA projected onto Monday).
+			// Drawn AFTER the staircases (band+lines together, last-drawn = on top) so it isn't
+			// visually buried under them either.
+			DrawPriorOnSession(chartScale, todayStartX, vpMaxRight, pVal, pVah, pPoc, priorLineBr, priorBandBr);
+			for (int back = 1; back <= DevHistSessions && sc2 - 1 - back >= 0; back++)
 			{
-				DrawLevel(chartScale, priorStartX, vpMaxRight, pVah, priorLineBr, 1.0f);
-				DrawLevel(chartScale, priorStartX, vpMaxRight, pVal, priorLineBr, 1.0f);
-				DrawLevel(chartScale, priorStartX, vpMaxRight, pPoc, priorLineBr, 1.5f);
+				int idx = sc2 - 1 - back;
+				float hLeft = Math.Max(panelLeft, chartControl.GetXByBarIndex(ChartBars, sessionStarts[idx]));
+				float hRight = chartControl.GetXByBarIndex(ChartBars, sessionStarts[idx + 1]);
+				double hpv, hph, hpp;
+				ComputePriorFor(idx, out hpv, out hph, out hpp);
+				DrawPriorOnSession(chartScale, hLeft, hRight, hpv, hph, hpp, priorLineBr, priorBandBr);
 			}
 
 			// labels (de-collided, with leaders), placed right of the profile
