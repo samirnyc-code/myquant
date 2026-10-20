@@ -107,8 +107,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private Chart chartWindow;
 		private bool toolbarAdded;
 		private bool showAll = true;
+		private bool devStairstep = true; // false = flat current-level line across the whole session instead of the per-bar staircase
 		private int lastDevHistSessions = 1;
-		private Button btnVpAll, btnVpVa, btnVpPrior, btnVpHist;
+		private Button btnVpAll, btnVpVa, btnVpStair, btnVpHist;
 
 		// Tick-accurate accumulation (see header note).
 		private readonly object liveLock = new object();
@@ -257,17 +258,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			btnVpAll = new Button { Content = "VP", Style = btnStyle, Visibility = Visibility.Visible };
 			btnVpVa = new Button { Content = "VA", Style = btnStyle, Visibility = Visibility.Visible };
-			btnVpPrior = new Button { Content = "Pri", Style = btnStyle, Visibility = Visibility.Visible };
+			btnVpStair = new Button { Content = "Stair", Style = btnStyle, Visibility = Visibility.Visible };
 			btnVpHist = new Button { Content = "Hist", Style = btnStyle, Visibility = Visibility.Visible };
 
 			btnVpAll.Click += (s, e) => { showAll = !showAll; ForceRefresh(); };
-			btnVpVa.Click += (s, e) => { ShowVABand = !ShowVABand; ForceRefresh(); };
-			btnVpPrior.Click += (s, e) =>
+			btnVpVa.Click += (s, e) =>
 			{
-				bool on = !ShowPriorBand;
-				ShowPriorBand = on; ShowPriorLines = on;
+				bool on = !ShowVABand;
+				ShowVABand = on; ShowVAHVAL = on;
 				ForceRefresh();
 			};
+			btnVpStair.Click += (s, e) => { devStairstep = !devStairstep; ForceRefresh(); };
 			btnVpHist.Click += (s, e) =>
 			{
 				if (DevHistSessions > 0) { lastDevHistSessions = DevHistSessions; DevHistSessions = 0; }
@@ -277,7 +278,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			chartWindow.MainMenu.Add(btnVpAll);
 			chartWindow.MainMenu.Add(btnVpVa);
-			chartWindow.MainMenu.Add(btnVpPrior);
+			chartWindow.MainMenu.Add(btnVpStair);
 			chartWindow.MainMenu.Add(btnVpHist);
 			toolbarAdded = true;
 		}
@@ -287,7 +288,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (chartWindow == null) return;
 			if (btnVpAll != null) chartWindow.MainMenu.Remove(btnVpAll);
 			if (btnVpVa != null) chartWindow.MainMenu.Remove(btnVpVa);
-			if (btnVpPrior != null) chartWindow.MainMenu.Remove(btnVpPrior);
+			if (btnVpStair != null) chartWindow.MainMenu.Remove(btnVpStair);
 			if (btnVpHist != null) chartWindow.MainMenu.Remove(btnVpHist);
 			toolbarAdded = false;
 		}
@@ -833,6 +834,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (double.IsNaN(vws[k]) || double.IsNaN(vws[k + 1])) continue;
 					DrawVwapBand(cs, xs[k], vws[k], sds[k], xs[k + 1], vws[k + 1], sds[k + 1], vwapBr);
 				}
+			}
+
+			// "Stair" toolbar button: when OFF, skip the whole step/riser rendering below and
+			// just draw ONE flat segment using the LAST point's values (today's live tip, or a
+			// closed session's own final fold point) across the full [startX, xs[cnt-1]] width --
+			// the pre-staircase behavior, kept as a toggle instead of removed, since sometimes
+			// "where's the final number" is what's wanted instead of the developing shape.
+			if (!devStairstep)
+			{
+				int last = cnt - 1;
+				float yh0 = cs.GetYByValue(vhs[last]), yl0 = cs.GetYByValue(vls[last]);
+				if (ShowVABand)
+					RenderTarget.FillRectangle(new SharpDX.RectangleF(startX, Math.Min(yh0, yl0), xs[last] - startX, Math.Abs(yl0 - yh0)), fillBr);
+				if (ShowVAHVAL)
+				{
+					RenderTarget.DrawLine(new SharpDX.Vector2(startX, yh0), new SharpDX.Vector2(xs[last], yh0), lineBr, 1.2f);
+					RenderTarget.DrawLine(new SharpDX.Vector2(startX, yl0), new SharpDX.Vector2(xs[last], yl0), lineBr, 1.2f);
+				}
+				if (ShowPOC)
+				{
+					float yp0 = cs.GetYByValue(ps[last]);
+					RenderTarget.DrawLine(new SharpDX.Vector2(startX, yp0), new SharpDX.Vector2(xs[last], yp0), pocBr, 1.2f);
+				}
+				return;
 			}
 
 			float prevX = startX;
