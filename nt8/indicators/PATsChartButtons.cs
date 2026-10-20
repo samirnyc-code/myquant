@@ -87,7 +87,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			btnStyle.Setters.Add(new Setter(Button.HorizontalAlignmentProperty, HorizontalAlignment.Center));
 
 			btnCtStatus = new Button { Content = "CT ?", Style = btnStyle, Background = Brushes.Gray, Foreground = Brushes.White, Visibility = Visibility.Visible };
-			btnCtStatus.Click += (s, e) => RefreshCtStatus();
+			btnCtStatus.Click += (s, e) => RefreshCtStatus(true);
 
 			btnVwapToggle = new Button { Content = "VWAP", Style = btnStyle, Background = Brushes.LightGray, Foreground = Brushes.Blue, Visibility = Visibility.Visible };
 			btnVwapToggle.Click += (s, e) => ToggleLizardVwap();
@@ -96,44 +96,66 @@ namespace NinjaTrader.NinjaScript.Indicators
 			chartWindow.MainMenu.Add(btnVwapToggle);
 			toolbarAdded = true;
 
-			RefreshCtStatus();
+			RefreshCtStatus(true);
 			statusTimer = new DispatcherTimer(DispatcherPriority.Background, chartWindow.Dispatcher);
 			statusTimer.Interval = TimeSpan.FromSeconds(10);
-			statusTimer.Tick += (s, e) => RefreshCtStatus();
+			statusTimer.Tick += (s, e) => RefreshCtStatus(false); // no diagnostics on the auto timer -- would flood Output every 10s
 			statusTimer.Start();
 		}
 
 		// Literal enabled/disabled reflection only -- no health/correctness inference.
-		private void RefreshCtStatus()
+		// 2026-10-20 fix attempt: was reading chartWindow.ActiveChartControl.Strategies --
+		// ActiveChartControl is whichever TAB happens to be focused in a multi-instrument
+		// chart window, which may not be the tab this indicator (or ClaudeTrackerV2) actually
+		// lives on. Switched to this indicator's OWN ChartControl. verbose=true (click, and
+		// the initial add) prints every strategy found + its State to the NT8 Output window --
+		// if the light is still wrong after this, that Output dump tells us exactly why
+		// instead of guessing a third time.
+		private void RefreshCtStatus(bool verbose)
 		{
-			if (chartWindow == null || btnCtStatus == null || chartWindow.ActiveChartControl == null) return;
+			if (btnCtStatus == null || ChartControl == null) return;
 			bool enabled = false;
 			try
 			{
-				foreach (NinjaTrader.NinjaScript.Strategies.Strategy strat in chartWindow.ActiveChartControl.Strategies)
+				int count = 0;
+				foreach (NinjaTrader.NinjaScript.Strategies.Strategy strat in ChartControl.Strategies)
 				{
-					if (strat != null && strat.Name == ClaudeTrackerStrategyName && strat.State != State.Terminated)
-					{
+					count++;
+					if (verbose) Print("PATsChartButtons CT check: strategy '" + strat.Name + "' State=" + strat.State);
+					if (strat.Name == ClaudeTrackerStrategyName && strat.State != State.Terminated)
 						enabled = true;
-						break;
-					}
 				}
+				if (verbose && count == 0) Print("PATsChartButtons CT check: ChartControl.Strategies is empty");
 			}
-			catch { enabled = false; }
+			catch (Exception ex)
+			{
+				if (verbose) Print("PATsChartButtons CT check EXCEPTION: " + ex.Message);
+				enabled = false;
+			}
 			btnCtStatus.Background = enabled ? Brushes.Green : Brushes.Red;
 			btnCtStatus.Content = enabled ? "CT ON" : "CT OFF";
 		}
 
+		// 2026-10-20 fix attempt: same ActiveChartControl -> ChartControl switch as the CT
+		// light. Also prints every indicator type name found on click -- if LT_Current_Day_VWAP
+		// isn't the real type name, this shows the actual one instead of guessing again.
 		private void ToggleLizardVwap()
 		{
-			if (chartWindow == null || chartWindow.ActiveChartControl == null) return;
-			foreach (object obj in chartWindow.ActiveChartControl.ChartObjects)
+			if (ChartControl == null) return;
+			bool found = false;
+			foreach (object obj in ChartControl.ChartObjects)
 			{
 				Indicator indi = obj as Indicator;
-				if (indi != null && indi.GetType().FullName == LizardVwapTypeFullName)
+				if (indi == null) continue;
+				Print("PATsChartButtons VWAP check: found indicator type '" + indi.GetType().FullName + "'");
+				if (indi.GetType().FullName == LizardVwapTypeFullName)
+				{
 					indi.IsVisible = !indi.IsVisible;
+					found = true;
+				}
 			}
-			chartWindow.ActiveChartControl.InvalidateVisual();
+			if (!found) Print("PATsChartButtons VWAP check: '" + LizardVwapTypeFullName + "' not found among ChartObjects");
+			ChartControl.InvalidateVisual();
 			ForceRefresh();
 		}
 
