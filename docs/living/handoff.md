@@ -1,5 +1,27 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-20 (machine-time W. Europe, this chat) — **S146 continued: real IB bug
+found (ETH open, not RTH open) + fixed; PATsChartButtons still not appearing, cause unconfirmed.**
+User, angrily: "no vwap button, no light for claude tracker, IBH/L still being calculated on ETH!"
+**IB: confirmed real bug, not the earlier historical-sessions gap.** `ComputeIBFor` compared bare
+`TimeOfDay` (no date) against `RthStartHHMM` — for an ETH session opening in the evening (17:00),
+the FIRST bar already has `TimeOfDay=17:00 >= rthTod(09:30)`, so `rthOpenBar` locked onto the
+session's own ETH open instead of next morning's actual RTH open — IB was accumulating
+overnight/ETH highs-lows, not RTH's. Fixed: anchor to a full `DateTime` (session-start-bar's own
+date + `RthStartHHMM`, rolled to the next day if that clock time already passed before the
+session started). Compile-checked, deployed, byte-verified, committed.
+**PATsChartButtons (CT light / VWAP toggle) still not showing, SECOND report.** Checked
+`C:\Users\Admin\Documents\NinjaTrader 8\log\log.20261020.00000.en.txt` directly: zero mentions
+of "PATsChartButtons" OR "PATsProfile" anywhere today (inconclusive either way — NT8 doesn't
+appear to log routine successful indicator loads, only strategy enable/disable + errors, so
+absence doesn't prove non-load). Re-audited the full file line-by-line a second time — found no
+code defect. Leading hypothesis, not yet confirmed: a brand-new `.cs` file must be compiled (F5)
+before NT8's "Add Indicator" search can find it at all -- if the user searched for "PATs Chart
+Buttons" before ever pressing F5, it would correctly show as not-found, independent of any code
+issue. **Asked the user directly what they see when searching the Indicators dialog for "PATs
+Chart Buttons"**, rather than guess a third time. Do not re-touch this file without that answer
+or a concrete NT8 Log-tab error.
+**Last updated, prior block preserved below —**
 **Last Updated:** 2026-10-20 (machine-time W. Europe, this chat) — **S146 continued: VAp semantics
 fix, VP buttons orange, CT/VWAP buttons not showing = PATsChartButtons.cs was never ADDED to the
 chart (not a bug).** User: "VAp is not working correctly, it needs to toggle the prior day's VA
