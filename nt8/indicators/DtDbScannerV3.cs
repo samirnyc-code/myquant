@@ -105,6 +105,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             public double Neckline;
             public int    ConfirmBar;
             public double BreakCvd;     // smoothed CVD at the confirm/break bar
+            public double InvalidateBeyond; // price beyond the tops (DT) / bottoms (DB) -> stop watching
         }
         private readonly List<WatchRetest> watchingRetest = new List<WatchRetest>();
 
@@ -780,7 +781,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                         watchingRetest.Add(new WatchRetest
                         {
                             Tag = d.Tag, IsTop = d.IsTop, Neckline = d.Neckline,
-                            ConfirmBar = CurrentBar, BreakCvd = _cvdHist[0]
+                            ConfirmBar = CurrentBar, BreakCvd = _cvdHist[0], InvalidateBeyond = d.InvalidateBeyond
                         });
                     openDrawn.RemoveAt(i);
                 }
@@ -798,6 +799,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 RemoveStructure(old.Tag);
                 if (!string.IsNullOrEmpty(old.TriTag)) RemoveDrawObject(old.TriTag);
                 openDrawn.RemoveAll(d => d.Tag == old.Tag);
+                watchingRetest.RemoveAll(w => w.Tag == old.Tag);   // no late retest label for a removed pattern
                 drawnHistory.RemoveAt(0);
             }
         }
@@ -853,6 +855,11 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 if (CurrentBar <= w.ConfirmBar) continue;   // the confirm bar's own High/Low often still
                                                              // sits near the neckline it just broke --
                                                              // a retest can only happen on a LATER bar
+
+                // invalidated (new extreme beyond the tops/bottoms) -> no retest any more;
+                // checked first so a bar that both invalidates and touches the neckline gets no label
+                bool invalid = w.IsTop ? High[0] > w.InvalidateBeyond : Low[0] < w.InvalidateBeyond;
+                if (invalid) { watchingRetest.RemoveAt(i); continue; }
 
                 double tol = RetestToleranceTicks * TickSize;
                 bool isRetest = w.IsTop
