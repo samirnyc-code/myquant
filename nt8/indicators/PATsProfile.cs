@@ -79,6 +79,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private List<double> devVwapSd = new List<double>();
 		private double curVwap = double.NaN; // today-only VWAP as of now; set by DrawDevelopingVA, read by the label block
 
+		// Archived developing series for CLOSED sessions, keyed by that session's start bar --
+		// a snapshot of devVah/devVal/devPoc/devVwap/devVwapSd taken the moment a session ends
+		// (right before the live arrays reset for the new one). This is what DevHistSessions
+		// renders: each entry is a finished, immutable session's own full developing trail, not
+		// recomputed later. Needs only the chart's own loaded bars (same bar-split approximation
+		// as today) -- NOT the L1 tape archive -- so it covers however many days the chart has
+		// bars for, same depth as every other closed-session feature in this file.
+		private class DevSeries
+		{
+			public List<double> Vah = new List<double>();
+			public List<double> Val = new List<double>();
+			public List<double> Poc = new List<double>();
+			public List<double> Vwap = new List<double>();
+			public List<double> VwapSd = new List<double>();
+		}
+		private Dictionary<int, DevSeries> devHistBySession = new Dictionary<int, DevSeries>();
+
 		// Tick-accurate accumulation (see header note).
 		private readonly object liveLock = new object();
 		private Dictionary<double, double> liveVolByRow;
@@ -104,6 +121,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public int IbMinutes { get; set; }
 		[NinjaScriptProperty] [Range(0, 2359)] [Display(Name = "RTH start (HHmm, chart time)", Order = 7, GroupName = "1 Profile")]
 		public int RthStartHHMM { get; set; }
+		[NinjaScriptProperty] [Range(0, 60)] [Display(Name = "Historical developing sessions", Order = 8, GroupName = "1 Profile")]
+		public int DevHistSessions { get; set; }
 
 		[NinjaScriptProperty] [Display(Name = "Volume Profile", Order = 0, GroupName = "2 Show")]
 		public bool ShowVP { get; set; }
@@ -168,10 +187,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (State == State.SetDefaults)
 			{
 				Name = "PATs Profile (VP)";
-				Description = "Right-margin Volume Profile: POC, value area, HVN/LVN, RTH initial balance, prior-session zone, developing VA staircase, session VWAP+SD bands, labels, composite.";
+				Description = "Right-margin Volume Profile: POC, value area, HVN/LVN, RTH initial balance, prior-session zone, developing VA staircase (today + N historical sessions), session VWAP+SD bands, labels, composite.";
 				IsOverlay = true; IsChartOnly = true; DrawOnPricePanel = true; IsSuspendedWhileInactive = true;
 				RowTicks = 4; CompositeSessions = 1; VpWidthPx = 150; RightOffsetPx = 6;
-				Opacity = 0.85; LabelFontSize = 11; IbMinutes = 60; RthStartHHMM = 930;
+				Opacity = 0.85; LabelFontSize = 11; IbMinutes = 60; RthStartHHMM = 930; DevHistSessions = 1;
 				ShowVP = true; ShowVAHVAL = true; ShowVABand = true; ShowPOC = true; ShowIB = true;
 				ShowHVN = true; ShowLVN = true; ShowPriorLines = true; ShowPriorBand = true; ShowLabels = true;
 				ShowVWAP = true;
@@ -191,6 +210,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				sessionStarts = new List<int>();
 				tickHistBySession = new Dictionary<int, Dictionary<double, double>>();
 				barVolBySession = new Dictionary<int, Dictionary<double, double>>();
+				devHistBySession = new Dictionary<int, DevSeries>();
 				liveVolByRow = null; liveSessionStartBar = -1; obuSessionStartBar = -1;
 			}
 			else if (State == State.Realtime) { SeedLiveFromHistory(); }
@@ -225,8 +245,37 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			bool newSession = (CurrentBar == 0 || Bars.IsFirstBarOfSession) &&
 			                   (sessionStarts.Count == 0 || sessionStarts[sessionStarts.Count - 1] != CurrentBar);
+
+			// Fold every bar strictly before the current (possibly still-forming) one into
+			// the developing series, exactly once each -- BEFORE the newSession archive/reset
+			// below, using whatever session is still current at this point. A `while` (not
+			// `if`) so this is correct whether OnBarUpdate fires once per bar (normal) or many
+			// times per bar (Tick Replay). Ordering matters: this has to run first so that on
+			// the exact call where a new session starts, the OLD session's own final bar
+			// (CurrentBar-1) gets folded into ITS series before being archived below -- doing
+			// this after the reset would silently archive every session one bar short, missing
+			// its own close. Also naturally replays the WHOLE session in order on a fresh chart
+			// load, so there's no separate historical-seeding step needed here (unlike
+			// liveVolByRow, which this deliberately does not reuse).
+			while (devCumVol != null && devFoldedThroughBar < CurrentBar - 1)
+			{
+				devFoldedThroughBar++;
+				FoldBarIntoDev(devFoldedThroughBar);
+			}
+
 			if (newSession)
 			{
+				// Archive the just-finished session's full developing trail before wiping it
+				// for the new one -- this is the ONLY place a session's dev series is ever
+				// saved, so it has to happen before the Clear() calls below, not after.
+				if (devSessionStart >= 0 && devVah.Count > 0)
+				{
+					devHistBySession[devSessionStart] = new DevSeries
+					{
+						Vah = new List<double>(devVah), Val = new List<double>(devVal), Poc = new List<double>(devPoc),
+						Vwap = new List<double>(devVwap), VwapSd = new List<double>(devVwapSd)
+					};
+				}
 				sessionStarts.Add(CurrentBar);
 				obuSessionStartBar = CurrentBar;
 				devCumVol = new Dictionary<double, double>();
@@ -235,19 +284,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				devCumPV = 0; devCumV = 0; devCumPV2 = 0;
 				devSessionStart = CurrentBar;
 				devFoldedThroughBar = CurrentBar - 1;
-			}
-
-			// Fold every bar strictly before the current (possibly still-forming) one into
-			// the developing series, exactly once each. A `while` (not `if`) so this is
-			// correct whether OnBarUpdate fires once per bar (normal) or many times per bar
-			// (Tick Replay) -- it only advances when CurrentBar has actually moved past the
-			// next unfolded bar, and it naturally replays the WHOLE session in order on a
-			// fresh chart load too, so there's no separate historical-seeding step needed
-			// here (unlike liveVolByRow, which this deliberately does not reuse).
-			while (devCumVol != null && devFoldedThroughBar < CurrentBar - 1)
-			{
-				devFoldedThroughBar++;
-				FoldBarIntoDev(devFoldedThroughBar);
 			}
 
 			// Historical tick-accurate accumulation — only active when the chart's
@@ -579,6 +615,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			if (ShowIB && ibh > double.MinValue) { DrawLevel(chartScale, todayStartX, vpMaxRight, ibh, ibBr, 0.9f); DrawLevel(chartScale, todayStartX, vpMaxRight, ibl, ibBr, 0.9f); }
 			DrawDevelopingVA(chartScale, chartControl, todayStartX, vpMaxRight, endBar, pocBr, vaLineBr, vaBandBr, vwapBr);
+			if (DevHistSessions > 0)
+			{
+				int sc2 = sessionStarts.Count;
+				for (int back = 1; back <= DevHistSessions && sc2 - 1 - back >= 0; back++)
+					DrawHistSessionDevVA(chartScale, chartControl, sessionStarts[sc2 - 1 - back], panelLeft, pocBr, vaLineBr, vaBandBr, vwapBr);
+			}
 			// lines (prior)
 			if (ShowPriorLines && !double.IsNaN(pVah))
 			{
@@ -627,6 +669,75 @@ namespace NinjaTrader.NinjaScript.Indicators
 			PolyLine(cs, x0, v0 - sd0 * VwapSdMult1, x1, v1 - sd1 * VwapSdMult1, br, 0.8f);
 			PolyLine(cs, x0, v0 + sd0 * VwapSdMult2, x1, v1 + sd1 * VwapSdMult2, br, 0.5f);
 			PolyLine(cs, x0, v0 - sd0 * VwapSdMult2, x1, v1 - sd1 * VwapSdMult2, br, 0.5f);
+		}
+
+		// Shared step+fill+VWAP renderer for one session's developing trail, given its own
+		// point series (one entry per folded bar) and a left anchor. Used for TODAY (point
+		// series built by DrawDevelopingVA, with a live tip appended) and for each CLOSED
+		// session shown via DevHistSessions (point series = that session's archived DevSeries,
+		// fixed, no live tip -- the session is over, its last point IS its final value).
+		private void DrawDevSeries(ChartScale cs, float startX, List<float> xs, List<double> vhs, List<double> vls,
+			List<double> ps, List<double> vws, List<double> sds,
+			SolidColorBrush pocBr, SolidColorBrush lineBr, SolidColorBrush fillBr, SolidColorBrush vwapBr)
+		{
+			int cnt = xs.Count;
+			if (cnt == 0) return;
+
+			// VWAP + bands: a normal connected (sloping) line through each point, NOT a step --
+			// unlike VA, VWAP is a continuously-defined running mean, so a straight segment
+			// between consecutive values is both the standard rendering and the honest one.
+			// Each endpoint's band offset uses THAT point's own SD (not a single shared value),
+			// so the band width itself is a sloped line too, correctly narrow early/wide later.
+			if (ShowVWAP && !double.IsNaN(vws[0]))
+			{
+				// flat lead-in from session start to the first fold point, using bar 0's own
+				// value (there's no VWAP "before" any bar has closed) -- without this the line
+				// visibly started one bar later than the VA staircase and the price itself.
+				DrawVwapBand(cs, startX, vws[0], sds[0], xs[0], vws[0], sds[0], vwapBr);
+				for (int k = 0; k + 1 < cnt; k++)
+				{
+					if (double.IsNaN(vws[k]) || double.IsNaN(vws[k + 1])) continue;
+					DrawVwapBand(cs, xs[k], vws[k], sds[k], xs[k + 1], vws[k + 1], sds[k + 1], vwapBr);
+				}
+			}
+
+			float prevX = startX;
+			for (int k = 0; k < cnt; k++)
+			{
+				float x = xs[k];
+				if (x > prevX)
+				{
+					float yh = cs.GetYByValue(vhs[k]), yl = cs.GetYByValue(vls[k]);
+					if (ShowVABand)
+						RenderTarget.FillRectangle(new SharpDX.RectangleF(prevX, Math.Min(yh, yl), x - prevX, Math.Abs(yl - yh)), fillBr);
+					if (ShowVAHVAL)
+					{
+						RenderTarget.DrawLine(new SharpDX.Vector2(prevX, yh), new SharpDX.Vector2(x, yh), lineBr, 1.2f);
+						RenderTarget.DrawLine(new SharpDX.Vector2(prevX, yl), new SharpDX.Vector2(x, yl), lineBr, 1.2f);
+					}
+					if (ShowPOC)
+					{
+						float yp = cs.GetYByValue(ps[k]);
+						RenderTarget.DrawLine(new SharpDX.Vector2(prevX, yp), new SharpDX.Vector2(x, yp), pocBr, 1.2f);
+					}
+				}
+				if (k + 1 < cnt)
+				{
+					if (ShowVAHVAL)
+					{
+						float yh = cs.GetYByValue(vhs[k]), yhN = cs.GetYByValue(vhs[k + 1]);
+						float yl = cs.GetYByValue(vls[k]), ylN = cs.GetYByValue(vls[k + 1]);
+						RenderTarget.DrawLine(new SharpDX.Vector2(x, yh), new SharpDX.Vector2(x, yhN), lineBr, 1.2f);
+						RenderTarget.DrawLine(new SharpDX.Vector2(x, yl), new SharpDX.Vector2(x, ylN), lineBr, 1.2f);
+					}
+					if (ShowPOC)
+					{
+						float yp = cs.GetYByValue(ps[k]), ypN = cs.GetYByValue(ps[k + 1]);
+						RenderTarget.DrawLine(new SharpDX.Vector2(x, yp), new SharpDX.Vector2(x, ypN), pocBr, 1.2f);
+					}
+				}
+				prevX = x;
+			}
 		}
 
 		// Today's VA as a connected, filled staircase instead of a flat backward-extended
@@ -678,64 +789,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else curVwap = double.NaN;
 
-			int cnt = xs.Count;
-			if (cnt == 0) return;
+			if (xs.Count == 0) return;
+			DrawDevSeries(cs, startX, xs, vhs, vls, ps, vws, sds, pocBr, lineBr, fillBr, vwapBr);
+		}
 
-			// VWAP + bands: a normal connected (sloping) line through each point, NOT a step --
-			// unlike VA, VWAP is a continuously-defined running mean, so a straight segment
-			// between consecutive values is both the standard rendering and the honest one.
-			// Each endpoint's band offset uses THAT point's own SD (not a single shared value),
-			// so the band width itself is a sloped line too, correctly narrow early/wide later.
-			if (ShowVWAP && cnt > 0 && !double.IsNaN(vws[0]))
-			{
-				// flat lead-in from session start to the first fold point, using bar 0's own
-				// value (there's no VWAP "before" any bar has closed) -- without this the line
-				// visibly started one bar later than the VA staircase and the price itself.
-				DrawVwapBand(cs, startX, vws[0], sds[0], xs[0], vws[0], sds[0], vwapBr);
-				for (int k = 0; k + 1 < cnt; k++)
-				{
-					if (double.IsNaN(vws[k]) || double.IsNaN(vws[k + 1])) continue;
-					DrawVwapBand(cs, xs[k], vws[k], sds[k], xs[k + 1], vws[k + 1], sds[k + 1], vwapBr);
-				}
-			}
-
-			float prevX = startX;
-			for (int k = 0; k < cnt; k++)
-			{
-				float x = xs[k];
-				if (x > prevX)
-				{
-					float yh = cs.GetYByValue(vhs[k]), yl = cs.GetYByValue(vls[k]);
-					if (ShowVABand)
-						RenderTarget.FillRectangle(new SharpDX.RectangleF(prevX, Math.Min(yh, yl), x - prevX, Math.Abs(yl - yh)), fillBr);
-					if (ShowVAHVAL)
-					{
-						RenderTarget.DrawLine(new SharpDX.Vector2(prevX, yh), new SharpDX.Vector2(x, yh), lineBr, 1.2f);
-						RenderTarget.DrawLine(new SharpDX.Vector2(prevX, yl), new SharpDX.Vector2(x, yl), lineBr, 1.2f);
-					}
-					if (ShowPOC)
-					{
-						float yp = cs.GetYByValue(ps[k]);
-						RenderTarget.DrawLine(new SharpDX.Vector2(prevX, yp), new SharpDX.Vector2(x, yp), pocBr, 1.2f);
-					}
-				}
-				if (k + 1 < cnt)
-				{
-					if (ShowVAHVAL)
-					{
-						float yh = cs.GetYByValue(vhs[k]), yhN = cs.GetYByValue(vhs[k + 1]);
-						float yl = cs.GetYByValue(vls[k]), ylN = cs.GetYByValue(vls[k + 1]);
-						RenderTarget.DrawLine(new SharpDX.Vector2(x, yh), new SharpDX.Vector2(x, yhN), lineBr, 1.2f);
-						RenderTarget.DrawLine(new SharpDX.Vector2(x, yl), new SharpDX.Vector2(x, ylN), lineBr, 1.2f);
-					}
-					if (ShowPOC)
-					{
-						float yp = cs.GetYByValue(ps[k]), ypN = cs.GetYByValue(ps[k + 1]);
-						RenderTarget.DrawLine(new SharpDX.Vector2(x, yp), new SharpDX.Vector2(x, ypN), pocBr, 1.2f);
-					}
-				}
-				prevX = x;
-			}
+		// One CLOSED session's own developing trail, drawn only over its own bars (fixed,
+		// archived at DevSeries -- never recomputed, never extends into the next session).
+		// Reuses the exact same ShowVABand/ShowVAHVAL/ShowPOC/ShowVWAP toggles as today's.
+		private void DrawHistSessionDevVA(ChartScale cs, ChartControl cc, int sessionStartBar, float panelLeft,
+			SolidColorBrush pocBr, SolidColorBrush lineBr, SolidColorBrush fillBr, SolidColorBrush vwapBr)
+		{
+			DevSeries d;
+			if (!devHistBySession.TryGetValue(sessionStartBar, out d) || d.Vah.Count == 0) return;
+			int n = d.Vah.Count;
+			List<float> xs = new List<float>(n);
+			for (int k = 0; k < n; k++)
+				xs.Add(cc.GetXByBarIndex(ChartBars, sessionStartBar + k + 1));
+			float startX = Math.Max(panelLeft, cc.GetXByBarIndex(ChartBars, sessionStartBar));
+			DrawDevSeries(cs, startX, xs, d.Vah, d.Val, d.Poc, d.Vwap, d.VwapSd, pocBr, lineBr, fillBr, vwapBr);
 		}
 
 		private void AddLbl(List<Lbl> list, ChartScale cs, string text, double price, SolidColorBrush br, int col)
