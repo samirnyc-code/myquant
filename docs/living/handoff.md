@@ -1,5 +1,72 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-20 (machine-time W. Europe) — **S146 continued: bid/ask write-race bug
+found mid-session, VWAP dropped in favor of Lizard Trader, prior-VA projection generalized to
+historical sessions, chart-toolbar declutter buttons added.**
+While investigating a NEW flatline complaint on BAVR, found the 30-min auto-refresh (wired in
+earlier today) has a REAL concurrency bug: the daemon (10s loop) and one-shot (5-min) watchdog
+processes each independently decide "due for refresh" from their own `watchdog_state.json`
+read before either writes back — a classic cross-process TOCTOU race. It actually fired:
+`bid_ask_vol_buckets.csv`'s last row was a truncated `48,,,` fragment, exactly at the timestamp
+of a real backfill run, confirming two `backfill_bid_ask_log.py` invocations wrote the same
+non-atomic target path concurrently. Fixed two ways: (1) `backfill_bid_ask_log.py` now writes
+to a temp file + `os.replace()` (atomic rename) instead of `to_csv` straight to the target --
+no reader or second writer can ever observe a half-written file; (2) `desk_watchdog.py` gained
+a cross-process lock (exclusive file-create, stale-cleared after 5 min) around the refresh
+critical section, so only one process can actually be mid-backfill at a time. Not yet
+re-verified under a real second collision (would need to catch one live).
+**User then asked two genuine conceptual questions, not bugs:** (1) "are you sure bar-split
+approximation is accurate enough" for the developing-VA fold -- honest answer: no, not fully
+confident; the error scales with how wide each bar's range is relative to row size, worst
+exactly during the fast bursts that matter most, and today's own historical points don't even
+use the tick-accurate data already sitting in `liveVolByRow` (only the live tip does) --
+proposed but did NOT build a time-window-based tick-accurate fold (flagged one real risk:
+`OnMarketData`/`OnBarUpdate` ordering at the exact bar boundary isn't guaranteed precise enough
+without reusing `backfill_bid_ask_log.py`'s proven time-bucket approach). (2) "why do VA and
+VWAP±SD differ substantially" -- answered: different statistical constructs from the same data
+(mode-anchored 70%-of-volume region vs mean+variance), expected to diverge whenever the
+distribution isn't close to normal (skewed/multi-modal/thin-tailed, i.e. most real trend days)
+-- not a bug, same underlying phenomenon as the VA-lag discussion.
+**User then: "stop, we are wasting resources, we will use the Lizard Trader VWAP for now."**
+Stopped immediately (mid-fix, VWAP NaN-gate bug left unpatched). Next turn: "default it to off
+for now" -- `ShowVWAP` now defaults `false`, code left in place dormant (not ripped out).
+**Separately, user: "i see the developing VA historically but i do not see Y final VA b[o]x
+projected on the current session, not today not historically."** Real, confirmed gap (not a
+bug in the sense of wrong output -- the feature was simply never built for this case):
+`ComputePriorLevels()` only ever computed ONE prior-pair (today vs yesterday), so the
+prior-session-VA-projected-forward feature (`ShowPriorBand`/`ShowPriorLines`) never applied to
+any `DevHistSessions` entry. Generalized: `ComputePriorFor(sessionIdx, ...)` is the same calc,
+callable for any session; new `DrawPriorOnSession()` renders it bounded to that session's own
+bar range; called once for today (unchanged) and once per `DevHistSessions` entry. Also moved
+this rendering to run AFTER the staircases (was: band drawn early/underneath, could get
+visually buried under a staircase fill; lines were already last/on-top) so neither the band nor
+lines get buried now. Added a diagnostic text readout ("H-1 MM/dd  H-2 MM/dd ...") at the top
+of the VP margin so the user can directly verify which calendar dates `DevHistSessions`
+actually resolved to, instead of guessing -- "H-N" counts SESSION BOUNDARIES per the chart's
+own trading-hours template (e.g. a Sunday-evening ETH sliver can be its own session), not
+weekdays, so Friday may be H-2 or H-3 depending on the template; the other possible cause
+(chart's own "Days to load" not reaching that far back) isn't fixable in the indicator at all.
+**Separately, user: "I can not grab drawing objects inside the VA area."** First guess (visual
+clutter making precise clicks hard) was flatly rejected by the user ("no way u got that right
+... nothing to do with clutter"). User wants chart-toolbar toggle buttons instead, same
+location as the old (deleted 2026-10-16) `ClaudeTrackerHealthLight.cs` "CT" button. Found and
+persisted `nt8/vendor/ab/MyABToolbarButtons.cs` (was ONLY on the NT8 machine, never committed
+-- hard-rule violation, fixed) after the user pointed to it as reference; confirmed the
+technique (`Window.GetWindow(ChartControl.Parent) as Chart` + `chartWindow.MainMenu.Add()`) is
+the SAME one `ClaudeTrackerHealthLight` used -- a chart's own toolbar, NOT NT8's Control
+Center/main application taskbar (no code anywhere, past or present, touches that; would be new,
+unattempted work). Built 4 buttons directly into `PATsProfile.cs` using this pattern: **VP**
+(master kill switch for all rendering -- `Recompute` still runs to keep state current, nothing
+gets drawn), **VA** (`ShowVABand`), **Pri** (`ShowPriorBand`+`ShowPriorLines` together), **Hist**
+(`DevHistSessions` toggle between 0 and the last configured count, remembered in a runtime-only
+field). All 4 are runtime UI state, not `NinjaScriptProperty` -- toolbar toggles, not
+template-saved preferences.
+Compile-checked clean (all 3 nt8/py changes), deployed + byte-verified the .cs. **PENDING USER
+F5/verification on all of it -- not confirmed visually/functionally correct by me.** First use
+of WPF `Button`/`Style`/`Dispatcher` constructs in `PATsProfile.cs` -- compile-check doesn't
+replicate NT8's own wrapper-generation step the way a real F5 does (bit this exact codebase
+twice before on Gui-heavy files, per S144/S145/S146 history above).
+**Last updated, prior block preserved below —**
 **Last Updated:** 2026-10-20 (machine-time W. Europe) — **S146 continued (same chat, new day):
 BAVR wiped out after a bar-type switch -> root cause was the watchdog fix only covering RTH,
 not ETH -> widened it; PATsProfile historical/developing-VA feature built.**
