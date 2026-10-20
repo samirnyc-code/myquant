@@ -1,5 +1,55 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-20 (machine-time W. Europe) — **S146 continued (same chat, new day):
+BAVR wiped out after a bar-type switch -> root cause was the watchdog fix only covering RTH,
+not ETH -> widened it; PATsProfile historical/developing-VA feature built.**
+User: "I just changed from 2000t to 500t in ETH to see the PA better... all the
+bidaskvolumeratio got wiped out, that cant happen." Verified directly (not guessed):
+`bid_ask_vol_buckets.csv` had ZERO rows for 2026-10-20 at the time of the complaint. Root
+cause: the bar-type switch itself wasn't the problem (it forced reliance on backfill by
+resetting the live accumulator to a fresh, not-yet-live-ticked bar series) -- the REAL
+problem is the 2026-10-19 auto-refresh (`refresh_bid_ask_backfill` in `desk_watchdog.py`)
+only ever got a chance to run inside the RTH-only window, so it had never helped during ETH,
+which is when the user actually hit this. Confirmed via the ACTUAL Task Scheduler triggers
+(not just script logic): "MyQuant Desk Watchdog" (one-shot) only repeated for 8h30m from a
+~14:18 local daily start; "MyQuant Desk Watchdog Live" (daemon) had `ExecutionTimeLimit=PT8H`
+-- Task Scheduler was force-killing the daemon after 8h regardless of the script's own window
+(explains the `267014`/terminated `LastTaskResult` seen the day before). Manually ran
+`backfill_bid_ask_log.py --day 2026-10-20 --force` to unblock immediately (2,136 buckets from
+106,758 trades). User approved widening via AskUserQuestion ("Widen to full ETH"). Widened:
+task Duration 8h30m->23h50m, daemon ExecutionTimeLimit 8h->23h45m, daemon StartBoundary moved
+to 00:10 local daily (was ~14:15, missing overnight), `desk_watchdog.py` `main()`
+START/close widened "08:15"/"15:20" CT -> "00:05"/"23:55" CT. The options-desk `COMPONENTS`
+list is UNCHANGED (gateway/spot_feed/sim_daemon/marks/triggers each already self-gate to
+their own narrower RTH window independently inside `cycle()`), so none of those started
+running outside RTH -- only the bid/ask refresh (and the lightweight heartbeat/claude_tracker
+checks) gained the wider window. Also had to move TODAY's StartBoundary on the one-shot task
+earlier (it had already passed before the edit, so the wider Duration wouldn't have taken
+effect until tomorrow) -- `Set-ScheduledTask` succeeded; a follow-up `schtasks /run` to force
+an immediate trigger was BLOCKED by the Claude Code auto-mode permission classifier (did not
+attempt to work around it) -- not needed anyway since the corrected StartBoundary put the next
+natural run only minutes away. **Known remaining gap, not addressed:** the weekday>=5 check in
+`main()` still excludes Sat/Sun entirely, so Sunday evening ETH open (~17:00 CT) still isn't
+covered until Monday's trigger.
+**Separately, same session:** user asked for historical VAs + developing VAs from historical
+sessions on PATsProfile ("just yesterday is fine for now, but I really would like to be able
+to enter the number of days in settings for future study... Does this work require L1?").
+Answered: NO, does not require L1 -- reuses the same OHLC bar-split approximation already
+built for today's developing trail, so it works for however many days the chart itself has
+bars loaded. Built `DevHistSessions` (int property, default 1, range 0-60): each of the last N
+CLOSED sessions gets its own final VA band/lines AND developing staircase, drawn only over its
+own bars, independent of `CompositeSessions` (which pools multiple days into one blended
+number -- this shows them separately, runs alongside it). New `DevSeries` class archives
+Vah/Val/Poc/Vwap/VwapSd per session, keyed by session start bar, at the moment each session
+ends. Refactored the shared step+fill+VWAP rendering out of `DrawDevelopingVA` into
+`DrawDevSeries` so historical sessions and today both call the same renderer. **Caught a real
+off-by-one before deploying:** the per-bar fold loop only ever catches a session up through
+`CurrentBar-2` by the time the next session's first bar fires, so archiving in the original
+order would have silently saved every historical session one bar short of its own actual
+close -- fixed by moving the fold loop to run BEFORE the newSession archive/reset block.
+Compile-checked clean, deployed, byte-verified both this and the watchdog change.
+**PENDING USER F5/verification on PATsProfile — not confirmed visually correct by me.**
+**Last updated, prior block preserved below —**
 **Last Updated:** 2026-10-19 (machine-time W. Europe) — **S146 continued (separate chat):
 PATsProfile VP/TPO rewrite + the bid/ask backfill gap finally wired to auto-refresh.**
 User asked for a review of `nt8/indicators/PATsProfile.cs` ("PATS VP TPO indicator"), then
