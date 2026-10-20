@@ -111,7 +111,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool devStairstep = true; // false = flat current-level line across the whole session instead of the per-bar staircase
 		private bool showHistVA = true; // 2026-10-20: VA button now controls PRIOR/historical sessions' VA, not today's
 		private int lastDevHistSessions = 1;
-		private Button btnVpAll, btnVpVa, btnVpStair, btnVpHist, btnVpLbl;
+		private Button btnVpAll, btnVpVaToday, btnVpVaPrior, btnVpStair, btnVpHist, btnVpLbl;
 
 		// Tick-accurate accumulation (see header note).
 		private readonly object liveLock = new object();
@@ -271,15 +271,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 			btnStyle.Setters.Add(new Setter(Button.HorizontalAlignmentProperty, HorizontalAlignment.Center));
 
 			btnVpAll = new Button { Content = "VP", Style = btnStyle, Visibility = Visibility.Visible };
-			btnVpVa = new Button { Content = "VA", Style = btnStyle, Visibility = Visibility.Visible };
+			btnVpVaToday = new Button { Content = "VAt", Style = btnStyle, Visibility = Visibility.Visible };
+			btnVpVaPrior = new Button { Content = "VAp", Style = btnStyle, Visibility = Visibility.Visible };
 			btnVpStair = new Button { Content = "Stair", Style = btnStyle, Visibility = Visibility.Visible };
 			btnVpHist = new Button { Content = "Hist", Style = btnStyle, Visibility = Visibility.Visible };
 			btnVpLbl = new Button { Content = "Lbl", Style = btnStyle, Visibility = Visibility.Visible };
 
 			btnVpAll.Click += (s, e) => { showAll = !showAll; ForceRefresh(); };
-			// 2026-10-20: user correction -- this controls PRIOR/historical sessions' VA
-			// (shading + stepline together), NOT today's own, which stays dialog-controlled.
-			btnVpVa.Click += (s, e) => { showHistVA = !showHistVA; ForceRefresh(); };
+			// 2026-10-20: split into two -- VAt controls TODAY's own VA (shading+stepline
+			// together), VAp controls PRIOR/historical sessions' VA, independently.
+			btnVpVaToday.Click += (s, e) =>
+			{
+				bool on = !ShowVABand;
+				ShowVABand = on; ShowVAHVAL = on;
+				ForceRefresh();
+			};
+			btnVpVaPrior.Click += (s, e) => { showHistVA = !showHistVA; ForceRefresh(); };
 			btnVpStair.Click += (s, e) => { devStairstep = !devStairstep; ForceRefresh(); };
 			btnVpHist.Click += (s, e) =>
 			{
@@ -290,7 +297,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			btnVpLbl.Click += (s, e) => { ShowLabels = !ShowLabels; ForceRefresh(); };
 
 			chartWindow.MainMenu.Add(btnVpAll);
-			chartWindow.MainMenu.Add(btnVpVa);
+			chartWindow.MainMenu.Add(btnVpVaToday);
+			chartWindow.MainMenu.Add(btnVpVaPrior);
 			chartWindow.MainMenu.Add(btnVpStair);
 			chartWindow.MainMenu.Add(btnVpHist);
 			chartWindow.MainMenu.Add(btnVpLbl);
@@ -301,7 +309,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (chartWindow == null) return;
 			if (btnVpAll != null) chartWindow.MainMenu.Remove(btnVpAll);
-			if (btnVpVa != null) chartWindow.MainMenu.Remove(btnVpVa);
+			if (btnVpVaToday != null) chartWindow.MainMenu.Remove(btnVpVaToday);
+			if (btnVpVaPrior != null) chartWindow.MainMenu.Remove(btnVpVaPrior);
 			if (btnVpStair != null) chartWindow.MainMenu.Remove(btnVpStair);
 			if (btnVpHist != null) chartWindow.MainMenu.Remove(btnVpHist);
 			if (btnVpLbl != null) chartWindow.MainMenu.Remove(btnVpLbl);
