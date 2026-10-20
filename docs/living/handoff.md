@@ -1,5 +1,26 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-20 (machine-time W. Europe, this chat) — **S146 continued: VAp semantics
+fix, VP buttons orange, CT/VWAP buttons not showing = PATsChartButtons.cs was never ADDED to the
+chart (not a bug).** User: "VAp is not working correctly, it needs to toggle the prior day's VA
+on each day -- today's chart toggles yesterday's VA, yesterday's chart toggles Friday's VA."
+Correct diagnosis: VAp had been wired to `showHistVA`, a filter on whether historical sessions'
+OWN developing trail renders -- a completely different concept from what the user actually wants
+("prior day's VA" = the prior-session-projected-forward layer, `ShowPriorBand`/`ShowPriorLines`
+via `DrawPriorOnSession`, already correctly generalized per-session earlier this session). Removed
+`showHistVA` entirely; `DrawHistSessionDevVA` now uses the same `ShowVABand`/`ShowVAHVAL`/
+`ShowPOC` globals as today's own (VAt is the master for the staircase/shading concept across
+every shown session); VAp now toggles `ShowPriorBand`+`ShowPriorLines`, genuinely orthogonal to
+VAt. Also: all PATsProfile toolbar buttons now light orange (`Color.FromRgb(255,200,120)`) per
+request. **User also reported no CT light or VWAP button visible in the taskbar at all** — this
+is NOT a bug in `PATsChartButtons.cs` (re-verified still byte-identical/correctly deployed,
+untouched this round) — it's a brand-new indicator that was never explicitly ADDED to the chart
+via the Indicators dialog, so its `State.Realtime` hook (which is what creates the buttons) has
+never fired. Same requirement PATsProfile itself needed the first time. Told the user directly:
+add "PATs Chart Buttons" via the Indicators dialog, nothing more to fix in code for this.
+Compile-checked clean, deployed, byte-verified. **PENDING USER F5 + adding PATsChartButtons to
+the chart.**
+**Last updated, prior block preserved below —**
 **Last Updated:** 2026-10-20 (machine-time W. Europe, this chat) — **S146 continued: VA button
 split into VAt/VAp, new PATsChartButtons.cs (ClaudeTrackerV2 status light + Lizard VWAP toggle).**
 User: "VA button needs 2 versions, 1 for VA prior, 1 for VA today" + "a button that shows if
