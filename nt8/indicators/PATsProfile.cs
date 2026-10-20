@@ -467,16 +467,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		// 2026-10-20: generalized from "today only" -- user pointed out IB was never computed
 		// for any DevHistSessions entry, only the live session. Same logic, callable per session.
+		// 2026-10-20 BUG FIX: the previous version compared only TimeOfDay (clock time,
+		// no date) against RthStartHHMM. For an ETH-inclusive session that opens in the
+		// EVENING (e.g. 17:00), the very FIRST bar already has TimeOfDay=17:00 >= rthTod
+		// (e.g. 09:30) -- so rthOpenBar locked onto the session's own ETH open instead of
+		// the actual RTH open the NEXT morning. IB was being computed from the overnight
+		// session, not RTH -- exactly the "IBH/L still being calculated on ETH" the user
+		// confirmed. Fixed by anchoring to a full DateTime: start from the session's own
+		// start-bar date + RthStartHHMM; if that clock time has ALREADY passed by the time
+		// the session started (the evening-open case), it must be the following calendar
+		// day's RTH open instead.
 		private void ComputeIBFor(int sessionStartBar, int sessionEndBarInclusive, out double ibhOut, out double iblOut)
 		{
 			ibhOut = double.MinValue; iblOut = double.MaxValue;
 			TimeSpan rthTod = new TimeSpan(RthStartHHMM / 100, RthStartHHMM % 100, 0);
+			DateTime sessStart = Time.GetValueAt(sessionStartBar);
+			DateTime rthOpenDt = sessStart.Date.Add(rthTod);
+			if (rthOpenDt < sessStart) rthOpenDt = rthOpenDt.AddDays(1);
+
 			int rthOpenBar = -1;
 			for (int i = sessionStartBar; i <= sessionEndBarInclusive; i++)
-				if (Time.GetValueAt(i).TimeOfDay >= rthTod) { rthOpenBar = i; break; }
+				if (Time.GetValueAt(i) >= rthOpenDt) { rthOpenBar = i; break; }
 			if (rthOpenBar < 0) return; // this session hasn't reached RTH open yet (or doesn't include it)
 
-			DateTime ibEnd = Time.GetValueAt(rthOpenBar).AddMinutes(IbMinutes);
+			DateTime ibEnd = rthOpenDt.AddMinutes(IbMinutes);
 			for (int i = rthOpenBar; i <= sessionEndBarInclusive; i++)
 			{
 				if (Time.GetValueAt(i) >= ibEnd) break;
