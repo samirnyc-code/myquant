@@ -1,5 +1,36 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-20 (machine-time W. Europe, separate chat) — **S146 continued: found +
+fixed a SECOND, independent root cause of the recurring BAVR flatline — the bucket backfill file
+was only ever read ONCE per indicator load.**
+User reported the flatline again ("I am so sick and tired of the BidAskVolumeRatio flatlining all
+the fucking time"), screenshot showing a clean spike then dead-flat for many hours spanning into
+the next session. First verified the data pipeline itself was healthy at the time of the
+complaint (not guessed): `bid_ask_vol_buckets.csv` last row 2026-10-20 03:55:12 CT (24 min stale,
+within the 30-min refresh cadence), `desk_watchdog.py --daemon` process pair alive (PID 4312/
+21696, started 09:55 machine-time), log fresh to within 4 min. So this was NOT the already-fixed
+RTH-window gap or (per the OTHER same-day chat's block directly below) the write-race/TOCTOU
+corruption — this is a third, distinct bug, found by reading the indicator source directly.
+**Root cause:** `BidAskVolumeRatio.cs`/`BidAskVolumeSplit.cs`/`BidAskVolumeDelta.cs`/
+`CumulativeDelta.cs` each call `LoadBidAskBuckets()` exactly once, at `State.DataLoaded` —
+confirmed via grep, no other call site in any of the 4 files. A `_bucketCursor` then walks
+forward through that one frozen in-memory snapshot. Once the cursor reaches the end of whatever
+was in the file at the moment the indicator loaded, every later non-live bar reads `ask=bid=0`
+forever — flat — no matter how much new data the 30-min backfill refresh appends afterward. This
+is why re-running the backfill script (done repeatedly across prior sessions per the blocks
+below) only ever fixed it until the next reload, then it silently ran out again later the same
+session — matching the "keeps coming back no matter what" complaint pattern exactly.
+**Fix (all 4 files, identical pattern):** `LoadBidAskBuckets()`'s file-parse logic moved into a
+new `ReadBucketFile()`, now also called from `AdvanceBucketCursor`/`AdvanceCvdBuckets` on every
+bar, throttled to a real file-stat once per 30s (`DateTime.UtcNow` gate, cheap). On a genuine
+file-write-time change, re-seeks `_bucketCursor` by **timestamp** (new `_lastConsumedTs` field +
+`ReseekCursor()`), not by index — safe even though the backing `List<>` instance gets swapped out
+from under it, and safe for `CumulativeDelta.cs` specifically since `runCum` (the running
+cumulative total) is never touched by a reseek, only which list/index the cursor points into —
+already-consumed buckets can never be re-summed into it. Compile-checked clean (all 4 together,
+`nt8_compile_check.ps1`), deployed to `Custom\Indicators\My\`, byte-verified. Committed `c47ac9a`.
+**PENDING USER F5/verification — not confirmed visually correct by me.** Row #24 on the control
+board updated below.
 **Last Updated:** 2026-10-20 (machine-time W. Europe) — **S146 continued: bid/ask write-race bug
 found mid-session, VWAP dropped in favor of Lizard Trader, prior-VA projection generalized to
 historical sessions, chart-toolbar declutter buttons added.**
@@ -2733,7 +2764,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 
 | # | workstream | status | next action |
 |---|---|---|---|
-| 24 | **NT8 order-flow build: Bid/Ask Delta+Split, CVD live divergence, SessionSRLevelsV10 POC/VA, L1 recorder restart** | 🟡 PENDING USER F5 (S143 2026-10-18); VP log backfilled (S145 2026-10-18); **bid/ask + CVD plots backfilled (S146 2026-10-19)** | User is compiling live now as ETH opens. Watch for: `DrawOnPricePanel` actually routing CVD divergence lines to the price panel (unverified mechanism); label overlap if divergences cluster (no de-collision yet); `ReversalTicks` default (8t/2pt) likely too sensitive for the usual 16t/4pt Flex Renko box — raise it there; V9.cs must stay deployed alongside V10.cs (shared `LevelLineStyle` enum). S145: `data/vp_levels/session_vp_live_log.csv` backfilled 21 real days via `scripts/backfill_vp_log.py`. **S146: `BidAskVolumeRatio.cs`/`BidAskVolumeDelta.cs`/`BidAskVolumeSplit.cs`/`CumulativeDelta.cs` all now fall back to `data/bid_ask/bid_ask_vol_buckets.csv` (new `scripts/backfill_bid_ask_log.py`, 1-sec buckets off the L1 tape's `Aggr` tag) for any bar with no live tick data — reloading no longer loses the plot. Also fixed a real LightGray-on-dark-background invisible-bar bug in Delta/Split's down-color defaults (→ Firebrick). CVD Oscillator's "turn off labels, keep lines" ask already existed (`ShowLabels` property) — nothing built, just pointed at it.** User still needs to F5. See S143 + S145 + S146 blocks. |
+| 24 | **NT8 order-flow build: Bid/Ask Delta+Split, CVD live divergence, SessionSRLevelsV10 POC/VA, L1 recorder restart** | 🟡 PENDING USER F5 (S143 2026-10-18); VP log backfilled (S145 2026-10-18); **bid/ask + CVD plots backfilled (S146 2026-10-19)** | User is compiling live now as ETH opens. Watch for: `DrawOnPricePanel` actually routing CVD divergence lines to the price panel (unverified mechanism); label overlap if divergences cluster (no de-collision yet); `ReversalTicks` default (8t/2pt) likely too sensitive for the usual 16t/4pt Flex Renko box — raise it there; V9.cs must stay deployed alongside V10.cs (shared `LevelLineStyle` enum). S145: `data/vp_levels/session_vp_live_log.csv` backfilled 21 real days via `scripts/backfill_vp_log.py`. **S146: `BidAskVolumeRatio.cs`/`BidAskVolumeDelta.cs`/`BidAskVolumeSplit.cs`/`CumulativeDelta.cs` all now fall back to `data/bid_ask/bid_ask_vol_buckets.csv` (new `scripts/backfill_bid_ask_log.py`, 1-sec buckets off the L1 tape's `Aggr` tag) for any bar with no live tick data — reloading no longer loses the plot. Also fixed a real LightGray-on-dark-background invisible-bar bug in Delta/Split's down-color defaults (→ Firebrick). CVD Oscillator's "turn off labels, keep lines" ask already existed (`ShowLabels` property) — nothing built, just pointed at it. S146 later (2026-10-20, separate chat): fixed write-race/TOCTOU CSV corruption (atomic write + cross-process lock, see block below) AND separately a one-shot-load bug — all 4 indicators only ever read the bucket file once at `State.DataLoaded`, so the cursor ran out and flatlined forever regardless of later backfill refreshes; now re-checked every bar (throttled 30s) with a timestamp-based cursor reseek. Compiled+deployed+byte-verified, committed `c47ac9a`.** User still needs to F5. See S143 + S145 + S146 blocks. |
 | 1 | 0DTE live desk (paper) | 🟢 RUNNING | trades daily; just watch the book |
 | 2 | ThetaData fill-validation | ✅ DONE (S113) | validated; report built; nothing pending |
 | 3 | **Stress-test SANDBOX + July-2026 TD-only model** | 🔜 NEXT (primary) | build sandbox per S113 spec; exit-rule slider incl. zone-anchored |
