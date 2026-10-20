@@ -1,5 +1,21 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-20 (machine-time W. Europe, this chat) — **S146 continued: PATsChartButtons
+WAS added successfully (resolves the prior "not showing" mystery) but both buttons misbehave.**
+User: "strategy is enabled but light shows off" + "VWAP button does not turn the LT indi on and
+off." Likely cause (not fully confirmable without a live chart): both `RefreshCtStatus` and
+`ToggleLizardVwap` read `chartWindow.ActiveChartControl` (whichever TAB happens to be focused in
+a multi-instrument chart window) instead of this indicator's own `ChartControl` -- if
+ClaudeTrackerV2 / the Lizard VWAP live on a different tab than whichever was active at the
+moment, the check/toggle silently operates on the wrong tab's collections. Switched both to
+`ChartControl` directly. Given this is the SECOND round of "doesn't work" on this file and a
+live chart can't be inspected from here, added on-demand diagnostics instead of guessing a third
+time blind: clicking CT (and the initial add) now `Print()`s every strategy found + its `State`
+to the NT8 Output window; clicking VWAP prints every indicator type name found on the chart. If
+either is still wrong after this round, the Output window tells us exactly why. Compile-checked
+clean, deployed, byte-verified. **PENDING USER F5 + re-test; if still broken, need the Output
+window contents (New > NinjaScript Output) after clicking each button, not another blind guess.**
+**Last updated, prior block preserved below —**
 **Last Updated:** 2026-10-20 (machine-time W. Europe, this chat) — **S146 continued: real IB bug
 found (ETH open, not RTH open) + fixed; PATsChartButtons still not appearing, cause unconfirmed.**
 User, angrily: "no vwap button, no light for claude tracker, IBH/L still being calculated on ETH!"
