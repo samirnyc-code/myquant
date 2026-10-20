@@ -1,5 +1,35 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-20 (machine-time W. Europe, this chat) — **SESSION END: PATsChartButtons
+CT light + VWAP toggle STILL BROKEN after the ChartControl fix attempt. User stopped the session
+here, out of resources, stated disappointment with this thread's back-and-forth on these two
+buttons specifically.**
+**Confirmed still broken, not fixed by the previous attempt:** user report — "Strategy is only on
+one chart and the light shows off" (ClaudeTrackerV2 IS enabled, single chart, CT light still
+shows red/off) and "The VWAP button is not toggling anything" (no visible effect at all, not even
+a wrong one). The `ActiveChartControl` → `ChartControl` swap in the prior commit (`2c8d669`) did
+NOT fix it, or at least user's report reads as unchanged behavior. **The on-demand diagnostics
+added in that same commit (`Print()` of every strategy+State on CT click/add, every indicator
+type name on VWAP click) were NEVER actually checked/reported back** — next session's FIRST move
+on this should be asking the user to open NT8's Output window (New > NinjaScript Output), click
+CT then VWAP, and paste exactly what prints. Do not make another blind code-level guess before
+that — two single rounds of ActiveChartControl-vs-ChartControl and Name/Type-matching theories
+have already been tried and both failed to fix it. Possible untested angles for next session,
+IN ORDER OF SUSPICION, to raise only after seeing the Output window: (1) multiple separate Chart
+*windows* (not tabs) — ClaudeTrackerV2 and/or the Lizard VWAP may be on a literally different
+Chart window than wherever PATsChartButtons was added, which `ChartControl` alone would NOT fix
+(each Indicator instance's own `ChartControl` is tied to whichever window/panel IT was dropped
+on); (2) `ChartControl.Strategies`/`ChartControl.ChartObjects` may need to be read from a
+specific PANEL's ChartControl, not the top-level one PATsChartButtons receives, if the chart has
+multiple panels; (3) the Lizard VWAP's actual runtime type FullName may differ from
+`NinjaTrader.NinjaScript.Indicators.LizardTrader.LT_Current_Day_VWAP` (this was inferred from a
+generated wrapper file, never empirically confirmed against the live DLL) — the VWAP diagnostic
+Print will settle this immediately once checked. **Everything else fixed this session (IB
+ETH-vs-RTH anchoring, VAp prior-session-projection semantics, VA/VAt/VAp button split, orange
+button color, developing VA staircase, DevHistSessions, VWAP±SD bands) stands as deployed +
+committed and is NOT in question here** — this closing note is scoped specifically to
+PATsChartButtons' two buttons, not the whole session's work.
+**Last updated, prior block preserved below —**
 **Last Updated:** 2026-10-20 (machine-time W. Europe, this chat) — **S146 continued: PATsChartButtons
 WAS added successfully (resolves the prior "not showing" mystery) but both buttons misbehave.**
 User: "strategy is enabled but light shows off" + "VWAP button does not turn the LT indi on and
