@@ -349,7 +349,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true", help="report only, restart nothing")
     ap.add_argument("--daemon", action="store_true",
-                    help="resident 10s loop with fast thresholds (until 15:20 CT)")
+                    help="resident 10s loop with fast thresholds (until 23:55 CT)")
     a = ap.parse_args()
 
     # HOLIDAY / EARLY-CLOSE AWARE (S75V).
@@ -363,18 +363,28 @@ def main():
         if kind in ("weekend", "holiday"):
             log(f"skip: {label} — market closed")
             return
-        close = "12:05" if kind == "early" else "15:20"
         if kind == "early":
-            log(f"{label} — watching only until {close} CT")
+            log(f"{label} — early close (options-desk COMPONENTS below still self-gate to "
+                "their own narrower RTH windows; this only affects how long the OUTER loop runs)")
     except Exception:
-        close = "15:20"
         if now().weekday() >= 5:
             return
 
-    START = "08:15"
+    # 2026-10-20: widened from RTH-only (08:15-15:20 CT) to span essentially the whole ES ETH
+    # session. The options-desk COMPONENTS list below is UNCHANGED -- each entry already self-
+    # gates to its own narrower RTH window independently (checked per-component inside cycle()),
+    # so widening this outer bound does not make gateway/spot_feed/sim_daemon/marks/triggers run
+    # outside RTH. What WAS RTH-scoped and shouldn't have been: refresh_bid_ask_backfill() inside
+    # cycle() -- meaning it never ran during ETH, which is exactly when the user needs
+    # BidAskVolumeRatio/Delta/Split/CumulativeDelta to stay current (hit this directly after
+    # switching NT8 bar types forced reliance on a backfill that hadn't refreshed since the prior
+    # RTH session). Does NOT cover Sunday evening ETH open -- the weekday>=5 check above still
+    # excludes Sat/Sun entirely; not addressed here, flagged as a known remaining gap.
+    START = "00:05"
+    close = "23:55"
     nowhm = now().strftime("%H:%M")
     if nowhm >= close:
-        return  # the day's market window is already over
+        return  # the day's window is already over
 
     if a.daemon:
         MODE = "fast"
