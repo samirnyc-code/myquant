@@ -193,7 +193,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Opacity = 0.85; LabelFontSize = 11; IbMinutes = 60; RthStartHHMM = 930; DevHistSessions = 1;
 				ShowVP = true; ShowVAHVAL = true; ShowVABand = true; ShowPOC = true; ShowIB = true;
 				ShowHVN = true; ShowLVN = true; ShowPriorLines = true; ShowPriorBand = true; ShowLabels = true;
-				ShowVWAP = true;
+				ShowVWAP = false; // 2026-10-20: user is using Lizard Trader's VWAP instead; code stays, defaults off
 				NodeLookback = 4; HvnFactor = 1.2; LvnFactor = 0.7;
 				VwapSdMult1 = 1.0; VwapSdMult2 = 2.0;
 				PocColor = System.Windows.Media.Brushes.Orange;
@@ -618,8 +618,28 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (DevHistSessions > 0)
 			{
 				int sc2 = sessionStarts.Count;
+				List<string> histDates = new List<string>();
 				for (int back = 1; back <= DevHistSessions && sc2 - 1 - back >= 0; back++)
-					DrawHistSessionDevVA(chartScale, chartControl, sessionStarts[sc2 - 1 - back], panelLeft, pocBr, vaLineBr, vaBandBr, vwapBr);
+				{
+					int sBar = sessionStarts[sc2 - 1 - back];
+					DrawHistSessionDevVA(chartScale, chartControl, sBar, panelLeft, pocBr, vaLineBr, vaBandBr, vwapBr);
+					histDates.Add("H-" + back + " " + Time.GetValueAt(sBar).ToString("MM/dd"));
+				}
+				// Diagnostic readout: which actual calendar dates DevHistSessions resolved to --
+				// "H-1"/"H-2"/etc. are session-boundary counts (per the chart's own trading-hours
+				// template, e.g. a Sunday-evening ETH sliver can be its own session), NOT calendar
+				// days back, so they don't line up 1:1 with weekday counting. This makes it
+				// directly checkable instead of guessed (2026-10-20: user expected Friday to show
+				// and it didn't -- answer is either DevHistSessions needs to be higher, or the
+				// chart's own "Days to load" doesn't have Friday's bars loaded at all, in which
+				// case it can never appear here regardless of this setting).
+				if (ShowLabels && histDates.Count > 0)
+				{
+					TextFormat diagTf = new TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Arial", LabelFontSize);
+					RenderTarget.DrawText(string.Join("   ", histDates), diagTf,
+						new SharpDX.RectangleF(vpLeft, (float)ChartPanel.Y + 4f, 500f, LabelFontSize + 6f), vaLineBr);
+					diagTf.Dispose();
+				}
 			}
 			// lines (prior)
 			if (ShowPriorLines && !double.IsNaN(pVah))
