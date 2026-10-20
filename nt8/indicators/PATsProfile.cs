@@ -9,6 +9,7 @@ using System.Xml.Serialization;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
+using NinjaTrader.Gui.Tools;
 using NinjaTrader.NinjaScript;
 using SharpDX;
 using SharpDX.Direct2D1;
@@ -108,8 +109,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool toolbarAdded;
 		private bool showAll = true;
 		private bool devStairstep = true; // false = flat current-level line across the whole session instead of the per-bar staircase
+		private bool showHistVA = true; // 2026-10-20: VA button now controls PRIOR/historical sessions' VA, not today's
 		private int lastDevHistSessions = 1;
-		private Button btnVpAll, btnVpVa, btnVpStair, btnVpHist;
+		private Button btnVpAll, btnVpVa, btnVpStair, btnVpHist, btnVpLbl;
 
 		// Tick-accurate accumulation (see header note).
 		private readonly object liveLock = new object();
@@ -195,6 +197,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[XmlIgnore] [Display(Name = "VWAP", Order = 6, GroupName = "4 Colors")]
 		public System.Windows.Media.Brush VwapColor { get; set; }
 		[Browsable(false)] public string VwapColorSerialize { get { return Serialize.BrushToString(VwapColor); } set { VwapColor = Serialize.StringToBrush(value); } }
+
+		// Full color/width/dash-style/opacity editor (NT8's native Stroke control -- same
+		// pattern as nt8/vendor/ntlambda/.../NTLAnchoredVwap.cs's Stroke properties) for the
+		// developing VA's VAH/VAL and POC lines, in BOTH stairstep and flat (Stair-button-off)
+		// modes. Unlike the Brush-typed colors above, Stroke serializes natively -- no
+		// companion XxxSerialize string property needed.
+		[Display(Name = "Developing VAH/VAL line", Order = 7, GroupName = "4 Colors")]
+		public Stroke DevVaStroke { get; set; }
+		[Display(Name = "Developing POC line", Order = 8, GroupName = "4 Colors")]
+		public Stroke DevPocStroke { get; set; }
 		#endregion
 
 		protected override void OnStateChange()
@@ -218,6 +230,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				LvnColor = System.Windows.Media.Brushes.IndianRed;
 				IbColor = System.Windows.Media.Brushes.Goldenrod;
 				VwapColor = System.Windows.Media.Brushes.White;
+				DevVaStroke = new Stroke(System.Windows.Media.Brushes.MediumPurple, 1.2);
+				DevPocStroke = new Stroke(System.Windows.Media.Brushes.Orange, 1.2);
 			}
 			else if (State == State.Configure) { rowSize = RowTicks * TickSize; }
 			else if (State == State.DataLoaded)
@@ -260,14 +274,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			btnVpVa = new Button { Content = "VA", Style = btnStyle, Visibility = Visibility.Visible };
 			btnVpStair = new Button { Content = "Stair", Style = btnStyle, Visibility = Visibility.Visible };
 			btnVpHist = new Button { Content = "Hist", Style = btnStyle, Visibility = Visibility.Visible };
+			btnVpLbl = new Button { Content = "Lbl", Style = btnStyle, Visibility = Visibility.Visible };
 
 			btnVpAll.Click += (s, e) => { showAll = !showAll; ForceRefresh(); };
-			btnVpVa.Click += (s, e) =>
-			{
-				bool on = !ShowVABand;
-				ShowVABand = on; ShowVAHVAL = on;
-				ForceRefresh();
-			};
+			// 2026-10-20: user correction -- this controls PRIOR/historical sessions' VA
+			// (shading + stepline together), NOT today's own, which stays dialog-controlled.
+			btnVpVa.Click += (s, e) => { showHistVA = !showHistVA; ForceRefresh(); };
 			btnVpStair.Click += (s, e) => { devStairstep = !devStairstep; ForceRefresh(); };
 			btnVpHist.Click += (s, e) =>
 			{
@@ -275,11 +287,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				else DevHistSessions = lastDevHistSessions;
 				ForceRefresh();
 			};
+			btnVpLbl.Click += (s, e) => { ShowLabels = !ShowLabels; ForceRefresh(); };
 
 			chartWindow.MainMenu.Add(btnVpAll);
 			chartWindow.MainMenu.Add(btnVpVa);
 			chartWindow.MainMenu.Add(btnVpStair);
 			chartWindow.MainMenu.Add(btnVpHist);
+			chartWindow.MainMenu.Add(btnVpLbl);
 			toolbarAdded = true;
 		}
 
@@ -290,6 +304,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (btnVpVa != null) chartWindow.MainMenu.Remove(btnVpVa);
 			if (btnVpStair != null) chartWindow.MainMenu.Remove(btnVpStair);
 			if (btnVpHist != null) chartWindow.MainMenu.Remove(btnVpHist);
+			if (btnVpLbl != null) chartWindow.MainMenu.Remove(btnVpLbl);
 			toolbarAdded = false;
 		}
 
@@ -430,19 +445,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// then take the high/low of the next IbMinutes of bars from there.
 		private void ComputeIB(int lastStart, int endBar)
 		{
-			ibh = double.MinValue; ibl = double.MaxValue;
+			ComputeIBFor(lastStart, endBar, out ibh, out ibl);
+		}
+
+		// 2026-10-20: generalized from "today only" -- user pointed out IB was never computed
+		// for any DevHistSessions entry, only the live session. Same logic, callable per session.
+		private void ComputeIBFor(int sessionStartBar, int sessionEndBarInclusive, out double ibhOut, out double iblOut)
+		{
+			ibhOut = double.MinValue; iblOut = double.MaxValue;
 			TimeSpan rthTod = new TimeSpan(RthStartHHMM / 100, RthStartHHMM % 100, 0);
 			int rthOpenBar = -1;
-			for (int i = lastStart; i <= endBar; i++)
+			for (int i = sessionStartBar; i <= sessionEndBarInclusive; i++)
 				if (Time.GetValueAt(i).TimeOfDay >= rthTod) { rthOpenBar = i; break; }
-			if (rthOpenBar < 0) return; // today's session hasn't reached RTH open yet (or doesn't include it)
+			if (rthOpenBar < 0) return; // this session hasn't reached RTH open yet (or doesn't include it)
 
 			DateTime ibEnd = Time.GetValueAt(rthOpenBar).AddMinutes(IbMinutes);
-			for (int i = rthOpenBar; i <= endBar; i++)
+			for (int i = rthOpenBar; i <= sessionEndBarInclusive; i++)
 			{
 				if (Time.GetValueAt(i) >= ibEnd) break;
 				double h = High.GetValueAt(i), l = Low.GetValueAt(i);
-				if (h > ibh) ibh = h; if (l < ibl) ibl = l;
+				if (h > ibhOut) ibhOut = h; if (l < iblOut) iblOut = l;
 			}
 		}
 
@@ -684,6 +706,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush hvnBr = new SolidColorBrush(RenderTarget, Dx(HvnColor, 0.95f));
 			SolidColorBrush lvnBr = new SolidColorBrush(RenderTarget, Dx(LvnColor, 0.95f));
 			SolidColorBrush vwapBr = new SolidColorBrush(RenderTarget, Dx(VwapColor, 0.9f));
+			if (DevVaStroke != null) DevVaStroke.RenderTarget = RenderTarget;
+			if (DevPocStroke != null) DevPocStroke.RenderTarget = RenderTarget;
 			HashSet<double> hvnSet = new HashSet<double>(hvn ?? new List<double>());
 			HashSet<double> lvnSet = new HashSet<double>(lvn ?? new List<double>());
 
