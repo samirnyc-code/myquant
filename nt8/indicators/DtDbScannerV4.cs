@@ -18,8 +18,9 @@ using NinjaTrader.NinjaScript.DrawingTools;
 
 // DtDbScannerV4 (2026-10-20) — branched from DtDbScannerV3: identical price-based
 // detection/confirm/drawing logic (incl. the 'Confirm on close' setting), but uses NO
-// volume data at all: V3's CVD divergence check is removed, and the neckline retest
-// watcher just marks the retest bar ('R' label) instead of a CVD delta. No
+// volume data at all: V3's CVD divergence check is removed. 2026-10-21: V3's neckline
+// retest watcher is replaced by DP/DT PULLBACK marks (blue triangles, see
+// ManagePullbacks). No
 // dependency on BidAskSharedEnums.cs / CVDDivergenceOscillator.cs / CumulativeDelta.cs /
 // BidAskVolumeRatio.cs. V3 history below.
 //
@@ -104,17 +105,17 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         }
         private readonly List<DrawnStructure> openDrawn = new List<DrawnStructure>();
 
-        // a structure that just confirmed (neckline break) and is being watched for a
-        // pullback/retest of the neckline, to mark that retest bar
-        private class WatchRetest
+        // a structure that just confirmed (neckline break) and is being watched for its
+        // first pullback bars (DP for a DB, DT pullback for a DT) — see ManagePullbacks
+        private class WatchPullback
         {
             public string Tag;
             public bool   IsTop;
-            public double Neckline;
             public int    ConfirmBar;
             public double InvalidateBeyond; // price beyond the tops (DT) / bottoms (DB) -> stop watching
+            public int    Count;            // pullbacks marked so far
         }
-        private readonly List<WatchRetest> watchingRetest = new List<WatchRetest>();
+        private readonly List<WatchPullback> watchingPullback = new List<WatchPullback>();
 
         // ---- state ----------------------------------------------------------
         private readonly List<Pivot> highs = new List<Pivot>();
@@ -138,7 +139,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         {
             if (State == State.SetDefaults)
             {
-                Description = "DtDbScannerV4: DtDbScannerV3 without any volume data (no CVD) - price-only DT/DB scanner with neckline retest marker.";
+                Description = "DtDbScannerV4: price-only DT/DB scanner (no volume data) - marks the first pullback bars after a neckline break (DB: lower low + bullish IBS, DT: higher high + bearish IBS, no outside bars, pattern not invalidated).";
                 Name        = "DtDbScannerV4";
                 Calculate   = Calculate.OnBarClose; // detection on closed bars avoids repaint; switch to OnEachTick for faster neckline breaks
                 IsOverlay   = true;
@@ -183,10 +184,14 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 ShowLastN         = 0;                    // 0 = show all; N = keep only the newest N DT/DB on the chart
                 ShowDebugPrints   = false; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
 
-                RetestBrush       = Brushes.Cyan;
-                ShowRetest        = true;
-                PullbackWatchBars = 30;
-                RetestToleranceTicks = 4;
+                ShowPullbacks     = true;   // mark DP / DT-pullback bars after the neckline break
+                PullbackBrush     = Brushes.DodgerBlue;
+                PullbackWatchBars = 30;     // stop looking this many bars after the break
+                PullbackIbs       = 0.5;    // DB pullback: IBS > this; DT pullback: IBS < 1 - this
+                MaxPullbacks      = 2;      // mark the first N pullbacks per pattern
+                PullbackTriSize   = 40;     // triangle height in PIXELS (constant at any zoom)
+                ShowInsideBars    = true;   // inside-bar signals after a non-signal pullback bar
+                InsideBarBrush    = Brushes.DarkOrange;
             }
             else if (State == State.Configure)
             {
@@ -267,8 +272,8 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             // --- 4. resolve every drawn structure (deletes invalidated ones) --
             SweepDrawn();
 
-            // --- 5. watch confirmed structures for a neckline pullback/retest --
-            ManageRetest();
+            // --- 5. mark the first pullback bars after a neckline break ------
+            ManagePullbacks();
         }
 
 
@@ -756,10 +761,10 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 else if (confirmed)
                 {
                     DrawNeckline(d.Tag, d.IsTop, d.NeckBar, d.Neckline);   // extend to the bar that closed beyond
-                    if (ShowRetest)
-                        watchingRetest.Add(new WatchRetest
+                    if (ShowPullbacks)
+                        watchingPullback.Add(new WatchPullback
                         {
-                            Tag = d.Tag, IsTop = d.IsTop, Neckline = d.Neckline,
+                            Tag = d.Tag, IsTop = d.IsTop,
                             ConfirmBar = CurrentBar, InvalidateBeyond = d.InvalidateBeyond
                         });
                     openDrawn.RemoveAt(i);
@@ -778,7 +783,8 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 RemoveStructure(old.Tag);
                 RemoveConfirmDot(old.TriTag);
                 openDrawn.RemoveAll(d => d.Tag == old.Tag);
-                watchingRetest.RemoveAll(w => w.Tag == old.Tag);   // no late 'R' for a removed pattern
+                watchingPullback.RemoveAll(w => w.Tag == old.Tag); // no late pullback mark for a removed pattern
+                lock (_pbMarks) _pbMarks.RemoveAll(m => m.Tag == old.Tag);
                 drawnHistory.RemoveAt(0);
             }
         }
@@ -792,6 +798,10 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // adds/removes, OnRender (UI thread) reads.
         private class ConfirmDot { public string Tag; public int Bar; public double Price; public bool IsTop; }
         private readonly List<ConfirmDot> _dots = new List<ConfirmDot>();
+
+        // pullback triangles: same pixel-rendering approach as the dots
+        private class PullbackMark { public string Tag; public int Bar; public double Price; public bool IsTop; public bool IsInside; }
+        private readonly List<PullbackMark> _pbMarks = new List<PullbackMark>();
 
         private void AddConfirmDot(string tag, bool isTop, double anchorY)
         {
@@ -824,6 +834,33 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     RenderTarget.FillEllipse(new SharpDX.Direct2D1.Ellipse(new SharpDX.Vector2(x, y), r, r), d.IsTop ? dtB : dbB);
                 }
             }
+            // pullback triangles: apex just beyond the bar (DB: below the low, pointing up;
+            // DT: above the high, pointing down), PullbackTriSize px tall
+            float h = PullbackTriSize, hw = PullbackTriSize * 0.35f;
+            using (SharpDX.Direct2D1.Brush pbB = PullbackBrush.ToDxBrush(RenderTarget))
+            using (SharpDX.Direct2D1.Brush ibB = InsideBarBrush.ToDxBrush(RenderTarget))
+            lock (_pbMarks)
+            {
+                foreach (PullbackMark m in _pbMarks)
+                {
+                    if (m.Bar < from || m.Bar > to) continue;
+                    float x = chartControl.GetXByBarIndex(ChartBars, m.Bar);
+                    float yA = chartScale.GetYByValue(m.Price);
+                    float yBase = m.IsTop ? yA - h : yA + h;
+                    using (SharpDX.Direct2D1.PathGeometry geo = new SharpDX.Direct2D1.PathGeometry(RenderTarget.Factory))
+                    {
+                        using (SharpDX.Direct2D1.GeometrySink sink = geo.Open())
+                        {
+                            sink.BeginFigure(new SharpDX.Vector2(x, yA), SharpDX.Direct2D1.FigureBegin.Filled);
+                            sink.AddLine(new SharpDX.Vector2(x - hw, yBase));
+                            sink.AddLine(new SharpDX.Vector2(x + hw, yBase));
+                            sink.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
+                            sink.Close();
+                        }
+                        RenderTarget.FillGeometry(geo, m.IsInside ? ibB : pbB);
+                    }
+                }
+            }
             RenderTarget.AntialiasMode = oldAa;
         }
 
@@ -839,39 +876,60 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         private void RemoveStructure(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return;
-            string[] parts = { "_l1", "_l2", "_neck", "_peaks", "_txt", "_rt" };
+            string[] parts = { "_l1", "_l2", "_neck", "_peaks", "_txt" };
             foreach (string s in parts)
                 RemoveDrawObject(tag + s);
         }
 
-        // watches a just-confirmed structure for the FIRST bar price pulls back to
-        // retest the broken neckline, then marks that bar with an 'R' label (purely
-        // informational — no verdict, no gating).
-        private void ManageRetest()
+        // DP / DT-pullback marks (2026-10-21, replaces V3's neckline-retest watcher).
+        // On every bar AFTER the confirm bar, within PullbackWatchBars, a bar is a
+        //   DB pullback (DP): Low < previous Low, IBS = (C-L)/(H-L) > PullbackIbs
+        //   DT pullback     : High > previous High, IBS < 1 - PullbackIbs
+        // and in both cases NOT an outside bar (High > prev High AND Low < prev Low) and
+        // the pattern NOT invalidated (price beyond its tops/bottoms ends the watch; that
+        // check runs first, so an invalidating bar is never a pullback). The first
+        // MaxPullbacks such bars per pattern get a triangle, then the watch ends.
+        private void ManagePullbacks()
         {
-            for (int i = watchingRetest.Count - 1; i >= 0; i--)
+            for (int i = watchingPullback.Count - 1; i >= 0; i--)
             {
-                WatchRetest w = watchingRetest[i];
-                if (CurrentBar - w.ConfirmBar > PullbackWatchBars) { watchingRetest.RemoveAt(i); continue; }
-                if (CurrentBar <= w.ConfirmBar) continue;   // the confirm bar's own High/Low often still
-                                                             // sits near the neckline it just broke --
-                                                             // a retest can only happen on a LATER bar
+                WatchPullback w = watchingPullback[i];
+                if (CurrentBar - w.ConfirmBar > PullbackWatchBars) { watchingPullback.RemoveAt(i); continue; }
+                if (CurrentBar <= w.ConfirmBar) continue;   // pullbacks start on the bar AFTER the break
 
-                // invalidated (new extreme beyond the tops/bottoms) -> no retest any more;
-                // checked first so a bar that both invalidates and touches the neckline gets no R
                 bool invalid = w.IsTop ? High[0] > w.InvalidateBeyond : Low[0] < w.InvalidateBeyond;
-                if (invalid) { watchingRetest.RemoveAt(i); continue; }
+                if (invalid) { watchingPullback.RemoveAt(i); continue; }
 
-                double tol = RetestToleranceTicks * TickSize;
-                bool isRetest = w.IsTop
-                    ? High[0] >= w.Neckline - tol && Close[0] <= w.Neckline   // DT: bounce back up, no full reclaim
-                    : Low[0]  <= w.Neckline + tol && Close[0] >= w.Neckline;  // DB: pulls back down, no full reclaim
-                if (!isRetest) continue;
+                double range = High[0] - Low[0];
+                if (range <= 0) continue;                    // no range -> no IBS
+                double ibs = (Close[0] - Low[0]) / range;
+                bool outside = High[0] > High[1] && Low[0] < Low[1];
+                bool isPullback = !outside && (w.IsTop
+                    ? High[0] > High[1] && ibs < 1.0 - PullbackIbs    // DT: higher high, bearish close
+                    : Low[0]  < Low[1]  && ibs > PullbackIbs);        // DB: lower low, bullish close
 
-                string txt = "R";
-                double y = w.IsTop ? High[0] + 6 * TickSize : Low[0] - 6 * TickSize;
-                TrackDrawObj(Draw.Text(this, w.Tag + "_rt", txt, 0, y, RetestBrush));
-                watchingRetest.RemoveAt(i);
+                // Inside-bar signal (2026-10-21): this bar is inside the previous bar with a
+                // signal-side IBS, and the previous bar (also after the break) was a pullback
+                // bar that was NOT a signal itself — DB: lower low than its prior bar + BEARISH
+                // IBS; DT: higher high + BULLISH IBS; not an outside bar. Mutually exclusive
+                // with isPullback (an inside bar can't make a lower low / higher high).
+                bool isInsideSignal = false;
+                double rangePrev = High[1] - Low[1];
+                if (ShowInsideBars && CurrentBar - 1 > w.ConfirmBar && rangePrev > 0)
+                {
+                    double ibsPrev = (Close[1] - Low[1]) / rangePrev;
+                    bool prevOutside = High[1] > High[2] && Low[1] < Low[2];
+                    bool inside = High[0] <= High[1] && Low[0] >= Low[1];
+                    isInsideSignal = inside && !prevOutside && (w.IsTop
+                        ? High[1] > High[2] && ibsPrev > PullbackIbs && ibs < 1.0 - PullbackIbs   // DT: prev higher high w/ bullish close, IB bearish
+                        : Low[1]  < Low[2]  && ibsPrev < 1.0 - PullbackIbs && ibs > PullbackIbs); // DB: prev lower low w/ bearish close, IB bullish
+                }
+                if (!isPullback && !isInsideSignal) continue;
+
+                double anchor = w.IsTop ? High[0] + 2 * TickSize : Low[0] - 2 * TickSize;
+                lock (_pbMarks) _pbMarks.Add(new PullbackMark { Tag = w.Tag, Bar = CurrentBar, Price = anchor, IsTop = w.IsTop, IsInside = isInsideSignal });
+                w.Count++;
+                if (w.Count >= MaxPullbacks) watchingPullback.RemoveAt(i);
             }
         }
 
@@ -973,19 +1031,19 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         public int ConfirmWithinBars { get; set; }
 
         [NinjaScriptProperty, Range(0, 100)]
-        [Display(Name = "Min score to alert", Description = "Suppress forming-alerts below this quality score.", Order = 8, GroupName = "3. Alerts")]
+        [Display(Name = "Min score to alert", Description = "Suppress forming-alerts below this quality score.", Order = 8, GroupName = "4. Alerts")]
         public double MinScoreToAlert { get; set; }
 
         [NinjaScriptProperty, Range(0, int.MaxValue)]
-        [Display(Name = "Alert re-arm (sec)", Description = "Re-arm window passed to NT8 Alert().", Order = 9, GroupName = "3. Alerts")]
+        [Display(Name = "Alert re-arm (sec)", Description = "Re-arm window passed to NT8 Alert().", Order = 9, GroupName = "4. Alerts")]
         public int RearmSeconds { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Show drawings", Description = "Draw the structure, peak line, neckline, score and confirm triangles.", Order = 10, GroupName = "3. Alerts")]
+        [Display(Name = "Show drawings", Description = "Draw the structure, peak line, neckline, score and confirm triangles.", Order = 10, GroupName = "4. Alerts")]
         public bool ShowDrawings { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Show debug prints", Description = "Verbose: prints a pivot-test line every bar (pivot or, if blocked, which bar blocked it) plus every DT/DB gate pass/fail, to the NinjaScript Output tab.", Order = 11, GroupName = "4. Debug")]
+        [Display(Name = "Show debug prints", Description = "Verbose: prints a pivot-test line every bar (pivot or, if blocked, which bar blocked it) plus every DT/DB gate pass/fail, to the NinjaScript Output tab.", Order = 11, GroupName = "5. Debug")]
         public bool ShowDebugPrints { get; set; }
 
         [NinjaScriptProperty]
@@ -1005,105 +1063,122 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         public double MinValleyDepthAbr { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Delete invalidated DT/DB", Description = "Remove a pattern's drawings (lines, peak line, neckline, score label) when price makes a new extreme beyond its peaks/troughs before confirming. Expired patterns are kept.", Order = 17, GroupName = "3. Alerts")]
+        [Display(Name = "Delete invalidated DT/DB", Description = "Remove a pattern's drawings (lines, peak line, neckline, score label) when price makes a new extreme beyond its peaks/troughs before confirming. Expired patterns are kept.", Order = 17, GroupName = "4. Alerts")]
         public bool DeleteInvalidated { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Show pattern name", Description = "Show the 'DT'/'DB' pattern-type text next to each pattern.", Order = 18, GroupName = "3. Alerts")]
+        [Display(Name = "Show pattern name", Description = "Show the 'DT'/'DB' pattern-type text next to each pattern.", Order = 18, GroupName = "4. Alerts")]
         public bool ShowPatternName { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Show rating", Description = "Show the quality score number next to each pattern.", Order = 19, GroupName = "3. Alerts")]
+        [Display(Name = "Show rating", Description = "Show the quality score number next to each pattern.", Order = 19, GroupName = "4. Alerts")]
         public bool ShowRating { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "DT leg color", Description = "Color of the peak -> valley -> peak lines of a double top.", Order = 1, GroupName = "5. Lines")]
+        [Display(Name = "DT leg color", Description = "Color of the peak -> valley -> peak lines of a double top.", Order = 1, GroupName = "6. Lines")]
         public Brush DtLegBrush { get; set; }
         [Browsable(false)]
         public string DtLegBrushSerialize { get { return Serialize.BrushToString(DtLegBrush); } set { DtLegBrush = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
-        [Display(Name = "DB leg color", Description = "Color of the trough -> peak -> trough lines of a double bottom.", Order = 2, GroupName = "5. Lines")]
+        [Display(Name = "DB leg color", Description = "Color of the trough -> peak -> trough lines of a double bottom.", Order = 2, GroupName = "6. Lines")]
         public Brush DbLegBrush { get; set; }
         [Browsable(false)]
         public string DbLegBrushSerialize { get { return Serialize.BrushToString(DbLegBrush); } set { DbLegBrush = Serialize.StringToBrush(value); } }
 
-        [Display(Name = "Leg style", Description = "Dash style of the peak/valley lines (DT and DB).", Order = 3, GroupName = "5. Lines")]
+        [Display(Name = "Leg style", Description = "Dash style of the peak/valley lines (DT and DB).", Order = 3, GroupName = "6. Lines")]
         public DashStyleHelper LegDashStyle { get; set; }
 
         [Range(1, 20)]
-        [Display(Name = "Leg width", Description = "Width of the peak/valley lines (DT and DB).", Order = 4, GroupName = "5. Lines")]
+        [Display(Name = "Leg width", Description = "Width of the peak/valley lines (DT and DB).", Order = 4, GroupName = "6. Lines")]
         public int LegWidth { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "Peak line color", Description = "Color of the line joining the two tops (DT) / two bottoms (DB).", Order = 5, GroupName = "5. Lines")]
+        [Display(Name = "Peak line color", Description = "Color of the line joining the two tops (DT) / two bottoms (DB).", Order = 5, GroupName = "6. Lines")]
         public Brush PeakLineBrush { get; set; }
         [Browsable(false)]
         public string PeakLineBrushSerialize { get { return Serialize.BrushToString(PeakLineBrush); } set { PeakLineBrush = Serialize.StringToBrush(value); } }
 
-        [Display(Name = "Peak line style", Description = "Dash style of the line joining the two tops/bottoms.", Order = 6, GroupName = "5. Lines")]
+        [Display(Name = "Peak line style", Description = "Dash style of the line joining the two tops/bottoms.", Order = 6, GroupName = "6. Lines")]
         public DashStyleHelper PeakLineDashStyle { get; set; }
 
         [Range(1, 20)]
-        [Display(Name = "Peak line width", Description = "Width of the line joining the two tops/bottoms.", Order = 7, GroupName = "5. Lines")]
+        [Display(Name = "Peak line width", Description = "Width of the line joining the two tops/bottoms.", Order = 7, GroupName = "6. Lines")]
         public int PeakLineWidth { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "DT neckline color", Description = "Color of the double-top neckline.", Order = 11, GroupName = "5. Lines")]
+        [Display(Name = "DT neckline color", Description = "Color of the double-top neckline.", Order = 11, GroupName = "6. Lines")]
         public Brush NecklineDtBrush { get; set; }
         [Browsable(false)]
         public string NecklineDtBrushSerialize { get { return Serialize.BrushToString(NecklineDtBrush); } set { NecklineDtBrush = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
-        [Display(Name = "DB neckline color", Description = "Color of the double-bottom neckline.", Order = 12, GroupName = "5. Lines")]
+        [Display(Name = "DB neckline color", Description = "Color of the double-bottom neckline.", Order = 12, GroupName = "6. Lines")]
         public Brush NecklineDbBrush { get; set; }
         [Browsable(false)]
         public string NecklineDbBrushSerialize { get { return Serialize.BrushToString(NecklineDbBrush); } set { NecklineDbBrush = Serialize.StringToBrush(value); } }
 
-        [Display(Name = "Neckline style", Description = "Dash style of the neckline.", Order = 13, GroupName = "5. Lines")]
+        [Display(Name = "Neckline style", Description = "Dash style of the neckline.", Order = 13, GroupName = "6. Lines")]
         public DashStyleHelper NecklineDashStyle { get; set; }
 
         [Range(1, 20)]
-        [Display(Name = "Neckline width", Description = "Width of the neckline.", Order = 14, GroupName = "5. Lines")]
+        [Display(Name = "Neckline width", Description = "Width of the neckline.", Order = 14, GroupName = "6. Lines")]
         public int NecklineWidth { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "DT dot color", Description = "Color of the double-top neckline-break dot.", Order = 8, GroupName = "5. Lines")]
+        [Display(Name = "DT dot color", Description = "Color of the double-top neckline-break dot.", Order = 8, GroupName = "6. Lines")]
         public Brush DtDotBrush { get; set; }
         [Browsable(false)]
         public string DtDotBrushSerialize { get { return Serialize.BrushToString(DtDotBrush); } set { DtDotBrush = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
-        [Display(Name = "DB dot color", Description = "Color of the double-bottom neckline-break dot.", Order = 9, GroupName = "5. Lines")]
+        [Display(Name = "DB dot color", Description = "Color of the double-bottom neckline-break dot.", Order = 9, GroupName = "6. Lines")]
         public Brush DbDotBrush { get; set; }
         [Browsable(false)]
         public string DbDotBrushSerialize { get { return Serialize.BrushToString(DbDotBrush); } set { DbDotBrush = Serialize.StringToBrush(value); } }
 
         [Range(2, 100)]
-        [Display(Name = "Dot size (px)", Description = "Diameter of the neckline-break dot in screen pixels - stays the same at any zoom.", Order = 10, GroupName = "5. Lines")]
+        [Display(Name = "Dot size (px)", Description = "Diameter of the neckline-break dot in screen pixels - stays the same at any zoom.", Order = 10, GroupName = "6. Lines")]
         public int ConfirmDotSize { get; set; }
 
         [Range(0, int.MaxValue)]
-        [Display(Name = "Show last N DT/DB", Description = "0 = show all. N > 0 = keep only the newest N patterns (DT and DB counted together) on the chart; older ones are removed incl. their triangle.", Order = 20, GroupName = "3. Alerts")]
+        [Display(Name = "Show last N DT/DB", Description = "0 = show all. N > 0 = keep only the newest N patterns (DT and DB counted together) on the chart; older ones are removed incl. their triangle.", Order = 20, GroupName = "4. Alerts")]
         public int ShowLastN { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Show retest", Description = "After a DT/DB confirms, watch for the first pullback/retest of the broken neckline and mark that bar with an 'R' label.", Order = 1, GroupName = "6. Retest")]
-        public bool ShowRetest { get; set; }
+        [Display(Name = "Show pullbacks", Description = "After a DT/DB confirms, mark its first pullback bars with a triangle: DB = lower low than the prior bar + bullish IBS, DT = higher high + bearish IBS; never an outside bar; pattern not invalidated.", Order = 1, GroupName = "3. Pullbacks")]
+        public bool ShowPullbacks { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "Retest label color", Description = "Color of the 'R' (retest) label.", Order = 2, GroupName = "6. Retest")]
-        public Brush RetestBrush { get; set; }
+        [Display(Name = "Pullback color", Description = "Color of the pullback triangles.", Order = 2, GroupName = "3. Pullbacks")]
+        public Brush PullbackBrush { get; set; }
         [Browsable(false)]
-        public string RetestBrushSerialize { get { return Serialize.BrushToString(RetestBrush); } set { RetestBrush = Serialize.StringToBrush(value); } }
+        public string PullbackBrushSerialize { get { return Serialize.BrushToString(PullbackBrush); } set { PullbackBrush = Serialize.StringToBrush(value); } }
 
         [NinjaScriptProperty, Range(1, int.MaxValue)]
-        [Display(Name = "Pullback watch (bars)", Description = "Stop watching for a neckline retest after this many bars past confirmation.", Order = 3, GroupName = "6. Retest")]
+        [Display(Name = "Pullback watch (bars)", Description = "Stop looking for pullbacks this many bars after the neckline break.", Order = 3, GroupName = "3. Pullbacks")]
         public int PullbackWatchBars { get; set; }
 
-        [NinjaScriptProperty, Range(0, int.MaxValue)]
-        [Display(Name = "Retest tolerance (ticks)", Description = "How close price must come back to the neckline (without fully reclaiming it) to count as a retest.", Order = 4, GroupName = "6. Retest")]
-        public int RetestToleranceTicks { get; set; }
+        [Range(0.0, 1.0)]
+        [Display(Name = "Pullback IBS", Description = "IBS = (Close-Low)/(High-Low). DB pullback needs IBS above this, DT pullback needs IBS below 1 minus this.", Order = 4, GroupName = "3. Pullbacks")]
+        public double PullbackIbs { get; set; }
+
+        [Range(1, 100)]
+        [Display(Name = "Pullbacks per pattern", Description = "Mark only the first N pullback bars after each neckline break.", Order = 5, GroupName = "3. Pullbacks")]
+        public int MaxPullbacks { get; set; }
+
+        [Range(4, 200)]
+        [Display(Name = "Pullback triangle size (px)", Description = "Height of the pullback triangle in screen pixels - stays the same at any zoom.", Order = 6, GroupName = "3. Pullbacks")]
+        public int PullbackTriSize { get; set; }
+
+        [Display(Name = "Show inside bar signals", Description = "Also mark an inside bar with signal-side IBS whose previous bar was a pullback bar but not a signal (DB: lower low + bearish IBS; DT: higher high + bullish IBS). Counts toward 'Pullbacks per pattern'.", Order = 7, GroupName = "3. Pullbacks")]
+        public bool ShowInsideBars { get; set; }
+
+        [XmlIgnore]
+        [Display(Name = "Inside bar signal color", Description = "Color of the inside-bar signal triangles.", Order = 8, GroupName = "3. Pullbacks")]
+        public Brush InsideBarBrush { get; set; }
+        [Browsable(false)]
+        public string InsideBarBrushSerialize { get { return Serialize.BrushToString(InsideBarBrush); } set { InsideBarBrush = Serialize.StringToBrush(value); } }
         #endregion
     }
 }
