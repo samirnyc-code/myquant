@@ -623,6 +623,11 @@ def check_claude_tracker_trades() -> dict:
          TradeSummary.csv, stale for a while — the exact signature of the 2 stuck-OPEN trades
          that incident produced. Catches it even without the health file (e.g. an older
          ClaudeTracker build, or before this check existed).
+
+    2026-10-22: added a 3rd check — status == "gap_reconciled" (written by the new
+    TryResumeOpenTrade() when a reload-resumed trade's replayed quantity didn't match the
+    broker's real position). The trade DID get resumed, not stuck, so this is WARN not BAD —
+    but the P&L on that specific trade may be off and needs a human to check it.
     """
     return _cached("claude_tracker_trades", 30, _check_claude_tracker_trades_uncached)
 
@@ -668,6 +673,12 @@ def _check_claude_tracker_trades_uncached() -> dict:
         names = ", ".join(f"{n} ({_fmt_age(a)})" for n, a in stuck)
         return _chk("ClaudeTracker trades", BAD,
                     f"{len(stuck)} trade(s) stuck OPEN with no activity: {names}", stuck=len(stuck))
+
+    gaps = [h for h in health_states if h.get("status") == "gap_reconciled"]
+    if gaps:
+        detail = gaps[0].get("detail", "a resumed trade's quantity didn't verify against the broker")
+        return _chk("ClaudeTracker trades", WARN,
+                    f"UNVERIFIED gap on resume - {detail} - check the journal manually")
 
     drifts = [h for h in health_states if str(h.get("status", "")).startswith("drift_")]
     if drifts:
