@@ -834,7 +834,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (!File.Exists(masterPath)) return null;
 
             string instrumentPrefix = SanitizeFilePart(Instrument.FullName) + "_" + now.ToString("yyyyMMdd", INV);
-            string[] lines = File.ReadAllLines(masterPath);
+            string[] lines = ReadAllLinesWithRetry(masterPath);
 
             Dictionary<string, List<TradeEventRow>> byTrade = new Dictionary<string, List<TradeEventRow>>();
             List<string> order = new List<string>();
@@ -886,7 +886,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             List<EntryStudyRow> result = new List<EntryStudyRow>();
             if (!File.Exists(path)) return result;
-            foreach (string line in File.ReadAllLines(path).Skip(1))
+            foreach (string line in ReadAllLinesWithRetry(path).Skip(1))
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
                 List<string> f = ParseCsvLine(line);
@@ -901,6 +901,30 @@ namespace NinjaTrader.NinjaScript.Strategies
                 });
             }
             return result;
+        }
+
+        // 2026-10-22: this new replay-recovery path reads files the SAME strategy is
+        // actively writing moments apart on a different trigger (a WriteEventRows/
+        // WriteEntryStudy call vs. this OnBarUpdate/execution-handler read) — a real
+        // IOException risk if the read lands mid-write. Caught by the caller either
+        // way (TryResumeOpenTrade's own try/catch) so this can never crash the
+        // strategy, but a bare single-attempt read would just silently skip that
+        // cycle's resume check. A few short retries covers the normal case (a write's
+        // file handle is open for low-single-digit milliseconds) without meaningfully
+        // delaying anything — this isn't on a per-tick hot path (OnBarUpdate's own
+        // caller already throttles to once per 5s).
+        private string[] ReadAllLinesWithRetry(string path, int maxAttempts = 3, int delayMs = 50)
+        {
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                try { return File.ReadAllLines(path); }
+                catch (IOException)
+                {
+                    if (attempt >= maxAttempts) throw; // let the caller's own catch handle a persistent failure
+                    System.Threading.Thread.Sleep(delayMs);
+                }
+            }
+            return File.ReadAllLines(path); // unreachable (loop always returns or throws), satisfies the compiler
         }
 
         // Minimal RFC4180-ish parser matching Csv()'s own quoting exactly (every field
