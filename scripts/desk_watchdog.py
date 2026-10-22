@@ -30,6 +30,7 @@ Run manually to test:  .venv/Scripts/python.exe scripts/desk_watchdog.py [--dry-
 import argparse
 import datetime as dt
 import json
+import os
 import socket
 import subprocess
 import sys
@@ -113,6 +114,50 @@ def kill_pids(pids):
     for pid in pids:
         subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True,
                        creationflags=0x08000000)
+
+
+def ensure_single_daemon_instance(min_age_s=60):
+    """2026-10-22: found live — the 'MyQuant Desk Watchdog Live' task repeats every
+    10 minutes with MultipleInstancesPolicy=StopExisting, but that isn't reliably
+    killing the PRIOR --daemon process (observed: 2 full orphaned process pairs
+    still alive, ~65 min apart, both fully alive not just stale parent refs) —
+    Task Scheduler only tracks/stops the one process it directly launched, and on
+    Windows every venv pythonw.exe here hands off to a second system-Python
+    pythonw.exe child (confirmed across status_light.py/telegram_bot.py/
+    options_dashboard_live.py/launcher.py too — a generic venv quirk, not specific
+    to this script). Rather than depend on Task Scheduler's own cleanup working,
+    this instance enforces exclusivity itself on startup.
+
+    Age-gated, NOT just PID-gated: excluding only os.getpid() is NOT enough — the
+    venv->system-python hop means THIS instance itself briefly exists as two PIDs
+    (parent+child, born the same second), and a PID-only exclusion matches and
+    kills that sibling too, taking the whole pair down (hit this live testing the
+    first version of this fix: a freshly-spawned instance killed its own other
+    half and vanished entirely). Only PIDs older than min_age_s are a genuinely
+    STALE prior instance, never this one's own hop partner.
+    """
+    ps = """Get-CimInstance Win32_Process -Filter "Name like 'python%'" | Where-Object { $_.CommandLine -match 'desk_watchdog\\.py.*--daemon' } | ForEach-Object { "$($_.ProcessId)|$($_.CreationDate.ToString('o'))" }"""
+    r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
+                       capture_output=True, text=True, timeout=60,
+                       creationflags=0x08000000)
+    now_ts = dt.datetime.now().timestamp()
+    stale = []
+    for line in r.stdout.splitlines():
+        line = line.strip()
+        if "|" not in line:
+            continue
+        pid_s, created_s = line.split("|", 1)
+        try:
+            pid = int(pid_s)
+            created_ts = dt.datetime.fromisoformat(created_s).timestamp()
+        except ValueError:
+            continue
+        if pid == os.getpid() or (now_ts - created_ts) < min_age_s:
+            continue  # self, or born in the last min_age_s (this instance's own hop partner)
+        stale.append(pid)
+    if stale:
+        log(f"ensure_single_daemon_instance: killing {len(stale)} stale daemon PID(s): {stale}")
+        kill_pids(stale)
 
 
 def run_task(name):
@@ -388,6 +433,7 @@ def main():
 
     if a.daemon:
         MODE = "fast"
+        ensure_single_daemon_instance()
         # The task fires on a FIXED Berlin clock, but the window is Chicago time, so it can
         # land well before 08:15 CT — a few minutes normally, up to ~1h during the DST-mismatch
         # weeks (Berlin=CT+6 not +7 for ~3wk in Mar and ~1wk in Oct/Nov). WAIT for the window in
