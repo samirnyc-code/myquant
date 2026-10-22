@@ -258,6 +258,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         private long globalSequence = 0;
         private DateTime lastHealthCheckTime = DateTime.MinValue;
         private static readonly TimeSpan HealthCheckInterval = TimeSpan.FromSeconds(30);
+        private DateTime lastResumeCheckTime = DateTime.MinValue;
+        private const int ResumeCheckIntervalSeconds = 5;
 
         // Ownership: two chart instances of this same strategy on the SAME instrument
         // (e.g. an RTH chart + an ETH chart, both ES, both running ClaudeTrackerV2 — a
@@ -387,7 +389,21 @@ namespace NinjaTrader.NinjaScript.Strategies
             // activeTrade null while the broker still shows a real position, this bar's
             // tick catches it — not just the one-time checkpoints — so the window for a
             // misattributed fill is at most one tick, not "until the next reload."
-            if (activeTrade == null) TryResumeOpenTrade();
+            // 2026-10-22: OnBarUpdate has NO caller-side try/catch (unlike
+            // OnAccountOrderUpdate/OnAccountExecutionUpdate, which both wrap their whole
+            // body) — an uncaught exception here disables the strategy outright. Hit this
+            // LIVE on Thomas's account: closing a trade disabled ClaudeTrackerV2 every
+            // time. Throttled (this runs every tick while flat otherwise, re-scanning
+            // Events_MASTER.csv each time — unnecessary I/O and a wider window to race
+            // the write CloseTrade just did) and now explicitly caught, on top of
+            // TryResumeOpenTrade's own internal try/catch below — belt and suspenders,
+            // this call site must never be able to take the strategy down again.
+            if (activeTrade == null && (Core.Globals.Now - lastResumeCheckTime).TotalSeconds >= ResumeCheckIntervalSeconds)
+            {
+                lastResumeCheckTime = Core.Globals.Now;
+                try { TryResumeOpenTrade(); }
+                catch (Exception ex) { Print("[ClaudeTracker] OnBarUpdate TryResumeOpenTrade failed (non-fatal): " + ex.Message); }
+            }
             UpdateOpenTradeExcursions();
             TryLockInitialStop();
             TryLockTargets();
@@ -600,7 +616,22 @@ namespace NinjaTrader.NinjaScript.Strategies
         // positionBefore/positionAfter math right after). Pass false from that one call
         // site; true everywhere else (State.Realtime, ownership-takeover, the per-bar
         // self-heal — all idle checkpoints with no fill in flight).
+        // Thin wrapper — belt and suspenders on top of the OnBarUpdate caller's own
+        // try/catch (2026-10-22: hit live, a replay-logic exception here disabled the
+        // strategy on Thomas's account since OnBarUpdate itself has no guard around its
+        // own call sites). Every path into the real logic below must be safe to call from
+        // anywhere, including places with no caller-side protection.
         private bool TryResumeOpenTrade(bool reconcileAgainstBroker = true)
+        {
+            try { return TryResumeOpenTradeInner(reconcileAgainstBroker); }
+            catch (Exception ex)
+            {
+                Print("[ClaudeTracker] TryResumeOpenTrade failed (non-fatal, strategy stays up): " + ex.Message);
+                return false;
+            }
+        }
+
+        private bool TryResumeOpenTradeInner(bool reconcileAgainstBroker)
         {
             if (activeTrade != null) return false;
             if (Position == null || Position.MarketPosition == MarketPosition.Flat) return false;
