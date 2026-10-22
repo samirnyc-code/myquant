@@ -13,6 +13,33 @@ scripts referenced below live in the private `trade-playbook` repo
 
 ---
 
+## 2026-10-22 — the reload-fix itself broke live trading within hours of deploy
+
+**Symptom:** Thomas deployed the SAME-DAY reload fix (below), closed a trade, and
+`ClaudeTrackerV2` immediately disabled itself. Reproducible, every close.
+
+**Root cause:** `OnBarUpdate` now called the new `TryResumeOpenTrade()` on every tick
+while flat — but `OnBarUpdate` has NO try/catch around it, unlike
+`OnAccountOrderUpdate`/`OnAccountExecutionUpdate`, which both wrap their entire body.
+Any exception inside the new replay logic (most likely racing the Events.csv write
+`CloseTrade` had just done a moment earlier, or a transient `Position` read that
+hadn't settled to Flat yet right after the closing fill) propagated straight out of
+`OnBarUpdate` uncaught, and NT8 disables a strategy on an uncaught `OnBarUpdate`
+exception.
+
+**Fix (same day):** the `OnBarUpdate` call site now explicitly catches and is
+throttled to once per 5s instead of every tick (less I/O, smaller race window);
+`TryResumeOpenTrade` itself also got a top-level try/catch
+(`TryResumeOpenTradeInner` holds the real logic) so no call site — including any
+future one with no caller-side protection — can ever take the strategy down again.
+Compiled clean, deployed to Samir's own Custom folder, committed `edd650a`.
+
+**Lesson for next time:** a reload-safety fix is itself new, more complex code
+running on a hot path (every tick) — it needs the SAME defensive wrapping as the
+rest of this file, not just the thing it's protecting against. Should have wrapped
+`OnBarUpdate`'s new call from the start instead of only the three already-protected
+call sites.
+
 ## 2026-10-15 — stuck-open trades + one dropped entirely
 
 **Symptom:** 2 of Samir's trades stuck `OPEN` in the journal forever; a 3rd
