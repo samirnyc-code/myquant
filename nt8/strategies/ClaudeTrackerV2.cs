@@ -181,6 +181,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             public string Direction;
             public string EntryType;        // ATM_<name> | Market | Limit
             public string EntryOrderName;   // raw order name from NT for ATM template extraction
+            public long EntryOrderId;       // o.Id of the entry fill's order — a single multi-lot
+                                             // market order that fills as separate Execution events
+                                             // (one per matched price level) shares this Id across all
+                                             // of them, which is how HandleAddExecution tells "this is
+                                             // still the same entry order finishing its fill" apart from
+                                             // a genuine, later add-on placed as a NEW order.
             public DateTime StartTime;
             public DateTime LastEventTime;
             public int StartSessionBar;
@@ -296,6 +302,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             Description = "Base folder for CSV/screenshot export. An ES or MES subfolder is created under it automatically.")]
         public string ExportRootFolder { get; set; }
 
+        [NinjaScriptProperty]
+        [Display(Name = "Entry Merge Window (ms)", Order = 5, GroupName = "Parameters",
+            Description = "A same-direction fill arriving this soon after the trade's first fill is treated as the SAME entry " +
+                "(blended into the avg price, no ADD_ON/SCALE_IN row) even at a slightly different price — covers a multi-lot " +
+                "market order that fills across more than one price level. Fills sharing the entry order's OrderId always merge " +
+                "regardless of this window; this timer is the fallback for a broker that reissues a new OrderId per partial fill.")]
+        public int EntryMergeWindowMs { get; set; }
+
         #endregion
 
         #region State
@@ -311,6 +325,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ScreenshotDelayMs      = 100;
                 DebugMode              = true;
                 ExportRootFolder       = @"G:\My Drive\!NT Tracker Export";
+                EntryMergeWindowMs     = 1500;
                 RealtimeErrorHandling  = RealtimeErrorHandling.IgnoreAllErrors;
                 StartBehavior          = StartBehavior.AdoptAccountPosition;
             }
@@ -347,7 +362,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // scenario stuck two trades OPEN forever and dropped a third
                 // entirely — HandleExitExecution's activeTrade==null guard quietly
                 // ate the closing fill, no error, no trace.
-                ReconcileOpenPosition();
+                TryResumeOpenTrade();
             }
             else if (State == State.Terminated)
             {
@@ -368,6 +383,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (State != State.Realtime) return;
             if (CurrentBar < 1) return;
             if (!ClaimOwnership()) return; // another chart instance on this instrument is active; standby
+            // Continuous self-heal: if a fill-delivery race (or anything else) left
+            // activeTrade null while the broker still shows a real position, this bar's
+            // tick catches it — not just the one-time checkpoints — so the window for a
+            // misattributed fill is at most one tick, not "until the next reload."
+            if (activeTrade == null) TryResumeOpenTrade();
             UpdateOpenTradeExcursions();
             TryLockInitialStop();
             TryLockTargets();
@@ -427,6 +447,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private void HandleExecution(Execution ex, Order o, int signedQty)
         {
+            // The actual root cause of the 2026-10-15/16/21 incidents: this used to trust
+            // activeTrade==null as proof the account is flat. It isn't — a reconnect can
+            // deliver THIS fill before activeTrade has been rebuilt. Checking here, right
+            // before trusting "flat", means a real closing fill never gets misread as a
+            // brand-new trade's entry, regardless of why activeTrade went null.
+            if (activeTrade == null) TryResumeOpenTrade(reconcileAgainstBroker: false);
             int positionBefore = activeTrade != null ? activeTrade.CurrentQty : 0;
             int positionAfter  = positionBefore + signedQty;
 
@@ -475,6 +501,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Direction             = signedQty > 0 ? "LONG" : "SHORT",
                 EntryType             = entryType,
                 EntryOrderName        = o.Name ?? string.Empty,
+                EntryOrderId          = o.Id,
                 StartTime             = ex.Time,
                 LastEventTime         = ex.Time,
                 StartSessionBar       = sessionBar,
@@ -538,11 +565,356 @@ namespace NinjaTrader.NinjaScript.Strategies
             });
 
             WriteEntryStudy(activeStudy);
+            WriteEventRows(activeTrade.EventRows, tradeId);
             DebugPrint("ENTRY written for " + tradeId + " [" + entryType + "] at " + F2(ex.Price));
             RequestScreenshot("ENTRY", ex.Time, tradeId, ex.Time);
 
             lastHealthCheckTime = Core.Globals.Now;
         }
+
+        #region Replay-based recovery
+
+        // 2026-10-21/22 root cause: activeTrade/activeStudy are plain in-memory fields,
+        // never persisted. The only places that ever rebuilt them from the broker were
+        // State.Realtime and ownership-takeover — anywhere else (confirmed live: a fill
+        // arriving in the gap between an NT8 reconnect's Account.Positions snapshot and
+        // its Execution event delivery) activeTrade==null got silently treated as FLAT
+        // by HandleExecution, which misread the real trade's own closing fill as a
+        // brand-new trade. Fix has two parts: (1) Events.csv is now written on every
+        // fill, not just at CloseTrade, so there's always a durable row-by-row ledger of
+        // whatever this trade did before the gap; (2) this function replays those rows
+        // to resume the EXACT SAME TradeID with full history, instead of
+        // ReconcileOpenPosition's old Position-only stub (kept below, now only the
+        // last-resort fallback when there's truly nothing on disk to replay). Call this
+        // from ANYWHERE activeTrade might unexpectedly be null while a real position is
+        // open — State.Realtime, ownership-takeover, every execution, every bar — it's a
+        // cheap no-op (one Position check) when there's nothing to resume.
+        //
+        // reconcileAgainstBroker: only safe to force CurrentQty to match Account.Position
+        // and emit a GAP_RECONCILE row at a genuinely IDLE moment (no fill of ours is mid-
+        // processing right now) — NT8 doesn't guarantee Position is updated strictly AFTER
+        // the matching ExecutionUpdate fires, so when this is called from inside
+        // HandleExecution for a SPECIFIC incoming fill, Position may already reflect that
+        // very fill. Comparing against it there and "reconciling" would double-count it
+        // (once via the forced qty overwrite, once via HandleExecution's own
+        // positionBefore/positionAfter math right after). Pass false from that one call
+        // site; true everywhere else (State.Realtime, ownership-takeover, the per-bar
+        // self-heal — all idle checkpoints with no fill in flight).
+        private bool TryResumeOpenTrade(bool reconcileAgainstBroker = true)
+        {
+            if (activeTrade != null) return false;
+            if (Position == null || Position.MarketPosition == MarketPosition.Flat) return false;
+
+            DateTime now = Core.Globals.Now;
+            int brokerQty = Position.MarketPosition == MarketPosition.Long ? Position.Quantity : -Position.Quantity;
+
+            List<TradeEventRow> rows;
+            string tradeId = FindOpenTradeIdToday(now, out rows);
+
+            if (tradeId == null || rows == null || rows.Count == 0)
+            {
+                // Nothing on disk to replay. From the inline HandleExecution call site
+                // this is the NORMAL case for every ordinary new trade's first fill
+                // (previous trade closed cleanly, activeTrade is legitimately null) — do
+                // NOT fabricate a stub here, or a perfectly healthy new trade would get
+                // double-counted (once via the stub's Position-derived qty, once via
+                // HandleExecution's own positionBefore/positionAfter math right after).
+                // Only the idle checkpoints (reconcileAgainstBroker=true) may fall back
+                // to the Position-only stub — there, Position is a settled snapshot, not
+                // mid-update for a fill this same call stack is about to apply.
+                if (!reconcileAgainstBroker) return false;
+                ReconcileOpenPosition(); // nothing to replay — last-resort stub
+                return activeTrade != null;
+            }
+
+            TradeEventRow first = rows[0];
+            TradeEventRow last  = rows[rows.Count - 1];
+
+            int sessionBar, sessionLastBar;
+            GetBarInfo(first.Time, out sessionBar, out sessionLastBar);
+
+            ActiveTrade trade = new ActiveTrade
+            {
+                TradeID              = tradeId,
+                InstrumentName       = Instrument.FullName,
+                Direction            = first.Direction,
+                EntryType            = "Resumed",
+                EntryOrderName       = first.OrderName,
+                EntryOrderId         = first.OrderId,
+                StartTime            = first.Time,
+                LastEventTime        = last.Time,
+                StartSessionBar      = sessionBar,
+                LastEventSessionBar  = last.SessionBar,
+                CurrentQty           = last.PositionAfter,
+                MaxPositionQty       = rows.Max(r => Math.Abs(r.PositionAfter)),
+                FirstEntryPrice      = first.FillPrice,
+                WeightedAvgEntryPrice= last.AvgEntryAfter > 0 ? last.AvgEntryAfter : first.FillPrice,
+                RealizedPnLCurrency  = last.CumRealizedPnLCurrency,
+                ATMStop              = last.ATMStop,
+                FirstProtectiveStop  = last.FirstProtectiveStop,
+                InitialStop          = last.InitialStop,
+                InitialStopLocked    = last.InitialStop > 0,
+                InitialStopStarted   = last.InitialStop > 0,
+                FirstActualStop      = last.FirstActualStop,
+                FirstActualCaptured  = last.FirstActualStop > 0,
+                CurrentStop          = last.CurrentStop,
+                CurrentTarget        = last.TargetAtEvent,
+                TradeMAEPoints       = rows.Min(r => r.MAEPointsAtEvent),
+                TradeMFEPoints       = rows.Max(r => r.MFEPointsAtEvent),
+                TradeFolder          = EnsureTradeFolder(tradeId, first.Time),
+                EventRows            = rows,
+                EventCounter         = rows.Count
+            };
+
+            int totalEntryQty = 0, totalExitQty = 0, scaleIn = 0, addOn = 0, scaleOut = 0;
+            double exitPriceSum = 0;
+            foreach (TradeEventRow r in rows)
+            {
+                bool isTargetName = (r.OrderName ?? string.Empty).Trim().ToUpperInvariant().StartsWith("TARGET");
+                switch (r.EventType)
+                {
+                    case "OPEN":   totalEntryQty += r.ExecQty; break;
+                    case "SCALE_IN": scaleIn++; totalEntryQty += r.ExecQty; break;
+                    case "ADD_ON":   addOn++;   totalEntryQty += r.ExecQty; break;
+                    case "SCALE_OUT":
+                    case "EXIT":
+                        if (isTargetName) scaleOut++;
+                        totalExitQty += r.ExecQty; exitPriceSum += r.FillPrice * r.ExecQty; break;
+                    case "REVERSAL_EXIT":
+                        totalExitQty += r.ExecQty; exitPriceSum += r.FillPrice * r.ExecQty; break;
+                }
+            }
+            // EntryPriceSum is back-solved from the already-trusted WeightedAvgEntryPrice
+            // (rather than independently re-summed) so TotalEntryQty/EntryPriceSum stay
+            // exactly consistent with it for any FUTURE add-on this resumed trade gets.
+            trade.TotalEntryQty       = totalEntryQty > 0 ? totalEntryQty : Math.Abs(trade.MaxPositionQty);
+            trade.EntryPriceSum       = trade.WeightedAvgEntryPrice * trade.TotalEntryQty;
+            trade.TotalExitQty        = totalExitQty;
+            trade.ExitPriceSum        = exitPriceSum;
+            trade.WeightedAvgExitPrice= totalExitQty > 0 ? exitPriceSum / totalExitQty : 0;
+            trade.ScaleInCount        = scaleIn;
+            trade.AddOnCount          = addOn;
+            trade.ScaleOutCount       = scaleOut;
+            trade.LastExitOrderName   = last.OrderName;
+
+            activeTrade = trade;
+
+            // Rebuild activeStudy (stop/target settle state) from this trade's own
+            // EntryStudy.csv rows — those were already written incrementally the whole
+            // time, unaffected by this gap.
+            string studyPath = Path.Combine(EnsureTradeFolder(tradeId, first.Time),
+                TradeFileStem(tradeId, first.Time) + "_EntryStudy.csv");
+            List<EntryStudyRow> studyRows = ReadEntryStudyRowsForTrade(studyPath, tradeId);
+            if (studyRows.Count == 0)
+                studyRows = ReadEntryStudyRowsForTrade(EntryStudyMasterPath(first.Time), tradeId);
+
+            activeStudy = new SessionStudy
+            {
+                TradeID         = tradeId,
+                Direction       = trade.Direction,
+                EntryPrice      = trade.WeightedAvgEntryPrice,
+                EntryQty        = trade.TotalEntryQty,
+                EntryTime       = first.Time,
+                EntrySessionBar = sessionBar,
+                StopRows        = studyRows
+            };
+            if (studyRows.Count > 0) activeStudy.LastStopWrittenTime = studyRows[studyRows.Count - 1].StopTime;
+
+            foreach (EntryStudyRow sr in studyRows)
+            {
+                if (!sr.StopEvent.StartsWith("TARGET", StringComparison.Ordinal) || !sr.StopEvent.Contains("_")) continue;
+                string orderKey = sr.StopEvent.Substring(0, sr.StopEvent.IndexOf('_'));
+                TargetTrackState st;
+                if (!activeTrade.Targets.TryGetValue(orderKey, out st))
+                { st = new TargetTrackState(); activeTrade.Targets[orderKey] = st; }
+                st.Started = true; st.Locked = true; st.LockedPrice = sr.StopPrice;
+                if (sr.StopEvent.Contains("_MOVED_")) st.MoveCount++;
+            }
+
+            int tNum = ParseTradeCounterSuffix(tradeId);
+            if (tNum > dailyTradeCounter) dailyTradeCounter = tNum;
+
+            if (!reconcileAgainstBroker)
+            {
+                // Called from inside HandleExecution for a specific incoming fill — don't
+                // touch CurrentQty here at all. Let that fill apply through the normal
+                // positionBefore/positionAfter arithmetic right after this returns, off
+                // the replayed baseline above. See the reconcileAgainstBroker comment.
+                DebugPrint("Resumed " + tradeId + " inline for an incoming fill — "
+                    + rows.Count.ToString(INV) + " prior event(s) replayed, qty check deferred.");
+                return true;
+            }
+
+            bool qtyMatches = activeTrade.CurrentQty == brokerQty;
+            if (!qtyMatches)
+            {
+                // A real gap: a fill happened that we have no row for (the literal "NT
+                // dropped the internet mid-fill" case). Never silently trust the stale
+                // replayed qty — reconcile to the broker's truth with a flagged
+                // synthetic row so the gap stays visible for manual review, not hidden.
+                int sb2, slb2;
+                GetBarInfo(now, out sb2, out slb2);
+                int deltaQty = brokerQty - activeTrade.CurrentQty;
+                activeTrade.EventRows.Add(new TradeEventRow
+                {
+                    Sequence = ++globalSequence, TradeID = tradeId,
+                    EventID = NextEventID(activeTrade), FillID = "GAP_RECONCILE",
+                    Time = now, EventType = "GAP_RECONCILE", Direction = activeTrade.Direction,
+                    OrderName = "UNVERIFIED_GAP_FILL", ExecQty = Math.Abs(deltaQty),
+                    PositionBefore = activeTrade.CurrentQty, PositionAfter = brokerQty,
+                    FillPrice = Position.AveragePrice, SessionBar = sb2
+                });
+                activeTrade.CurrentQty    = brokerQty;
+                activeTrade.MaxPositionQty= Math.Max(activeTrade.MaxPositionQty, Math.Abs(brokerQty));
+                WriteEventRows(activeTrade.EventRows, tradeId);
+                WriteHealthFile("gap_reconciled", "RESUMED " + tradeId + " with an UNVERIFIED qty gap ("
+                    + last.PositionAfter.ToString(INV) + " replayed vs " + brokerQty.ToString(INV) + " broker) — manual review needed");
+                Print("[ClaudeTracker] WARNING: resumed " + tradeId + " but replayed qty didn't match the broker "
+                    + "position — a fill happened during the gap with no record of it. Reconciled to broker qty "
+                    + brokerQty.ToString(INV) + " and flagged GAP_RECONCILE in Events.csv. Verify this trade's P&L manually.");
+            }
+            else
+            {
+                Print("[ClaudeTracker] RESUMED " + tradeId + " after reload/reconnect — qty verified against broker ("
+                    + brokerQty.ToString(INV) + "). " + rows.Count.ToString(INV) + " prior event(s) replayed.");
+            }
+
+            return true;
+        }
+
+        private int ParseTradeCounterSuffix(string tradeId)
+        {
+            int tIdx = tradeId.LastIndexOf("_T", StringComparison.Ordinal);
+            if (tIdx < 0) return 0;
+            int start = tIdx + 2, end = start;
+            while (end < tradeId.Length && char.IsDigit(tradeId[end])) end++;
+            int n;
+            return end > start && int.TryParse(tradeId.Substring(start, end - start), out n) ? n : 0;
+        }
+
+        // Finds today's still-open TradeID for THIS instrument in Events_MASTER.csv —
+        // "still open" meaning its last row (in file order, which is write order) shows
+        // a non-zero PositionAfter, i.e. HandleExitExecution never drove it to flat /
+        // CloseTrade never ran. Returns the rows too (avoids re-reading the file twice).
+        private string FindOpenTradeIdToday(DateTime now, out List<TradeEventRow> rowsOut)
+        {
+            rowsOut = null;
+            string masterPath = Path.Combine(MastersFolder(now), "Events_MASTER.csv");
+            if (!File.Exists(masterPath)) return null;
+
+            string instrumentPrefix = SanitizeFilePart(Instrument.FullName) + "_" + now.ToString("yyyyMMdd", INV);
+            string[] lines = File.ReadAllLines(masterPath);
+
+            Dictionary<string, List<TradeEventRow>> byTrade = new Dictionary<string, List<TradeEventRow>>();
+            List<string> order = new List<string>();
+            for (int i = 1; i < lines.Length; i++)
+            {
+                if (string.IsNullOrWhiteSpace(lines[i])) continue;
+                TradeEventRow row = ParseEventRow(lines[i]);
+                if (row == null || !row.TradeID.StartsWith(instrumentPrefix, StringComparison.Ordinal)) continue;
+                List<TradeEventRow> list;
+                if (!byTrade.TryGetValue(row.TradeID, out list))
+                { list = new List<TradeEventRow>(); byTrade[row.TradeID] = list; order.Add(row.TradeID); }
+                list.Add(row);
+            }
+
+            string bestId = null;
+            DateTime bestTime = DateTime.MinValue;
+            foreach (string tid in order)
+            {
+                List<TradeEventRow> rows = byTrade[tid];
+                if (rows.Count == 0) continue;
+                TradeEventRow last = rows[rows.Count - 1];
+                if (last.PositionAfter == 0) continue; // closed normally — not a candidate
+                if (rows[0].Time >= bestTime) { bestTime = rows[0].Time; bestId = tid; rowsOut = rows; }
+            }
+            return bestId;
+        }
+
+        private TradeEventRow ParseEventRow(string line)
+        {
+            List<string> f = ParseCsvLine(line);
+            if (f.Count < 31) return null;
+            return new TradeEventRow
+            {
+                TradeID = f[0], EventID = f[1], FillID = f[2],
+                Time = PDT(f[3]), EventType = f[4], Direction = f[5],
+                OrderName = f[6], Oco = f[7], OrderId = PL(f[8]),
+                ExecQty = PI(f[9]), PositionBefore = PI(f[10]), PositionAfter = PI(f[11]),
+                FillPrice = PF(f[12]), AvgEntryBefore = PF(f[13]), AvgEntryAfter = PF(f[14]),
+                LegPnLCurrency = PF(f[15]), CumRealizedPnLCurrency = PF(f[16]),
+                ATMStop = PF(f[17]), FirstProtectiveStop = PF(f[18]), InitialStop = PF(f[19]),
+                FirstActualStop = PF(f[20]), CurrentStop = PF(f[21]), ActualStop = PF(f[22]),
+                TargetAtEvent = PF(f[23]), MAEPointsAtEvent = PF(f[24]), MFEPointsAtEvent = PF(f[25]),
+                SessionBar = PI(f[26]), BarsSinceTradeStart = PI(f[27]), BarsSincePrevEvent = PI(f[28]),
+                MinsSinceTradeStart = PF(f[29]), MinsSincePrevEvent = PF(f[30])
+            };
+        }
+
+        private List<EntryStudyRow> ReadEntryStudyRowsForTrade(string path, string tradeId)
+        {
+            List<EntryStudyRow> result = new List<EntryStudyRow>();
+            if (!File.Exists(path)) return result;
+            foreach (string line in File.ReadAllLines(path).Skip(1))
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                List<string> f = ParseCsvLine(line);
+                if (f.Count < 12 || f[0] != tradeId) continue;
+                result.Add(new EntryStudyRow
+                {
+                    TradeID = f[0], InstrumentName = f[1], Direction = f[2],
+                    EntryPrice = PF(f[3]), EntryQty = PI(f[4]), EntryTime = PDT(f[5]),
+                    EntrySessionBar = PI(f[6]), StopEvent = f[7],
+                    StopPrice = PF(f[8]), StopTime = PDT(f[9]), StopSessionBar = PI(f[10]),
+                    RiskPoints = PF(f[11])
+                });
+            }
+            return result;
+        }
+
+        // Minimal RFC4180-ish parser matching Csv()'s own quoting exactly (every field
+        // always quoted, internal quotes doubled) — every row this reads was written by
+        // Csv() in this same file, so no need for a general-purpose CSV library.
+        private List<string> ParseCsvLine(string line)
+        {
+            List<string> fields = new List<string>();
+            int i = 0, n = line.Length;
+            while (i < n)
+            {
+                if (line[i] == '"')
+                {
+                    i++;
+                    System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                    while (i < n)
+                    {
+                        if (line[i] == '"')
+                        {
+                            if (i + 1 < n && line[i + 1] == '"') { sb.Append('"'); i += 2; }
+                            else { i++; break; }
+                        }
+                        else { sb.Append(line[i]); i++; }
+                    }
+                    fields.Add(sb.ToString());
+                    if (i < n && line[i] == ',') i++;
+                }
+                else
+                {
+                    int start = i;
+                    while (i < n && line[i] != ',') i++;
+                    fields.Add(line.Substring(start, i - start));
+                    if (i < n && line[i] == ',') i++;
+                }
+            }
+            return fields;
+        }
+
+        private double PF(string s) { double d; return double.TryParse(s, NumberStyles.Float, INV, out d) ? d : 0; }
+        private int PI(string s) { int n; return int.TryParse(s, NumberStyles.Integer, INV, out n) ? n : 0; }
+        private long PL(string s) { long n; return long.TryParse(s, NumberStyles.Integer, INV, out n) ? n : 0; }
+        private DateTime PDT(string s)
+        { DateTime d; return DateTime.TryParse(s, INV, DateTimeStyles.None, out d) ? d : default(DateTime); }
+
+        #endregion
 
         // Synthesizes a minimal activeTrade/activeStudy from the broker's own
         // position when we come up live and find one with nothing tracking it.
@@ -674,7 +1046,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (justClaimed)
             {
-                ReconcileOpenPosition();
+                TryResumeOpenTrade();
                 lastHealthCheckTime = now;
             }
             return isOwner;
@@ -800,24 +1172,30 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             double avgBefore = activeTrade.WeightedAvgEntryPrice;
             double price     = ex.Price;
-            string eventType = ClassifyAddType(activeTrade.Direction, avgBefore, price);
             int addQty       = Math.Abs(signedQty);
 
-            bool isLateInitialFill = eventType == "ADD_ON" &&
-                (ex.Time - activeTrade.StartTime).TotalMilliseconds <= 500;
+            // Same order finishing its fill (a multi-lot market order that fills across
+            // more than one price level generates one Execution per leg, all sharing the
+            // entry order's Id) OR arriving within the merge window of the trade's FIRST
+            // fill — either way this is still THE SAME ENTRY, not a deliberate add, even
+            // though the price is slightly different per leg. Blend it straight into the
+            // OPEN row's own price/qty (avg price) instead of logging a second event, so
+            // the journal shows one entry fill — matching what actually happened at the
+            // exchange — rather than a spurious ADD_ON/SCALE_IN a few hundred ms later.
+            bool isEntryMergeFill = o.Id == activeTrade.EntryOrderId
+                || (ex.Time - activeTrade.StartTime).TotalMilliseconds <= EntryMergeWindowMs;
 
-            if (isLateInitialFill) eventType = "ENTRY_ADD";
-            else if (eventType == "SCALE_IN") activeTrade.ScaleInCount++;
+            if (isEntryMergeFill)
+            {
+                MergeIntoEntry(ex, price, addQty, positionAfter);
+                return;
+            }
+
+            string eventType = ClassifyAddType(activeTrade.Direction, avgBefore, price);
+            if (eventType == "SCALE_IN") activeTrade.ScaleInCount++;
             else if (eventType == "ADD_ON")   activeTrade.AddOnCount++;
 
-            if (isLateInitialFill && activeStudy != null)
-{
-    activeStudy.EntryQty = activeTrade.TotalEntryQty + addQty;
-    foreach (EntryStudyRow r in activeStudy.StopRows) r.EntryQty = activeStudy.EntryQty;
-    WriteEntryStudy(activeStudy);
-    DebugPrint("ENTRY_ADD — EntryQty updated to " + activeStudy.EntryQty.ToString(INV));
-}
-else if (eventType == "SCALE_IN" && activeStudy != null)
+            if (eventType == "SCALE_IN" && activeStudy != null)
 {
     // Blended entry after this scale-in
     double newBlendedEntry = (activeTrade.EntryPriceSum + price * addQty)
@@ -902,9 +1280,54 @@ else if (eventType == "SCALE_IN" && activeStudy != null)
 
             activeTrade.LastEventSessionBar = sessionBar;
             activeTrade.LastEventTime       = ex.Time;
+            WriteEventRows(activeTrade.EventRows, activeTrade.TradeID);
 
-            if (eventType == "SCALE_IN" || eventType == "ADD_ON" || eventType == "ENTRY_ADD")
+            if (eventType == "SCALE_IN" || eventType == "ADD_ON")
                 RequestScreenshot(eventType, ex.Time, activeTrade.TradeID, activeTrade.StartTime);
+        }
+
+        // Folds a merge-eligible fill directly into the trade's OPEN event row and
+        // entry-side aggregates — no new Events.csv row, no ScaleIn/AddOn count bump,
+        // just a wider averaged entry price/qty. See the merge-condition comment in
+        // HandleAddExecution for why a fill qualifies.
+        private void MergeIntoEntry(Execution ex, double price, int addQty, int positionAfter)
+        {
+            activeTrade.EntryPriceSum        += price * addQty;
+            activeTrade.TotalEntryQty        += addQty;
+            activeTrade.CurrentQty            = positionAfter;
+            activeTrade.MaxPositionQty        = Math.Max(activeTrade.MaxPositionQty, Math.Abs(positionAfter));
+            activeTrade.WeightedAvgEntryPrice = activeTrade.TotalEntryQty > 0
+                ? activeTrade.EntryPriceSum / activeTrade.TotalEntryQty : 0;
+
+            TradeEventRow openRow = activeTrade.EventRows.Count > 0 ? activeTrade.EventRows[0] : null;
+            if (openRow != null && openRow.EventType == "OPEN")
+            {
+                openRow.ExecQty      += addQty;
+                openRow.FillPrice     = activeTrade.WeightedAvgEntryPrice;
+                openRow.PositionAfter = positionAfter;
+                openRow.AvgEntryAfter = activeTrade.WeightedAvgEntryPrice;
+            }
+
+            if (activeStudy != null && activeStudy.StopRows.Count > 0)
+            {
+                activeStudy.EntryPrice = activeTrade.WeightedAvgEntryPrice;
+                activeStudy.EntryQty   = activeTrade.TotalEntryQty;
+                foreach (EntryStudyRow r in activeStudy.StopRows)
+                {
+                    r.EntryPrice = activeStudy.EntryPrice;
+                    r.EntryQty   = activeStudy.EntryQty;
+                }
+                WriteEntryStudy(activeStudy);
+            }
+
+            int sessionBar, sessionLastBar;
+            GetBarInfo(ex.Time, out sessionBar, out sessionLastBar);
+            activeTrade.LastEventSessionBar = sessionBar;
+            activeTrade.LastEventTime       = ex.Time;
+            WriteEventRows(activeTrade.EventRows, activeTrade.TradeID);
+
+            DebugPrint("Entry fill merged (same order/window) — qty now " + activeTrade.TotalEntryQty.ToString(INV)
+                + " @ " + F2(activeTrade.WeightedAvgEntryPrice));
         }
 
         private void HandleExitExecution(Execution ex, Order o, int closeQty, int positionBefore, int positionAfter,
@@ -977,6 +1400,7 @@ else if (eventType == "SCALE_IN" && activeStudy != null)
 
             activeTrade.LastEventSessionBar = sessionBar;
             activeTrade.LastEventTime       = ex.Time;
+            WriteEventRows(activeTrade.EventRows, activeTrade.TradeID);
 
             if (eventType == "SCALE_OUT" || eventType == "REVERSAL_EXIT")
                 RequestScreenshot(exitLabel + "_" + activeTrade.TotalExitQty.ToString(INV),
@@ -1582,14 +2006,48 @@ if (name.StartsWith("TARGET"))
 
         #region CSV writers — Events and Trades
 
+        // Called after EVERY fill/update that touches activeTrade.EventRows (not just at
+        // CloseTrade) — 2026-10-21/22: a trade that never reached CloseTrade left ZERO
+        // Events.csv record of its fills (only EntryStudy.csv, written incrementally
+        // already, survived). Master path uses the same merge-by-TradeID-exclusion pattern
+        // WriteEntryStudyMerged already uses, so calling this once per event is idempotent
+        // (each call rewrites this trade's own rows in place, never appends duplicates).
         private void WriteEventRows(List<TradeEventRow> rows, string tradeId)
         {
             if (rows == null || rows.Count == 0) return;
             string masterPath = Path.Combine(MastersFolder(rows[0].Time), "Events_MASTER.csv");
             string tradePath  = Path.Combine(EnsureTradeFolder(tradeId, rows[0].Time),
                 TradeFileStem(tradeId, rows[0].Time) + "_Events.csv");
-            WriteEventFile(masterPath, rows, true);
-            WriteEventFile(tradePath,  rows, false);
+            WriteEventRowsMerged(masterPath, tradeId, rows);
+            WriteEventFile(tradePath, rows, false);
+        }
+
+        private void WriteEventRowsMerged(string path, string tradeId, List<TradeEventRow> rows)
+        {
+            try
+            {
+                List<string> existingLines = new List<string>();
+                string header = string.Empty;
+                if (File.Exists(path))
+                {
+                    string[] allLines = File.ReadAllLines(path);
+                    if (allLines.Length > 0)
+                    {
+                        header = allLines[0];
+                        for (int i = 1; i < allLines.Length; i++)
+                            if (!allLines[i].Contains("\"" + tradeId + "\""))
+                                existingLines.Add(allLines[i]);
+                    }
+                }
+                using (StreamWriter sw = new StreamWriter(path, false))
+                {
+                    sw.WriteLine(string.IsNullOrEmpty(header) ? EventHeader() : header);
+                    foreach (string line in existingLines) sw.WriteLine(line);
+                    foreach (TradeEventRow r in rows.OrderBy(x => x.Sequence)) sw.WriteLine(EventRowCsv(r));
+                }
+                DebugPrint("Events merged: " + rows.Count + " rows for " + tradeId);
+            }
+            catch (Exception ex) { Print("CSV ERROR (EVENTS MERGED): " + ex.Message + " — close the file and hit F5"); }
         }
 
         private void WriteTradeSummary(TradeSummaryRow row, string tradeId)
@@ -1601,6 +2059,34 @@ if (name.StartsWith("TARGET"))
             WriteTradeFile(tradePath,  row, false);
         }
 
+        private string EventHeader()
+        {
+            return "TradeID,EventID,FillID,Time,EventType,Direction,OrderName,Oco,OrderId," +
+                "ExecQty,PositionBefore,PositionAfter,FillPrice,AvgEntryBefore,AvgEntryAfter," +
+                "LegPnLCurrency,CumRealizedPnLCurrency,ATMStop,FirstProtectiveStop,InitialStop," +
+                "FirstActualStop,CurrentStop,ActualStop,TargetAtEvent,MAEPointsAtEvent,MFEPointsAtEvent,SessionBar," +
+                "BarsSinceTradeStart,BarsSincePrevEvent,MinsSinceTradeStart,MinsSincePrevEvent";
+        }
+
+        private string EventRowCsv(TradeEventRow r)
+        {
+            return string.Join(",",
+                Csv(r.TradeID), Csv(r.EventID), Csv(r.FillID),
+                Csv(r.Time.ToString("yyyy-MM-dd HH:mm:ss.fff", INV)),
+                Csv(r.EventType), Csv(r.Direction), Csv(r.OrderName), Csv(r.Oco),
+                Csv(r.OrderId.ToString(INV)), Csv(r.ExecQty.ToString(INV)),
+                Csv(r.PositionBefore.ToString(INV)), Csv(r.PositionAfter.ToString(INV)),
+                Csv(F2(r.FillPrice)), Csv(F2(r.AvgEntryBefore)), Csv(F2(r.AvgEntryAfter)),
+                Csv(F2(r.LegPnLCurrency)), Csv(F2(r.CumRealizedPnLCurrency)),
+                Csv(F2(r.ATMStop)), Csv(F2(r.FirstProtectiveStop)), Csv(F2(r.InitialStop)),
+                Csv(F2(r.FirstActualStop)), Csv(F2(r.CurrentStop)), Csv(F2(r.ActualStop)),
+                Csv(F2(r.TargetAtEvent)), Csv(F2(r.MAEPointsAtEvent)), Csv(F2(r.MFEPointsAtEvent)),
+                Csv(r.SessionBar.ToString(INV)),
+                Csv(r.BarsSinceTradeStart.ToString(INV)),
+                Csv(r.BarsSincePrevEvent.ToString(INV)),
+                Csv(F2(r.MinsSinceTradeStart)), Csv(F2(r.MinsSincePrevEvent)));
+        }
+
         private void WriteEventFile(string path, List<TradeEventRow> rows, bool append)
         {
             try
@@ -1608,29 +2094,9 @@ if (name.StartsWith("TARGET"))
                 bool exists = File.Exists(path);
                 using (StreamWriter sw = new StreamWriter(path, append))
                 {
-                    if (!exists || !append)
-                        sw.WriteLine("TradeID,EventID,FillID,Time,EventType,Direction,OrderName,Oco,OrderId," +
-                            "ExecQty,PositionBefore,PositionAfter,FillPrice,AvgEntryBefore,AvgEntryAfter," +
-                            "LegPnLCurrency,CumRealizedPnLCurrency,ATMStop,FirstProtectiveStop,InitialStop," +
-                            "FirstActualStop,CurrentStop,ActualStop,TargetAtEvent,MAEPointsAtEvent,MFEPointsAtEvent,SessionBar," +
-                            "BarsSinceTradeStart,BarsSincePrevEvent,MinsSinceTradeStart,MinsSincePrevEvent");
-
+                    if (!exists || !append) sw.WriteLine(EventHeader());
                     foreach (TradeEventRow r in rows.OrderBy(x => x.Sequence))
-                        sw.WriteLine(string.Join(",",
-                            Csv(r.TradeID), Csv(r.EventID), Csv(r.FillID),
-                            Csv(r.Time.ToString("yyyy-MM-dd HH:mm:ss.fff", INV)),
-                            Csv(r.EventType), Csv(r.Direction), Csv(r.OrderName), Csv(r.Oco),
-                            Csv(r.OrderId.ToString(INV)), Csv(r.ExecQty.ToString(INV)),
-                            Csv(r.PositionBefore.ToString(INV)), Csv(r.PositionAfter.ToString(INV)),
-                            Csv(F2(r.FillPrice)), Csv(F2(r.AvgEntryBefore)), Csv(F2(r.AvgEntryAfter)),
-                            Csv(F2(r.LegPnLCurrency)), Csv(F2(r.CumRealizedPnLCurrency)),
-                            Csv(F2(r.ATMStop)), Csv(F2(r.FirstProtectiveStop)), Csv(F2(r.InitialStop)),
-                            Csv(F2(r.FirstActualStop)), Csv(F2(r.CurrentStop)), Csv(F2(r.ActualStop)),
-                            Csv(F2(r.TargetAtEvent)), Csv(F2(r.MAEPointsAtEvent)), Csv(F2(r.MFEPointsAtEvent)),
-                            Csv(r.SessionBar.ToString(INV)),
-                            Csv(r.BarsSinceTradeStart.ToString(INV)),
-                            Csv(r.BarsSincePrevEvent.ToString(INV)),
-                            Csv(F2(r.MinsSinceTradeStart)), Csv(F2(r.MinsSincePrevEvent))));
+                        sw.WriteLine(EventRowCsv(r));
                 }
             }
             catch (Exception ex) { Print("CSV ERROR (EVENTS): " + ex.Message); }
