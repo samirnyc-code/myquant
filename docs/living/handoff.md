@@ -1,5 +1,31 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-20 (machine-time W. Europe, separate chat) — **S146 continued: FOUND +
+FIXED the actual permanent-flatline mechanism on BidAskVolumeRatio/Split/Delta.cs, after the
+earlier same-day fixes (one-shot load, stale-day backfill) turned out not to be the whole story.**
+User kept hitting flatlines on different charts even after both earlier fixes landed. The decisive
+evidence: user showed a screenshot where a DIFFERENT chart, same indicator, same hours, had NO
+flatline at all — proof the bug wasn't "the data is legitimately choppy" (my wrong conclusion on
+the 2nd and 3rd reports that session, retracted once this came in) and wasn't the data pipeline
+either (already verified fresh/complete). Re-read `OnMarketData` closely: `accBar = CurrentBar` is
+set on EVERY `Last` tick regardless of whether that tick's embedded Ask/Bid was valid — the
+`ask<=0||bid<=0 return` guard runs AFTER accBar is already updated. During a real quote-feed
+hiccup (trades still printing — real volume bars visible — but Ask/Bid momentarily missing/stale
+on those same ticks, a failure mode this file's own 2026-10-19 fix note already documented on this
+feed), every bar through the outage got `accBar==CurrentBar` with `curAskVol`/`curBidVol` stuck at
+0, and `OnBarUpdate`'s `liveThisBar` check trusted that 0 as real instead of falling back to the
+independently-reconstructed bucket data — a sustained flatline during real trading, immune to
+either earlier fix because the bar was never going to consult the bucket file in the first place.
+**Fix:** `liveThisBar` now also requires the live accumulator to have actually captured something
+(`curAskVol+curBidVol > 0`). Applied to `BidAskVolumeRatio/Split/Delta.cs` — `CumulativeDelta.cs`
+does NOT have this bug (its `OnMarketData` defaults an unclassified trade to a buy instead of
+skipping, so it never silently drops volume the way these three did). Compile-checked clean,
+deployed to `Custom\Indicators\My\`, byte-verified, committed `4888b21c`, pushed.
+**PENDING USER F5 — not confirmed visually correct by me. Also still unconfirmed: whether NT8 had
+even been recompiled since the earlier fixes landed this session** — asked the user directly,
+never got a clear answer; if it turns out it hadn't been, some of this debugging may have been
+chasing a symptom of the FIRST fix simply not being live yet. Worth checking next time this comes
+up: ask for Output-window confirmation of a successful compile, not just "did you F5."
 **Last Updated:** 2026-10-22 (machine-time W. Europe) — **SESSION: Thomas 10-21 full-day-missed
 trades + Samir 10-21 reload-swallowed trade reconstructed in the Journal; ClaudeTrackerV2
 root-caused + real fix built (not yet F5-deployed); new `docs/living/claudetracker_incidents.md`.**
