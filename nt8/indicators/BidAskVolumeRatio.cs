@@ -222,7 +222,18 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         {
             double histAsk, histBid;
             AdvanceBucketCursor(Time[0], out histAsk, out histBid);
-            bool liveThisBar = accBar == CurrentBar;
+            // 2026-10-20 FIX: `accBar == CurrentBar` alone is not proof this bar's ask/bid
+            // are trustworthy -- OnMarketData sets accBar on EVERY Last tick regardless of
+            // whether that tick's embedded quote was valid (ask<=0||bid<=0 just `return`s
+            // without touching curAskVol/curBidVol, but accBar was already updated before
+            // that check runs). During a real quote-feed hiccup (trades still printing,
+            // Ask/Bid momentarily missing/stale on those same ticks -- confirmed to happen on
+            // this feed, see the 2026-10-19 FIX note above) every bar through the outage was
+            // wrongly treated as "live" with 0/0 and permanently locked out of the bucket
+            // fallback, even once the backfill caught back up -- a real flatline during real
+            // volume, not a data gap. Now also requires the live accumulator to have actually
+            // captured something.
+            bool liveThisBar = accBar == CurrentBar && (curAskVol + curBidVol) > 0;
             double ask = liveThisBar ? curAskVol : histAsk;
             double bid = liveThisBar ? curBidVol : histBid;
 

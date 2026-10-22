@@ -175,7 +175,12 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         {
             double histAsk, histBid;
             AdvanceBucketCursor(Time[0], out histAsk, out histBid);
-            bool liveThisBar = accBar == CurrentBar;
+            // 2026-10-20 FIX: see BidAskVolumeRatio.cs's OnBarUpdate for the full root-cause
+            // note — accBar==CurrentBar alone doesn't prove this bar's ask/bid are real; a
+            // quote-feed hiccup (trades print, embedded Ask/Bid momentarily invalid) left
+            // curAskVol/curBidVol at 0 while still being treated as "live", permanently
+            // locking out the bucket fallback for that bar.
+            bool liveThisBar = accBar == CurrentBar && (curAskVol + curBidVol) > 0;
             double ask = liveThisBar ? curAskVol : histAsk;
             double bid = liveThisBar ? curBidVol : histBid;
 
