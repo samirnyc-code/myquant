@@ -105,6 +105,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             public double Neckline;
             public int    ConfirmBar;
             public double BreakCvd;     // smoothed CVD at the confirm/break bar
+            public double InvalidateBeyond; // price beyond the tops (DT) / bottoms (DB) -> stop watching
         }
         private readonly List<WatchRetest> watchingRetest = new List<WatchRetest>();
 
@@ -160,6 +161,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 MinBarsBetween    = 2;   // peaks closer than this are noise
                 MaxBarsBetween    = 50;  // peaks farther apart than this are unrelated
                 NecklineBufferTicks = 0; // close must break the neckline by this much to confirm
+                ConfirmOnClose    = true; // false: a trade beyond the neckline (+buffer) confirms, close not required
                 ConfirmWithinBars = 50;  // if no confirm within this many bars after forming, drop the setup
                 MinScoreToAlert   = 50;  // suppress forming-alerts below this quality score
                 RearmSeconds      = 30;  // alert re-arm window
@@ -538,6 +540,16 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // --------------------------------------------------------------------
         //  Neckline confirmation / invalidation / expiry
         // --------------------------------------------------------------------
+        // Neckline break test on the current bar. ConfirmOnClose (default): the CLOSE
+        // must be beyond neckline +/- buffer. Off: any trade beyond it counts (DT: Low,
+        // DB: High), even if the bar closes back inside. Detection is still on bar close
+        // (Calculate.OnBarClose), so the marker appears when that bar closes.
+        private bool BrokeNeckline(bool isTop, double neckline, double buf)
+        {
+            if (isTop) return (ConfirmOnClose ? Close[0] : Low[0])  < neckline - buf;
+            return            (ConfirmOnClose ? Close[0] : High[0]) > neckline + buf;
+        }
+
         private void ManagePending()
         {
             double buf = NecklineBufferTicks * TickSize;
@@ -549,7 +561,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     pendingTop = null;                     // drawing deletion: SweepDrawn()
                 }
                 else if (CurrentBar - pendingTop.FormBar > ConfirmWithinBars) pendingTop = null;       // expired
-                else if (Close[0] < pendingTop.Neckline - buf)
+                else if (BrokeNeckline(true, pendingTop.Neckline, buf))
                 {
                     FireAlert("DTconf_" + pendingTop.FormBar, Priority.High,
                         Label() + " DT CONFIRMED  score " + pendingTop.Score.ToString("F0")
@@ -571,7 +583,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     pendingBottom = null;                  // drawing deletion: SweepDrawn()
                 }
                 else if (CurrentBar - pendingBottom.FormBar > ConfirmWithinBars) pendingBottom = null;
-                else if (Close[0] > pendingBottom.Neckline + buf)
+                else if (BrokeNeckline(false, pendingBottom.Neckline, buf))
                 {
                     FireAlert("DBconf_" + pendingBottom.FormBar, Priority.High,
                         Label() + " DB CONFIRMED  score " + pendingBottom.Score.ToString("F0")
@@ -746,7 +758,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 DrawnStructure d = openDrawn[i];
                 bool invalid   = d.IsTop ? High[0] > d.InvalidateBeyond : Low[0] < d.InvalidateBeyond;
                 bool expired   = CurrentBar - d.FormBar > ConfirmWithinBars;
-                bool confirmed = d.IsTop ? Close[0] < d.Neckline - buf : Close[0] > d.Neckline + buf;
+                bool confirmed = BrokeNeckline(d.IsTop, d.Neckline, buf);
 
                 if (invalid)
                 {
@@ -769,7 +781,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                         watchingRetest.Add(new WatchRetest
                         {
                             Tag = d.Tag, IsTop = d.IsTop, Neckline = d.Neckline,
-                            ConfirmBar = CurrentBar, BreakCvd = _cvdHist[0]
+                            ConfirmBar = CurrentBar, BreakCvd = _cvdHist[0], InvalidateBeyond = d.InvalidateBeyond
                         });
                     openDrawn.RemoveAt(i);
                 }
@@ -787,6 +799,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 RemoveStructure(old.Tag);
                 if (!string.IsNullOrEmpty(old.TriTag)) RemoveDrawObject(old.TriTag);
                 openDrawn.RemoveAll(d => d.Tag == old.Tag);
+                watchingRetest.RemoveAll(w => w.Tag == old.Tag);   // no late retest label for a removed pattern
                 drawnHistory.RemoveAt(0);
             }
         }
@@ -842,6 +855,11 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 if (CurrentBar <= w.ConfirmBar) continue;   // the confirm bar's own High/Low often still
                                                              // sits near the neckline it just broke --
                                                              // a retest can only happen on a LATER bar
+
+                // invalidated (new extreme beyond the tops/bottoms) -> no retest any more;
+                // checked first so a bar that both invalidates and touches the neckline gets no label
+                bool invalid = w.IsTop ? High[0] > w.InvalidateBeyond : Low[0] < w.InvalidateBeyond;
+                if (invalid) { watchingRetest.RemoveAt(i); continue; }
 
                 double tol = RetestToleranceTicks * TickSize;
                 bool isRetest = w.IsTop
@@ -947,6 +965,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         [NinjaScriptProperty, Range(0, int.MaxValue)]
         [Display(Name = "Neckline buffer (ticks)", Description = "Close must break the neckline by this much to confirm.", Order = 6, GroupName = "2. Confirmation")]
         public int NecklineBufferTicks { get; set; }
+
+        [Display(Name = "Confirm on close", Description = "On: the bar must CLOSE beyond the neckline (+ buffer). Off: any trade beyond it confirms (DT: low, DB: high), even if the bar closes back inside.", Order = 8, GroupName = "2. Confirmation")]
+        public bool ConfirmOnClose { get; set; }
 
         [NinjaScriptProperty, Range(1, int.MaxValue)]
         [Display(Name = "Confirm within bars", Description = "Drop the setup if no confirm within this many bars of forming.", Order = 7, GroupName = "2. Confirmation")]
