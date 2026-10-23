@@ -20,15 +20,23 @@
 // over here — starting from the simpler, longer-proven-stable baseline on purpose.
 //
 // SCREENSHOTS: kept, not dropped. RequestScreenshot() finds an open chart showing the
-// tracked instrument via TWO dispatcher hops — Application.Current.Dispatcher to safely
-// enumerate Application.Current.Windows, then that specific chart WINDOW's own Dispatcher
-// (confirmed via reflection against NinjaTrader.Gui.dll: Chart.ActiveChartControl.Instrument
-// identifies it, Chart.Dispatcher is its own UI thread, Chart.GetScreenshot(ShareScreenshotType)
-// is the same call the Strategy version used) to actually call GetScreenshot(). The
-// Strategy-side crash this file originally cited (2026-10-16) was a SINGLE wrong-thread hop —
-// touching a different chart's window from inside another chart's own dispatcher without ever
-// jumping to the target's. This never does that: every touch of a given window happens only on
-// that window's own dispatcher. Real limitation, not a threading one: no chart open showing the
+// tracked instrument by walking native top-level window handles (P/Invoke EnumWindows,
+// filtered to this process via GetWindowThreadProcessId), not Application.Current.Windows.
+// 2026-10-23 live testing proved Application.Current.Windows is EMPTY (count=0) even while
+// 4 real "Chart - ..." OS windows demonstrably exist — NT8 creates each chart window on its
+// own dedicated UI thread, and WPF only auto-registers a Window in Application.Windows when
+// it's created on the main Application thread, so chart windows never show up there at all,
+// confirmed by the diagnostic dump added in commit eaf8d47c. The fix: for each native hwnd
+// belonging to this process, HwndSource.FromHwnd(hwnd) (a static lookup, safe from any thread)
+// recovers the WPF HwndSource, then hs.Dispatcher.Invoke marshals onto THAT window's own UI
+// thread to read hs.RootVisual as Chart (Chart derives from Window, confirmed via reflection
+// against NinjaTrader.Gui.dll) and its ActiveChartControl/MainTabControl. The Strategy-side
+// crash this file originally cited (2026-10-16) was a SINGLE wrong-thread hop — touching a
+// different chart's window from inside another chart's own dispatcher without ever jumping to
+// the target's. This never does that: every touch of a given window happens only on that
+// window's own dispatcher (first hs.Dispatcher to read state, then targetChart.Dispatcher
+// again to capture — same Chart object, same thread, just re-entering it for the actual
+// GetScreenshot() call). Real limitation, not a threading one: no chart open showing the
 // tracked instrument = no screenshot that cycle (logged, not fatal) — the Journal app's manual
 // "+ Add screenshot" upload is the fallback for exactly that case.
 //
@@ -65,6 +73,9 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.Gui.Chart;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using System.Windows.Interop;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
 #endregion
 
 namespace NinjaTrader.NinjaScript.AddOns
@@ -1547,16 +1558,52 @@ if (name.StartsWith("TARGET"))
 
         #region Screenshot
 
+        // Native window P/Invoke — see header comment. Application.Current.Windows is empty
+        // (confirmed live, 2026-10-23, commit eaf8d47c's diagnostic dump: count=0 on every
+        // single miss) because NT8 chart windows run on their own dedicated UI thread and WPF
+        // only auto-registers a Window there when it's created on the main Application thread.
+        // Walking native hwnds via EnumWindows sidesteps that collection entirely.
+        [DllImport("user32.dll")]
+        private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        private static List<IntPtr> GetTopLevelWindowsForCurrentProcess()
+        {
+            List<IntPtr> result = new List<IntPtr>();
+            uint pid = (uint)Process.GetCurrentProcess().Id;
+            EnumWindows((hWnd, lParam) =>
+            {
+                uint windowPid;
+                GetWindowThreadProcessId(hWnd, out windowPid);
+                if (windowPid == pid) result.Add(hWnd);
+                return true;
+            }, IntPtr.Zero);
+            return result;
+        }
+
+        private class ChartWindowInfo
+        {
+            public Chart Chart;
+            public ChartTab MatchingTab;
+            public string ActiveInstrument;
+            public List<string> TabInstruments;
+        }
+
         // An AddOn has no ChartControl of its own (unlike a Strategy, which gets one for free
         // from whatever chart it's dropped on) — this finds one. The Strategy version's old
         // crash (2026-10-16, see the file header) came from touching a DIFFERENT chart's
-        // window from the WRONG thread in a single hop. The fix is two hops, each onto the
-        // thread that actually owns the object being touched:
-        //   1. Application.Current.Dispatcher — the only thread allowed to enumerate
-        //      Application.Current.Windows at all.
-        //   2. targetChart.Dispatcher — NT8 gives each chart WINDOW its own UI thread; the
-        //      screenshot call itself has to happen on THAT window's thread, not whichever
-        //      thread found it.
+        // window from the WRONG thread in a single hop. The fix stays two hops, each onto the
+        // thread that actually owns the object being touched — just via native hwnds instead
+        // of Application.Current.Windows now:
+        //   1. hs.Dispatcher (per native hwnd) — HwndSource.FromHwnd is a static, any-thread-
+        //      safe lookup; reading its RootVisual/Chart state has to happen on that specific
+        //      window's own dispatcher.
+        //   2. targetChart.Dispatcher — the screenshot call itself has to happen on THAT
+        //      window's thread too, re-entering it after the lookup above released it.
         // No chart open for the tracked instrument = no screenshot, logged, not a crash.
         private void RequestScreenshot(string label, DateTime time, string tradeId, DateTime tradeTime)
         {
@@ -1570,87 +1617,83 @@ if (name.StartsWith("TARGET"))
                 string masterPath = Path.Combine(masterDir, fileName);
                 string wantFullName = instrument.FullName;
 
-                Application.Current.Dispatcher.InvokeAsync(() =>
+                System.Threading.Tasks.Task.Run(() =>
                 {
                     try
                     {
-                        // First pass: prefer a window whose ALREADY-ACTIVE tab matches — zero
-                        // visual disruption. Only if that finds nothing do we fall back to
-                        // scanning every tab (a chart can be open in a background tab a trader
-                        // isn't currently looking at — this is exactly what was missed on the
-                        // 2026-10-23 live test, ES tracked correctly but no chart matched).
-                        Chart targetChart = null;
-                        ChartTab targetTab = null;
+                        List<IntPtr> hwnds = GetTopLevelWindowsForCurrentProcess();
+                        List<ChartWindowInfo> infos = new List<ChartWindowInfo>();
 
-                        foreach (Window w in Application.Current.Windows)
+                        foreach (IntPtr hwnd in hwnds)
                         {
-                            Chart cw = w as Chart;
-                            if (cw == null || !cw.HasActiveChart || cw.ActiveChartControl == null) continue;
-                            if (cw.ActiveChartControl.Instrument == null) continue;
-                            if (cw.ActiveChartControl.Instrument.FullName != wantFullName) continue;
-                            targetChart = cw;
-                            break;
-                        }
+                            HwndSource hs = HwndSource.FromHwnd(hwnd);
+                            if (hs == null) continue;
 
-                        if (targetChart == null)
-                        {
-                            foreach (Window w in Application.Current.Windows)
-                            {
-                                Chart cw = w as Chart;
-                                if (cw == null || cw.MainTabControl == null) continue;
-                                foreach (object item in cw.MainTabControl.Items)
-                                {
-                                    ChartTab tab = item as ChartTab;
-                                    if (tab == null || tab.ChartControl == null || tab.ChartControl.Instrument == null) continue;
-                                    if (tab.ChartControl.Instrument.FullName != wantFullName) continue;
-                                    targetChart = cw;
-                                    targetTab = tab;
-                                    break;
-                                }
-                                if (targetChart != null) break;
-                            }
-                        }
-
-                        if (targetChart == null)
-                        {
-                            // Second miss in a row even after widening to every tab — rather than
-                            // guess a third root cause blind, dump exactly what's actually in
-                            // Application.Current.Windows so the next miss is diagnosable from the
-                            // log alone (same approach this codebase already uses elsewhere for
-                            // "disable" mysteries — on-demand diagnostics, not another blind guess).
                             try
                             {
-                                int winCount = Application.Current.Windows.Count;
-                                Log("[ClaudeTrackerAddOn] Screenshot: no match for " + wantFullName
-                                    + " across " + winCount + " Application.Current.Windows:", LogLevel.Warning);
-                                foreach (Window w in Application.Current.Windows)
+                                ChartWindowInfo info = null;
+                                hs.Dispatcher.Invoke(() =>
                                 {
-                                    Chart cw = w as Chart;
-                                    if (cw == null)
-                                    {
-                                        Log("[ClaudeTrackerAddOn]   window type=" + w.GetType().FullName + " title=" + w.Title, LogLevel.Warning);
-                                        continue;
-                                    }
-                                    string active = cw.ActiveChartControl != null && cw.ActiveChartControl.Instrument != null
+                                    Chart cw = hs.RootVisual as Chart;
+                                    if (cw == null) return;
+
+                                    info = new ChartWindowInfo { Chart = cw, TabInstruments = new List<string>() };
+                                    info.ActiveInstrument = (cw.HasActiveChart && cw.ActiveChartControl != null
+                                        && cw.ActiveChartControl.Instrument != null)
                                         ? cw.ActiveChartControl.Instrument.FullName : "(none)";
-                                    string tabs = "(no MainTabControl)";
+
                                     if (cw.MainTabControl != null)
                                     {
-                                        List<string> names = new List<string>();
                                         foreach (object item in cw.MainTabControl.Items)
                                         {
                                             ChartTab tab = item as ChartTab;
-                                            string inst = tab != null && tab.ChartControl != null && tab.ChartControl.Instrument != null
+                                            string inst = (tab != null && tab.ChartControl != null && tab.ChartControl.Instrument != null)
                                                 ? tab.ChartControl.Instrument.FullName : "(null)";
-                                            names.Add(inst);
+                                            info.TabInstruments.Add(inst);
+                                            if (tab != null && inst == wantFullName && info.MatchingTab == null)
+                                                info.MatchingTab = tab;
                                         }
-                                        tabs = "[" + string.Join(", ", names) + "]";
                                     }
-                                    Log("[ClaudeTrackerAddOn]   Chart window: HasActiveChart=" + cw.HasActiveChart
-                                        + " active=" + active + " tabs=" + tabs, LogLevel.Warning);
-                                }
+                                });
+                                if (info != null) infos.Add(info);
                             }
-                            catch (Exception diagEx) { Log("[ClaudeTrackerAddOn] Screenshot diagnostic dump failed: " + diagEx.Message, LogLevel.Error); }
+                            catch (Exception perWindowEx)
+                            {
+                                Log("[ClaudeTrackerAddOn] Screenshot: window dispatcher probe failed for hwnd "
+                                    + hwnd + ": " + perWindowEx.Message, LogLevel.Warning);
+                            }
+                        }
+
+                        // First pass: prefer a window whose ALREADY-ACTIVE tab matches — zero
+                        // visual disruption. Only if that finds nothing do we fall back to
+                        // scanning every tab (a chart can be open in a background tab a trader
+                        // isn't currently looking at).
+                        Chart targetChart = null;
+                        ChartTab targetTab = null;
+
+                        foreach (ChartWindowInfo info in infos)
+                        {
+                            if (info.ActiveInstrument == wantFullName) { targetChart = info.Chart; break; }
+                        }
+
+                        if (targetChart == null)
+                        {
+                            foreach (ChartWindowInfo info in infos)
+                            {
+                                if (info.MatchingTab != null) { targetChart = info.Chart; targetTab = info.MatchingTab; break; }
+                            }
+                        }
+
+                        if (targetChart == null)
+                        {
+                            Log("[ClaudeTrackerAddOn] Screenshot: no match for " + wantFullName
+                                + " across " + infos.Count + " native chart windows (" + hwnds.Count + " total process windows):",
+                                LogLevel.Warning);
+                            foreach (ChartWindowInfo info in infos)
+                            {
+                                Log("[ClaudeTrackerAddOn]   Chart window: active=" + info.ActiveInstrument
+                                    + " tabs=[" + string.Join(", ", info.TabInstruments) + "]", LogLevel.Warning);
+                            }
                             return;
                         }
 
@@ -1660,9 +1703,6 @@ if (name.StartsWith("TARGET"))
                             {
                                 await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
 
-                                // Only WPF Window.Windows items need the earlier Application
-                                // Dispatcher hop to enumerate; switching THIS window's own tab
-                                // selection is safe here because we're already on its thread.
                                 object previousTab = targetChart.MainTabControl.SelectedItem;
                                 bool switchedTab = targetTab != null && !ReferenceEquals(previousTab, targetTab);
                                 if (switchedTab)
