@@ -30,10 +30,15 @@ L1_DIR = ROOT / "data" / "l1_tape"
 CATALOG = ROOT / "data" / "_catalog"
 NT8 = Path(os.environ["USERPROFILE"]) / "Documents" / "NinjaTrader 8"
 JOURNAL_STATE = Path.home() / "AppData" / "Local" / "TradePlaybookJournal" / "uploader_state.json"
-# Must match ClaudeTrackerV2.cs's ExportRootFolder default AND journal_uploader.py's
-# DEFAULT_ROOT — all three (strategy, uploader, this check) have to agree on where the
-# day's trade folders/health file/execution log actually land.
-CT_EXPORT_ROOT = Path("G:/My Drive/!NT Tracker Export")
+# Must match ClaudeTrackerAddOn.cs's ExportRootFolder const AND the AddOn's
+# journal_uploader.py config (uploader_config_addon.json) — both have to agree on where
+# the day's trade folders/health file actually land.
+# 2026-10-23: switched from ClaudeTrackerV2.cs's (the Strategy's) "!NT Tracker Export" to
+# the AddOn's "!NT Tracker Export_AddOnTest" — user decision, ClaudeTrackerV2 is retired,
+# only the AddOn is used/trusted going forward (see docs/living/handoff.md). The two
+# folders are structurally identical (same WriteEntryStudy/TradeSummary/Health.json
+# layout, ported as-is), so this check needed no other changes.
+CT_EXPORT_ROOT = Path("G:/My Drive/!NT Tracker Export_AddOnTest")
 
 OK, WARN, BAD, IDLE = "ok", "warn", "bad", "idle"
 RANK = {OK: 0, IDLE: 1, WARN: 2, BAD: 3}
@@ -606,28 +611,34 @@ def _check_journal_uploader_uncached() -> dict:
 
 
 def check_claude_tracker_trades() -> dict:
-    """ClaudeTrackerV2's own trade-tracking integrity — not the uploader, the NT8 strategy
-    ITSELF. 2026-10-15: a chart reload wiped the strategy's in-memory trade state mid-session;
-    the uploader kept running fine the whole time (nothing for it to catch — the files for
-    the lost trades just never got written), so check_journal_uploader stayed green all day
-    while 2 trades sat stuck OPEN forever and a 3rd never got tracked at all. Two kinds of
-    evidence, both from files ClaudeTrackerV2 itself writes (not process state):
+    """ClaudeTrackerAddOn's own trade-tracking integrity — not the uploader, the tracker
+    ITSELF. Originally written against ClaudeTrackerV2 (the Strategy); repointed 2026-10-23
+    at the AddOn's export folder when the user retired the Strategy for good (see
+    docs/living/handoff.md) — the underlying failure mode this guards against is identical
+    for either one, since both write the same file layout. 2026-10-15 (original incident,
+    Strategy era): a chart reload wiped the in-memory trade state mid-session; the uploader
+    kept running fine the whole time (nothing for it to catch — the files for the lost trades
+    just never got written), so check_journal_uploader stayed green all day while 2 trades
+    sat stuck OPEN forever and a 3rd never got tracked at all. Two kinds of evidence, both
+    from files the tracker itself writes (not process state):
 
-      1. ClaudeTracker_Health.json — the strategy's own periodic self-check (added after the
+      1. ClaudeTracker_Health.json — the tracker's own periodic self-check (added after the
          incident). Stale during market hours = the health-check loop itself stopped running
-         (frozen/crashed strategy, ErrorHandling=IgnoreAllErrors can hide this from NT8's own
+         (frozen/crashed instance, ErrorHandling=IgnoreAllErrors can hide this from NT8's own
          UI). A "drift_*" status = it caught and auto-corrected a mismatch THIS session —
          worth surfacing even though it self-healed, because it means something upstream is
          flaky.
       2. Direct file-system scan for a trade folder with an EntryStudy.csv but no matching
          TradeSummary.csv, stale for a while — the exact signature of the 2 stuck-OPEN trades
          that incident produced. Catches it even without the health file (e.g. an older
-         ClaudeTracker build, or before this check existed).
+         build, or before this check existed).
 
-    2026-10-22: added a 3rd check — status == "gap_reconciled" (written by the new
-    TryResumeOpenTrade() when a reload-resumed trade's replayed quantity didn't match the
-    broker's real position). The trade DID get resumed, not stuck, so this is WARN not BAD —
-    but the P&L on that specific trade may be off and needs a human to check it.
+    2026-10-22: added a 3rd check — status == "gap_reconciled" (written when a reload-resumed
+    trade's replayed quantity didn't match the broker's real position; ClaudeTrackerV2's
+    TryResumeOpenTrade() wrote this, the AddOn's own simpler ReconcileOpenPosition() does not
+    — this branch is effectively dead for AddOn-only data but harmless to leave in). The trade
+    DID get resumed, not stuck, so this is WARN not BAD — but the P&L on that specific trade
+    may be off and needs a human to check it.
     """
     return _cached("claude_tracker_trades", 30, _check_claude_tracker_trades_uncached)
 
@@ -640,8 +651,8 @@ def _check_claude_tracker_trades_uncached() -> dict:
 
     if not day_dirs:
         if mkt == "open":
-            return _chk("ClaudeTracker trades", IDLE, "no trade folder yet today (no trades taken)")
-        return _chk("ClaudeTracker trades", IDLE, f"market {mkt} - nothing expected")
+            return _chk("ClaudeTrackerAddOn trades", IDLE, "no trade folder yet today (no trades taken)")
+        return _chk("ClaudeTrackerAddOn trades", IDLE, f"market {mkt} - nothing expected")
 
     # 1. health file freshness + last self-reported status
     health_states, newest_age = [], float("inf")
@@ -671,27 +682,27 @@ def _check_claude_tracker_trades_uncached() -> dict:
 
     if stuck:
         names = ", ".join(f"{n} ({_fmt_age(a)})" for n, a in stuck)
-        return _chk("ClaudeTracker trades", BAD,
+        return _chk("ClaudeTrackerAddOn trades", BAD,
                     f"{len(stuck)} trade(s) stuck OPEN with no activity: {names}", stuck=len(stuck))
 
     gaps = [h for h in health_states if h.get("status") == "gap_reconciled"]
     if gaps:
         detail = gaps[0].get("detail", "a resumed trade's quantity didn't verify against the broker")
-        return _chk("ClaudeTracker trades", WARN,
+        return _chk("ClaudeTrackerAddOn trades", WARN,
                     f"UNVERIFIED gap on resume - {detail} - check the journal manually")
 
     drifts = [h for h in health_states if str(h.get("status", "")).startswith("drift_")]
     if drifts:
         kinds = ", ".join(sorted(set(h["status"] for h in drifts)))
-        return _chk("ClaudeTracker trades", WARN,
+        return _chk("ClaudeTrackerAddOn trades", WARN,
                     f"self-corrected a drift this session ({kinds}) - see NT8 Output for detail")
 
     if mkt == "open" and newest_age > 180:
-        return _chk("ClaudeTracker trades", WARN,
+        return _chk("ClaudeTrackerAddOn trades", WARN,
                     f"health file stale {_fmt_age(newest_age)} - self-check loop may have stopped"
                     if newest_age != float("inf") else "no health file yet - strategy may predate this check")
 
-    return _chk("ClaudeTracker trades", OK, "no stuck/dropped trades detected")
+    return _chk("ClaudeTrackerAddOn trades", OK, "no stuck/dropped trades detected")
 
 
 def check_chain() -> dict:
