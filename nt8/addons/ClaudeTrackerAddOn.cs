@@ -19,22 +19,25 @@
 // own Events.csv) that caused the 2026-10-22 live incident was deliberately NOT carried
 // over here — starting from the simpler, longer-proven-stable baseline on purpose.
 //
-// SCREENSHOTS: kept, not dropped. RequestScreenshot() finds an open chart showing the
-// tracked instrument by walking native top-level window handles (P/Invoke EnumWindows,
-// filtered to this process via GetWindowThreadProcessId), not Application.Current.Windows.
-// 2026-10-23 live testing proved Application.Current.Windows is EMPTY (count=0) even while
-// 4 real "Chart - ..." OS windows demonstrably exist — NT8 creates each chart window on its
-// own dedicated UI thread, and WPF only auto-registers a Window in Application.Windows when
-// it's created on the main Application thread, so chart windows never show up there at all,
-// confirmed by the diagnostic dump added in commit eaf8d47c. The fix: for each native hwnd
-// belonging to this process, HwndSource.FromHwnd(hwnd) (a static lookup, safe from any thread)
-// recovers the WPF HwndSource, then hs.Dispatcher.Invoke marshals onto THAT window's own UI
-// thread to read hs.RootVisual as Chart (Chart derives from Window, confirmed via reflection
-// against NinjaTrader.Gui.dll) and its ActiveChartControl/MainTabControl. The Strategy-side
-// crash this file originally cited (2026-10-16) was a SINGLE wrong-thread hop — touching a
-// different chart's window from inside another chart's own dispatcher without ever jumping to
-// the target's. This never does that: every touch of a given window happens only on that
-// window's own dispatcher (first hs.Dispatcher to read state, then targetChart.Dispatcher
+// SCREENSHOTS: kept, not dropped. RequestScreenshot() finds the right chart via, in order:
+//   1. ClaudeTrackerChartRegistry (nt8/indicators/ClaudeTrackerChartRegistry.cs) — if the
+//      user has dropped ClaudeTrackerChartTag.cs on the ONE real execution chart, this is an
+//      exact, unambiguous ChartControl, no guessing. The recommended setup.
+//   2. Window-title match ("Chart - <Instrument.FullName>", native EnumWindows + Win32
+//      GetWindowText) — fallback for an instrument nobody has tagged. Can pick the wrong
+//      window if more than one open chart shows that instrument (confirmed live 2026-10-23:
+//      got a real screenshot, but from the wrong ES 12-26 window) — that's exactly why #1
+//      exists now.
+// History: originally used Application.Current.Windows, which 2026-10-23 live testing proved
+// is EMPTY (count=0) even while 4 real "Chart - ..." OS windows demonstrably exist — NT8
+// creates each chart window on its own dedicated UI thread, and WPF only auto-registers a
+// Window there when it's created on the main Application thread. Switched to native hwnds
+// instead: HwndSource.FromHwnd(hwnd) (a static lookup, safe from any thread) recovers the WPF
+// HwndSource for each one, then hs.Dispatcher.Invoke marshals onto THAT window's own UI
+// thread to read state. The Strategy-side crash this file originally cited (2026-10-16) was a
+// SINGLE wrong-thread hop — touching a different chart's window from inside another chart's
+// own dispatcher without ever jumping to the target's. This never does that: every touch of a
+// given window happens only on that window's own dispatcher (first to read state, then
 // again to capture — same Chart object, same thread, just re-entering it for the actual
 // GetScreenshot() call). Real limitation, not a threading one: no chart open showing the
 // tracked instrument = no screenshot that cycle (logged, not fatal) — the Journal app's manual
@@ -76,6 +79,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Interop;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using NinjaTrader.NinjaScript;
 #endregion
 
 namespace NinjaTrader.NinjaScript.AddOns
@@ -1602,18 +1606,22 @@ if (name.StartsWith("TARGET"))
 
         // An AddOn has no ChartControl of its own (unlike a Strategy, which gets one for free
         // from whatever chart it's dropped on) — this finds one. MATCH STRATEGY (rewritten
-        // 2026-10-23, same day as the EnumWindows fix above, after that fix landed but still
-        // produced "no match": the 4 real native chart windows WERE found, but every one came
-        // back with ActiveChartControl=null and MainTabControl tabs all "(null)" when probed
-        // via WPF properties on the window's own dispatcher — that introspection path doesn't
-        // reflect live state the way assumed, independent of the Application.Windows bug.
-        // Confirmed live instead (raw Win32 GetWindowText against the running NT8 process):
-        // every chart window's TITLE is literally "Chart - <Instrument.FullName>" of whatever
-        // tab is currently active in it — e.g. a window titled exactly "Chart - ES 12-26"
-        // existed the whole time. Matching on that title is plain Win32 text comparison, no
-        // WPF introspection at all, so it can't be wrong in the way ActiveChartControl was.
-        // targetChart.Dispatcher is still needed for the ACTUAL screenshot call (GetScreenshot
-        // only works on by the window's own thread) — that hop is unavoidable and unchanged.
+        // 2026-10-23, twice same day): v1 used Application.Current.Windows — always empty
+        // (chart windows live on their own UI thread, never auto-registered there). v2
+        // switched to native EnumWindows + Chart.ActiveChartControl/MainTabControl — found
+        // the real windows, but every one came back active=(none)/tabs=null when probed that
+        // way; that WPF introspection just doesn't reflect live state here. v3 (this version)
+        // dropped that introspection for window TITLE matching ("Chart - <FullName>", confirmed
+        // live via raw Win32 GetWindowText) — got a REAL screenshot, but from the WRONG window:
+        // title only identifies the instrument, not which specific chart/tab is the trading
+        // one, so when more than one open chart has the same instrument active, title matching
+        // picks an arbitrary one. v4 (current): a tiny marker indicator the user drops on the
+        // ONE real execution chart (ClaudeTrackerChartTag.cs) registers that exact ChartControl
+        // into ClaudeTrackerChartRegistry, keyed by instrument full name — checked FIRST here,
+        // unambiguous because only the tagged chart is in it. Title matching stays as a
+        // fallback for instruments nobody has tagged yet. targetChart.Dispatcher is still
+        // needed for the ACTUAL screenshot call either way (GetScreenshot only works on the
+        // window's own thread) — that hop is unavoidable and unchanged.
         private void RequestScreenshot(string label, DateTime time, string tradeId, DateTime tradeTime)
         {
             if (instrument == null) return;
@@ -1626,6 +1634,41 @@ if (name.StartsWith("TARGET"))
                 string masterPath = Path.Combine(masterDir, fileName);
                 string wantFullName = instrument.FullName;
                 string wantTitlePrefix = "Chart - " + wantFullName;
+
+                NinjaTrader.Gui.Chart.ChartControl taggedCC = ClaudeTrackerChartRegistry.Get(wantFullName);
+                if (taggedCC != null)
+                {
+                    taggedCC.Dispatcher.InvokeAsync(async () =>
+                    {
+                        try
+                        {
+                            Chart targetChart = Window.GetWindow(taggedCC.Parent) as Chart;
+                            if (targetChart == null)
+                            {
+                                Log("[ClaudeTrackerAddOn] Screenshot: tagged chart's ChartControl has no parent Chart window"
+                                    + " — falling back to title match next time", LogLevel.Warning);
+                                return;
+                            }
+
+                            await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
+
+                            RenderTargetBitmap sc = targetChart.GetScreenshot(ShareScreenshotType.Chart);
+                            if (sc == null) { Log("[ClaudeTrackerAddOn] Screenshot: null capture (tagged chart)", LogLevel.Warning); return; }
+
+                            PngBitmapEncoder e1 = new PngBitmapEncoder();
+                            e1.Frames.Add(BitmapFrame.Create(sc));
+                            using (Stream s = File.Create(tradePath)) e1.Save(s);
+
+                            PngBitmapEncoder e2 = new PngBitmapEncoder();
+                            e2.Frames.Add(BitmapFrame.Create(sc));
+                            using (Stream s = File.Create(masterPath)) e2.Save(s);
+
+                            DebugPrint("Screenshot saved (tagged chart): " + fileName);
+                        }
+                        catch (Exception ex) { Log("[ClaudeTrackerAddOn] Screenshot capture failed (tagged chart): " + ex.Message, LogLevel.Error); }
+                    });
+                    return;
+                }
 
                 System.Threading.Tasks.Task.Run(() =>
                 {
