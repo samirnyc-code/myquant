@@ -667,11 +667,28 @@ def _check_claude_tracker_trades_uncached() -> dict:
                 pass
 
     # 2. stuck-open scan: EntryStudy.csv with no sibling TradeSummary.csv, stale
+    #
+    # Known, already-explained orphans: do NOT "fix" these by writing a TradeSummary.csv
+    # into their folder or deleting the folder. journal_uploader.py actively watches this
+    # same tree and uploads the instant it sees an EntryStudy+TradeSummary pair — a
+    # synthetic summary would get pushed to the LIVE production journal as a fabricated
+    # closed trade. And this folder lives on a Google Drive sync (not git), so a delete
+    # isn't trivially reversible either. Safer to just exclude the known TradeID here.
+    KNOWN_ORPHANS = {
+        # 2026-10-23: open LONG when ClaudeTrackerAddOn.cs was redeployed/F5'd mid-session
+        # (chart-tag fix) — reload wiped in-memory state. Position was recovered fine under
+        # a new TradeID (...093611_LONG_RECOVERED_T1_ADDON, closed PnL=+550), this original
+        # pre-reload record just never got a closing summary written. See
+        # docs/living/handoff.md 2026-10-23.
+        "10-23_Fri_T3_ADDON_LONG_0934",
+    }
     STUCK_THRESHOLD_SEC = 600  # 10 min with zero file activity on an "open" trade
     stuck = []
     for d in day_dirs:
         for trade_dir in (d / today).iterdir():
             if not trade_dir.is_dir() or trade_dir.name.endswith("_MASTER"):
+                continue
+            if trade_dir.name in KNOWN_ORPHANS:
                 continue
             entry_study = next(trade_dir.glob("*_EntryStudy.csv"), None)
             summary = next(trade_dir.glob("*_TradeSummary.csv"), None)
