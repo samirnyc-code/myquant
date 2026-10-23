@@ -95,12 +95,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 		// ── runtime state ────────────────────────────────────────────────────
 		private const int StopLimitCushionTicks = 2; // fixed, not user-exposed: limit = trigger +/- this, just to bound slippage once the trigger fires
 
-		private BBLiteStopMode _stopMode = BBLiteStopMode.BarStop;
-		private double _rMult   = 1.0;   // target = risk * _rMult
+		private BBLiteStopMode _stopMode = BBLiteStopMode.LastSwing;
+		private double _rMult   = 2.0;   // target = risk * _rMult
 		private int    _offsetTicks = 1; // stop-limit TRIGGER = SB High/Low +/- this many ticks (confirmation beyond the SB)
 		private double _ibsThreshold = 0.50;
 		private int    _maxBarsAlive = 1; // how many bars a still-unfilled entry order stays working before auto-cancel
-		private bool   _ibsArmed = true;  // IBS gate on/off toggle (applies to BUY/SELL only)
+		private bool   _ibsArmed = false; // IBS gate on/off toggle (applies to BUY/SELL only)
 		// immediate (picked-SB) entry: submitted from OnMarketData, NOT the button thread —
 		// managed Enter() from TriggerCustomEvent (racing an async cancel vs EntriesPerDirection)
 		// silently no-ops; OnMarketData is a valid order-submission context and fires next tick.
