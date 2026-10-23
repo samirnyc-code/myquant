@@ -1,5 +1,51 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-23 (machine-time W. Europe, same new chat, continued) — **v1 fix
+(EnumWindows) deployed + F5'd + tested live — found the 4 real chart windows (vs
+Application.Current.Windows' permanent 0) but STILL no screenshot, a second independent bug.
+v2 fix (match by window TITLE instead of ChartControl introspection) now shipped, commit
+`752d3a8`, deployed to Custom\AddOns\, NOT YET F5'd/tested.**
+
+User F5'd the v1 fix and fired a fresh test trade. Grepped the log: the match count went from
+0 (the old bug) to 4 real native chart windows found ("ES ETH 2000t", "ES 12-26", "Daily
+Globex", "ES Flex 16" — matches the 4 windows independently confirmed via raw EnumWindows
+earlier in the day) — **but every one of those 4 came back `active=(none)` and
+`tabs=[(null)...]`** when probed via `Chart.ActiveChartControl`/`MainTabControl.Items` on the
+window's own dispatcher, even though the ES 12-26 chart was demonstrably open and actively
+trading. That WPF introspection path is simply wrong/unreliable here — a second bug,
+independent of the Application.Windows-is-empty one the v1 fix already solved.
+
+User asked: "Can we name the chart somehow?" — ran a live Win32 `GetWindowText` probe against
+the running NT8 process (see the PowerShell one-liner in this session, reusable) and confirmed:
+**every chart window's title is literally `"Chart - <Instrument.FullName>"` of whatever tab is
+currently active in it** — a window titled exactly `"Chart - ES 12-26"` existed the whole time.
+**v2 fix:** `nt8/addons/ClaudeTrackerAddOn.cs` now matches by window title (`StartsWith("Chart
+- " + instrument.FullName)`, not `Contains` — `Contains` would let `"Chart - MES 12-26"` falsely
+match instrument `"ES 12-26"` since that's a literal substring; `StartsWith` can't collide
+because the characters right after `"Chart - "` must match exactly) instead of any
+`ActiveChartControl`/`MainTabControl` property access. `HwndSource.FromHwnd` + the window's own
+dispatcher are still used, but only for the one unavoidable remaining step: recovering the
+`Chart` object and calling `GetScreenshot()` on its own thread, after the match is already
+decided by plain Win32 text comparison.
+**Known, accepted limitation:** this drops the old "scan background tabs too" fallback — titles
+reflect only the active tab, so a chart open in a background tab of a window titled for a
+different instrument won't be found. That fallback was never actually working (same broken
+introspection as above) so this is a net improvement, not a regression, but it's a real gap if
+the user routinely trades from background tabs — worth a word with the user if the title match
+still misses after the next F5 test.
+Compile-checked clean in isolation, deployed, byte-verified.
+**New chat's first move: ask user to F5 when flat, fire one more test trade, grep the log for
+`ClaudeTrackerAddOn`, confirm a screenshot file actually lands (trade folder +
+`Screenshots_MASTER`) instead of another "no window titled ..." miss.** If it still misses, the
+diagnostic block now dumps every titled window's hwnd+title verbatim, so a further mismatch
+(e.g. unexpected title format on a different NT8 build/locale) will be visible directly in the
+log — don't guess a 3rd fix blind, read that dump first.
+
+---
+
+**Earlier same-day history below, superseded by the above but kept for the full chain of
+reasoning (diagnostic dump → root cause → v1 fix → still broken → v2 fix):**
+
 **Last Updated:** 2026-10-23 (machine-time W. Europe, new chat) — **Screenshot root cause
 CONFIRMED from the v3 diagnostic dump + FIXED (commit `a9e1dd4`), not yet F5-tested live.**
 Grepped today's log for `ClaudeTrackerAddOn`: every miss on the 2 fresh test trades (3rd/4th
