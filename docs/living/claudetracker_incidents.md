@@ -33,10 +33,19 @@ entry-merge-window fix (EntryOrderId/EntryMergeWindowMs, fixes multi-lot market 
 getting mislabeled ADD_ON) that was reverted alongside it despite being explicitly flagged
 as not implicated.
 
-**Deliberately dropped, not oversights:** auto screenshot capture (needs a ChartControl an
-AddOn doesn't have for free — the Journal app's manual "+ Add screenshot" upload is the
-fallback) and bar/session-bar tracking (MAE/MFE now runs off live tick prices via a
-MarketData subscription instead — an AddOn has no bars, but ticks are at least as accurate).
+**Screenshots are NOT dropped** — an earlier pass of this file punted on them (no-op stub) on
+an unverified risk assessment; corrected same day after the user pushed back. Verified the
+real API against `NinjaTrader.Gui.dll` via reflection instead of guessing:
+`Chart.ActiveChartControl.Instrument` finds the right open chart, `Chart.Dispatcher` is that
+window's own UI thread, `Chart.GetScreenshot(ShareScreenshotType)` is the same call the
+Strategy version used. Two-hop dispatcher pattern (`Application.Current.Dispatcher` to find
+the window, then THAT window's own `Dispatcher` to screenshot it) avoids the exact
+wrong-thread crash the Strategy version hit on 2026-10-16. Real remaining limitation: no open
+chart showing the tracked instrument = no screenshot that cycle (logged, not fatal) — the
+manual "+ Add screenshot" upload in the Journal app covers that case.
+
+**Deliberately dropped:** bar/session-bar tracking (MAE/MFE now runs off live tick prices via
+a MarketData subscription instead — an AddOn has no bars, but ticks are at least as accurate).
 
 **What this does NOT fix:** state lost on an NT8 recompile. ALL NinjaScript — Strategies,
 Indicators, AddOns — gets torn down and reinstantiated on F5; switching base class doesn't
