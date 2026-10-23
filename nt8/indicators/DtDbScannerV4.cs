@@ -158,6 +158,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 MinValleyDepthAbr = 0.5;   // min valley depth = this x ABR (when UseAbrSizing)
                 MinBarsBetween    = 2;   // peaks closer than this are noise
                 MaxBarsBetween    = 50;  // peaks farther apart than this are unrelated
+                FirstPeakExtremeBars = 0; // N > SwingStrength: 1st peak/trough must be the extreme of the last N bars (else off)
                 NecklineBufferTicks = 0; // close must break the neckline by this much to confirm
                 ConfirmOnClose    = false; // false: a trade beyond the neckline (+buffer) confirms, close not required
                 ConfirmWithinBars = 50;  // if no confirm within this many bars after forming, drop the setup
@@ -365,14 +366,15 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             // passes every gate - not just the immediately preceding pivot (V1/V2),
             // which missed a DT whenever a lower swing high sat between the peaks.
             // An earlier high only qualifies if no pivot high between the two peaks
-            // is above both of them (the peaks must be the top of the structure).
+            // is above the LOWER of the two (2026-10-23; was: above both) - the two
+            // tops must be the top of the structure.
             double highestBetween = double.MinValue;
             for (int j = highs.Count - 2; j >= 0; j--)
             {
                 Pivot p1 = highs[j];
                 int barsBetween = p2.Bar - p1.Bar;
                 if (barsBetween > MaxBarsBetween) break;            // older pivots are only farther away
-                if (highestBetween > p2.Price + tol) break;         // a higher high cuts off every older candidate
+                if (highestBetween > p2.Price) break;               // a high above p2 in between cuts off every older candidate
 
                 if (TryDoubleTop(p1, p2, highestBetween, tol, minDepth, barsBetween)) return;
 
@@ -385,7 +387,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // Tests one candidate pair; on pass sets pendingTop, draws, alerts and returns true.
         private bool TryDoubleTop(Pivot p1, Pivot p2, double highestBetween, double tol, double minDepth, int barsBetween)
         {
-            if (highestBetween > Math.Max(p1.Price, p2.Price))
+            if (highestBetween > Math.Min(p1.Price, p2.Price))    // a swing high between above the lower top
             {
                 if (ShowDebugPrints) Print(Time[0] + "  DT-reject p1@" + p1.Bar + " p2@" + p2.Bar + "  reason=HIGHER_HIGH_BETWEEN (" + highestBetween + ")");
                 return false;
@@ -411,6 +413,11 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             if (peakDiff > tol) return false;
             if (valleyDepth < minDepth) return false;
             if (barsBetween < MinBarsBetween || barsBetween > MaxBarsBetween) return false;
+            if (!IsFirstPeakExtreme(p1, true))
+            {
+                if (ShowDebugPrints) Print(Time[0] + "  DT-reject p1@" + p1.Bar + "  reason=P1_NOT_EXTREME (not the highest high of the last " + FirstPeakExtremeBars + " bars)");
+                return false;
+            }
 
             double score = ScoreStructure(p1, valley, p2, peakDiff, tol, valleyDepth, barsBetween, isTop: true);
 
@@ -450,14 +457,15 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             EffectiveSizes(out tol, out minDepth);
 
             // V3 look-back (mirror of CheckDoubleTop): most recent earlier low that
-            // passes every gate, with no pivot low between below both troughs.
+            // passes every gate, with no pivot low between below the HIGHER of the two
+            // troughs (2026-10-23; was: below both).
             double lowestBetween = double.MaxValue;
             for (int j = lows.Count - 2; j >= 0; j--)
             {
                 Pivot t1 = lows[j];
                 int barsBetween = t2.Bar - t1.Bar;
                 if (barsBetween > MaxBarsBetween) break;
-                if (lowestBetween < t2.Price - tol) break;
+                if (lowestBetween < t2.Price) break;                // a low below t2 in between cuts off every older candidate
 
                 if (TryDoubleBottom(t1, t2, lowestBetween, tol, minDepth, barsBetween)) return;
 
@@ -469,7 +477,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
         private bool TryDoubleBottom(Pivot t1, Pivot t2, double lowestBetween, double tol, double minDepth, int barsBetween)
         {
-            if (lowestBetween < Math.Min(t1.Price, t2.Price))
+            if (lowestBetween < Math.Max(t1.Price, t2.Price))     // a swing low between below the higher trough
             {
                 if (ShowDebugPrints) Print(Time[0] + "  DB-reject t1@" + t1.Bar + " t2@" + t2.Bar + "  reason=LOWER_LOW_BETWEEN (" + lowestBetween + ")");
                 return false;
@@ -495,6 +503,11 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             if (troughDiff > tol) return false;
             if (peakHeight < minDepth) return false;
             if (barsBetween < MinBarsBetween || barsBetween > MaxBarsBetween) return false;
+            if (!IsFirstPeakExtreme(t1, false))
+            {
+                if (ShowDebugPrints) Print(Time[0] + "  DB-reject t1@" + t1.Bar + "  reason=T1_NOT_EXTREME (not the lowest low of the last " + FirstPeakExtremeBars + " bars)");
+                return false;
+            }
 
             double score = ScoreStructure(t1, peak, t2, troughDiff, tol, peakHeight, barsBetween, isTop: false);
 
@@ -871,6 +884,22 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 if (r.Tag == p.DrawTag) { r.TriTag = triTag; return; }
         }
 
+        // FirstPeakExtremeBars > 0: the 1st peak (DT) / 1st trough (DB) must be the highest
+        // High / lowest Low of the N bars ending at that pivot bar (ties allowed). Only active
+        // when N > SwingStrength (the pivot already beats its SwingStrength earlier bars).
+        private bool IsFirstPeakExtreme(Pivot first, bool isTop)
+        {
+            if (FirstPeakExtremeBars <= SwingStrength) return true;
+            int ago0 = CurrentBar - first.Bar;
+            int n = Math.Min(FirstPeakExtremeBars, first.Bar + 1);   // not more bars than exist
+            for (int k = 1; k < n; k++)
+            {
+                if (isTop  && High[ago0 + k] > first.Price) return false;
+                if (!isTop && Low[ago0 + k]  < first.Price) return false;
+            }
+            return true;
+        }
+
         // Removes every drawing DrawStructure made for one structure (invalidated setups,
         // when DeleteInvalidated is on). Suffixes must match DrawStructure.
         private void RemoveStructure(string tag)
@@ -911,18 +940,24 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 // Inside-bar signal (2026-10-21): this bar is inside the previous bar with a
                 // signal-side IBS, and the previous bar (also after the break) was a pullback
                 // bar that was NOT a signal itself — DB: lower low than its prior bar + BEARISH
-                // IBS; DT: higher high + BULLISH IBS; not an outside bar. Mutually exclusive
-                // with isPullback (an inside bar can't make a lower low / higher high).
+                // IBS; DT: higher high + BULLISH IBS. 2026-10-23: that previous bar MAY be an
+                // outside bar or an outside-bar variant (larger range than its prior bar with
+                // the SAME low (DB) / SAME high (DT) — the variant with the same high/low on the
+                // other side already makes a lower low / higher high). Mutually exclusive with
+                // isPullback (an inside bar can't make a lower low / higher high).
                 bool isInsideSignal = false;
                 double rangePrev = High[1] - Low[1];
                 if (ShowInsideBars && CurrentBar - 1 > w.ConfirmBar && rangePrev > 0)
                 {
                     double ibsPrev = (Close[1] - Low[1]) / rangePrev;
-                    bool prevOutside = High[1] > High[2] && Low[1] < Low[2];
+                    double half = TickSize / 2.0;
+                    bool prevLargerRange = rangePrev > (High[2] - Low[2]) + half;
+                    bool prevLowerLow   = Low[1]  < Low[2]  || (Math.Abs(Low[1]  - Low[2])  < half && prevLargerRange); // DB: lower low, or OB variant w/ same low
+                    bool prevHigherHigh = High[1] > High[2] || (Math.Abs(High[1] - High[2]) < half && prevLargerRange); // DT: higher high, or OB variant w/ same high
                     bool inside = High[0] <= High[1] && Low[0] >= Low[1];
-                    isInsideSignal = inside && !prevOutside && (w.IsTop
-                        ? High[1] > High[2] && ibsPrev > PullbackIbs && ibs < 1.0 - PullbackIbs   // DT: prev higher high w/ bullish close, IB bearish
-                        : Low[1]  < Low[2]  && ibsPrev < 1.0 - PullbackIbs && ibs > PullbackIbs); // DB: prev lower low w/ bearish close, IB bullish
+                    isInsideSignal = inside && (w.IsTop
+                        ? prevHigherHigh && ibsPrev > PullbackIbs && ibs < 1.0 - PullbackIbs   // DT: prev bullish close, IB bearish
+                        : prevLowerLow   && ibsPrev < 1.0 - PullbackIbs && ibs > PullbackIbs); // DB: prev bearish close, IB bullish
                 }
                 if (!isPullback && !isInsideSignal) continue;
 
@@ -1018,6 +1053,10 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         [NinjaScriptProperty, Range(1, int.MaxValue)]
         [Display(Name = "Max bars between", Description = "Peaks farther apart than this are unrelated.", Order = 5, GroupName = "1. Structure")]
         public int MaxBarsBetween { get; set; }
+
+        [Range(0, int.MaxValue)]
+        [Display(Name = "1st peak = extreme of last N bars", Description = "Only active when N is larger than Swing strength (0 = off). Then the 1st peak of a DT must be the highest high (1st trough of a DB the lowest low) of the N bars ending at that peak/trough.", Order = 16, GroupName = "1. Structure")]
+        public int FirstPeakExtremeBars { get; set; }
 
         [NinjaScriptProperty, Range(0, int.MaxValue)]
         [Display(Name = "Neckline buffer (ticks)", Description = "Close must break the neckline by this much to confirm.", Order = 6, GroupName = "2. Confirmation")]
