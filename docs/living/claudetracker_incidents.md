@@ -13,6 +13,44 @@ scripts referenced below live in the private `trade-playbook` repo
 
 ---
 
+## 2026-10-23 — architecture change: AddOn port built to fix the whole "disables itself" class
+
+Every "disable" seen across these incidents (10-16's screenshot cross-thread crash, the
+2026-10-22 `OnBarUpdate` exception) shares one root cause: it's a **Strategy**, and NT8
+itself force-disables a Strategy on certain uncaught exceptions in its callbacks (confirmed
+in the Output log both times: "Disabling NinjaScript strategy"). User asked directly
+whether this class of bug could be eliminated rather than chased fix-by-fix.
+
+Built `nt8/addons/ClaudeTrackerAddOn.cs` — same trade-tracking logic, ported onto NT8's
+`AddOnBase` instead of `Strategy`. An AddOn has no Strategies-tab enable/disable state at
+all, so there is nothing for NT8 to auto-disable. Also a natural singleton (one AddOn
+instance per NT8 process, no "two chart instances on the same instrument" scenario), which
+deleted the entire ownership-arbitration subsystem the Strategy version needed.
+
+Ported from the Strategy's current stable baseline (post `4460db47` revert), not the riskier
+reload-resume rewrite that caused the 10-22 incident — and separately re-applied the
+entry-merge-window fix (EntryOrderId/EntryMergeWindowMs, fixes multi-lot market orders
+getting mislabeled ADD_ON) that was reverted alongside it despite being explicitly flagged
+as not implicated.
+
+**Deliberately dropped, not oversights:** auto screenshot capture (needs a ChartControl an
+AddOn doesn't have for free — the Journal app's manual "+ Add screenshot" upload is the
+fallback) and bar/session-bar tracking (MAE/MFE now runs off live tick prices via a
+MarketData subscription instead — an AddOn has no bars, but ticks are at least as accurate).
+
+**What this does NOT fix:** state lost on an NT8 recompile. ALL NinjaScript — Strategies,
+Indicators, AddOns — gets torn down and reinstantiated on F5; switching base class doesn't
+change that. `ReconcileOpenPosition()` (the simple Position-reconcile fallback, not the
+reverted TryResumeOpenTrade rewrite) is ported as-is and has the same limitation it always
+had: a trade open across a reload keeps trading but loses its original entry time/stop
+history.
+
+**Status: compile-checked clean, NOT deployed, NOT F5'd, NOT run live.** Recommend running
+it side by side with the existing Strategy for at least one full session, comparing output
+files, before retiring the Strategy — not swapping in blind, per the 10-22 lesson.
+
+---
+
 ## 2026-10-22 — the reload-fix itself broke live trading within hours of deploy
 
 **Symptom:** Thomas deployed the SAME-DAY reload fix (below), closed a trade, and
