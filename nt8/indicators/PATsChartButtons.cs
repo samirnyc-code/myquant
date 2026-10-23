@@ -66,8 +66,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else if (State == State.Terminated)
 			{
+				// Dispatch off chartWindow's OWN cached Dispatcher, not ChartControl's -- by the
+				// time an indicator is actually torn down (removed from a chart), ChartControl
+				// can already be null, which threw here and silently skipped RemoveButtons(),
+				// orphaning the button on the window's toolbar forever (2026-10-23 live report:
+				// removed from the right tab, button/light stayed anyway). chartWindow was
+				// already cached at AddButtons() time and doesn't depend on ChartControl still
+				// being alive.
 				if (chartWindow != null)
-					ChartControl.Dispatcher.InvokeAsync((Action)(() => RemoveButtons()));
+					chartWindow.Dispatcher.InvokeAsync((Action)(() => RemoveButtons()));
 			}
 		}
 
