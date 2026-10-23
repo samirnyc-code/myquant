@@ -1569,6 +1569,12 @@ if (name.StartsWith("TARGET"))
         [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
+        [DllImport("user32.dll")]
+        private static extern int GetWindowTextLength(IntPtr hWnd);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
         private static List<IntPtr> GetTopLevelWindowsForCurrentProcess()
@@ -1585,26 +1591,29 @@ if (name.StartsWith("TARGET"))
             return result;
         }
 
-        private class ChartWindowInfo
+        private static string GetWindowTitle(IntPtr hWnd)
         {
-            public Chart Chart;
-            public ChartTab MatchingTab;
-            public string ActiveInstrument;
-            public List<string> TabInstruments;
+            int len = GetWindowTextLength(hWnd);
+            if (len <= 0) return string.Empty;
+            System.Text.StringBuilder sb = new System.Text.StringBuilder(len + 1);
+            GetWindowText(hWnd, sb, sb.Capacity);
+            return sb.ToString();
         }
 
         // An AddOn has no ChartControl of its own (unlike a Strategy, which gets one for free
-        // from whatever chart it's dropped on) — this finds one. The Strategy version's old
-        // crash (2026-10-16, see the file header) came from touching a DIFFERENT chart's
-        // window from the WRONG thread in a single hop. The fix stays two hops, each onto the
-        // thread that actually owns the object being touched — just via native hwnds instead
-        // of Application.Current.Windows now:
-        //   1. hs.Dispatcher (per native hwnd) — HwndSource.FromHwnd is a static, any-thread-
-        //      safe lookup; reading its RootVisual/Chart state has to happen on that specific
-        //      window's own dispatcher.
-        //   2. targetChart.Dispatcher — the screenshot call itself has to happen on THAT
-        //      window's thread too, re-entering it after the lookup above released it.
-        // No chart open for the tracked instrument = no screenshot, logged, not a crash.
+        // from whatever chart it's dropped on) — this finds one. MATCH STRATEGY (rewritten
+        // 2026-10-23, same day as the EnumWindows fix above, after that fix landed but still
+        // produced "no match": the 4 real native chart windows WERE found, but every one came
+        // back with ActiveChartControl=null and MainTabControl tabs all "(null)" when probed
+        // via WPF properties on the window's own dispatcher — that introspection path doesn't
+        // reflect live state the way assumed, independent of the Application.Windows bug.
+        // Confirmed live instead (raw Win32 GetWindowText against the running NT8 process):
+        // every chart window's TITLE is literally "Chart - <Instrument.FullName>" of whatever
+        // tab is currently active in it — e.g. a window titled exactly "Chart - ES 12-26"
+        // existed the whole time. Matching on that title is plain Win32 text comparison, no
+        // WPF introspection at all, so it can't be wrong in the way ActiveChartControl was.
+        // targetChart.Dispatcher is still needed for the ACTUAL screenshot call (GetScreenshot
+        // only works on by the window's own thread) — that hop is unavoidable and unchanged.
         private void RequestScreenshot(string label, DateTime time, string tradeId, DateTime tradeTime)
         {
             if (instrument == null) return;
@@ -1616,120 +1625,74 @@ if (name.StartsWith("TARGET"))
                 string tradePath  = Path.Combine(tradeDir, fileName);
                 string masterPath = Path.Combine(masterDir, fileName);
                 string wantFullName = instrument.FullName;
+                string wantTitlePrefix = "Chart - " + wantFullName;
 
                 System.Threading.Tasks.Task.Run(() =>
                 {
                     try
                     {
                         List<IntPtr> hwnds = GetTopLevelWindowsForCurrentProcess();
-                        List<ChartWindowInfo> infos = new List<ChartWindowInfo>();
+                        List<KeyValuePair<IntPtr, string>> titled = new List<KeyValuePair<IntPtr, string>>();
 
                         foreach (IntPtr hwnd in hwnds)
                         {
-                            HwndSource hs = HwndSource.FromHwnd(hwnd);
-                            if (hs == null) continue;
-
-                            try
-                            {
-                                ChartWindowInfo info = null;
-                                hs.Dispatcher.Invoke(() =>
-                                {
-                                    Chart cw = hs.RootVisual as Chart;
-                                    if (cw == null) return;
-
-                                    info = new ChartWindowInfo { Chart = cw, TabInstruments = new List<string>() };
-                                    info.ActiveInstrument = (cw.HasActiveChart && cw.ActiveChartControl != null
-                                        && cw.ActiveChartControl.Instrument != null)
-                                        ? cw.ActiveChartControl.Instrument.FullName : "(none)";
-
-                                    if (cw.MainTabControl != null)
-                                    {
-                                        foreach (object item in cw.MainTabControl.Items)
-                                        {
-                                            ChartTab tab = item as ChartTab;
-                                            string inst = (tab != null && tab.ChartControl != null && tab.ChartControl.Instrument != null)
-                                                ? tab.ChartControl.Instrument.FullName : "(null)";
-                                            info.TabInstruments.Add(inst);
-                                            if (tab != null && inst == wantFullName && info.MatchingTab == null)
-                                                info.MatchingTab = tab;
-                                        }
-                                    }
-                                });
-                                if (info != null) infos.Add(info);
-                            }
-                            catch (Exception perWindowEx)
-                            {
-                                Log("[ClaudeTrackerAddOn] Screenshot: window dispatcher probe failed for hwnd "
-                                    + hwnd + ": " + perWindowEx.Message, LogLevel.Warning);
-                            }
+                            string title = GetWindowTitle(hwnd);
+                            if (!string.IsNullOrEmpty(title)) titled.Add(new KeyValuePair<IntPtr, string>(hwnd, title));
                         }
 
-                        // First pass: prefer a window whose ALREADY-ACTIVE tab matches — zero
-                        // visual disruption. Only if that finds nothing do we fall back to
-                        // scanning every tab (a chart can be open in a background tab a trader
-                        // isn't currently looking at).
-                        Chart targetChart = null;
-                        ChartTab targetTab = null;
-
-                        foreach (ChartWindowInfo info in infos)
+                        // StartsWith (not Contains) deliberately: "Chart - MES 12-26" contains
+                        // "ES 12-26" as a substring, which Contains would wrongly match against
+                        // instrument "ES 12-26" — StartsWith requires the characters right after
+                        // "Chart - " to match exactly, so MES vs ES can't collide.
+                        IntPtr matchHwnd = IntPtr.Zero;
+                        foreach (KeyValuePair<IntPtr, string> kv in titled)
                         {
-                            if (info.ActiveInstrument == wantFullName) { targetChart = info.Chart; break; }
+                            if (kv.Value.StartsWith(wantTitlePrefix, StringComparison.Ordinal)) { matchHwnd = kv.Key; break; }
                         }
 
-                        if (targetChart == null)
+                        if (matchHwnd == IntPtr.Zero)
                         {
-                            foreach (ChartWindowInfo info in infos)
-                            {
-                                if (info.MatchingTab != null) { targetChart = info.Chart; targetTab = info.MatchingTab; break; }
-                            }
-                        }
-
-                        if (targetChart == null)
-                        {
-                            Log("[ClaudeTrackerAddOn] Screenshot: no match for " + wantFullName
-                                + " across " + infos.Count + " native chart windows (" + hwnds.Count + " total process windows):",
+                            Log("[ClaudeTrackerAddOn] Screenshot: no window titled \"" + wantTitlePrefix
+                                + "...\" across " + titled.Count + " titled windows (" + hwnds.Count + " total process windows):",
                                 LogLevel.Warning);
-                            foreach (ChartWindowInfo info in infos)
-                            {
-                                Log("[ClaudeTrackerAddOn]   Chart window: active=" + info.ActiveInstrument
-                                    + " tabs=[" + string.Join(", ", info.TabInstruments) + "]", LogLevel.Warning);
-                            }
+                            foreach (KeyValuePair<IntPtr, string> kv in titled)
+                                Log("[ClaudeTrackerAddOn]   hwnd=" + kv.Key + " title=\"" + kv.Value + "\"", LogLevel.Warning);
                             return;
                         }
 
-                        targetChart.Dispatcher.InvokeAsync(async () =>
+                        HwndSource hs = HwndSource.FromHwnd(matchHwnd);
+                        if (hs == null)
+                        {
+                            Log("[ClaudeTrackerAddOn] Screenshot: matched window has no HwndSource — cannot capture", LogLevel.Warning);
+                            return;
+                        }
+
+                        hs.Dispatcher.InvokeAsync(async () =>
                         {
                             try
                             {
+                                Chart targetChart = hs.RootVisual as Chart;
+                                if (targetChart == null)
+                                {
+                                    Log("[ClaudeTrackerAddOn] Screenshot: matched window's RootVisual is not a Chart (type="
+                                        + (hs.RootVisual == null ? "null" : hs.RootVisual.GetType().FullName) + ")", LogLevel.Warning);
+                                    return;
+                                }
+
                                 await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
 
-                                object previousTab = targetChart.MainTabControl.SelectedItem;
-                                bool switchedTab = targetTab != null && !ReferenceEquals(previousTab, targetTab);
-                                if (switchedTab)
-                                {
-                                    targetChart.MainTabControl.SelectedItem = targetTab;
-                                    await System.Threading.Tasks.Task.Delay(50); // let WPF actually render the newly-selected tab
-                                }
+                                RenderTargetBitmap sc = targetChart.GetScreenshot(ShareScreenshotType.Chart);
+                                if (sc == null) { Log("[ClaudeTrackerAddOn] Screenshot: null capture", LogLevel.Warning); return; }
 
-                                try
-                                {
-                                    RenderTargetBitmap sc = targetChart.GetScreenshot(ShareScreenshotType.Chart);
-                                    if (sc == null) { Log("[ClaudeTrackerAddOn] Screenshot: null capture", LogLevel.Warning); return; }
+                                PngBitmapEncoder e1 = new PngBitmapEncoder();
+                                e1.Frames.Add(BitmapFrame.Create(sc));
+                                using (Stream s = File.Create(tradePath)) e1.Save(s);
 
-                                    PngBitmapEncoder e1 = new PngBitmapEncoder();
-                                    e1.Frames.Add(BitmapFrame.Create(sc));
-                                    using (Stream s = File.Create(tradePath)) e1.Save(s);
+                                PngBitmapEncoder e2 = new PngBitmapEncoder();
+                                e2.Frames.Add(BitmapFrame.Create(sc));
+                                using (Stream s = File.Create(masterPath)) e2.Save(s);
 
-                                    PngBitmapEncoder e2 = new PngBitmapEncoder();
-                                    e2.Frames.Add(BitmapFrame.Create(sc));
-                                    using (Stream s = File.Create(masterPath)) e2.Save(s);
-
-                                    DebugPrint("Screenshot saved: " + fileName);
-                                }
-                                finally
-                                {
-                                    if (switchedTab) targetChart.MainTabControl.SelectedItem = previousTab;
-                                }
+                                DebugPrint("Screenshot saved: " + fileName);
                             }
                             catch (Exception ex) { Log("[ClaudeTrackerAddOn] Screenshot capture failed: " + ex.Message, LogLevel.Error); }
                         });
