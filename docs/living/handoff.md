@@ -1,9 +1,29 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-23 (machine-time W. Europe, this chat) — **ClaudeTrackerAddOn built +
-deployed, running live side-by-side with ClaudeTrackerV2 for comparison. Trade-tracking
-confirmed correct on 2 live test trades; screenshots still broken, diagnostic build deployed,
-root cause not yet confirmed — THIS IS THE FIRST THING THE NEW CHAT SHOULD CHASE.**
+**Last Updated:** 2026-10-23 (machine-time W. Europe, new chat) — **Screenshot root cause
+CONFIRMED from the v3 diagnostic dump + FIXED (commit `a9e1dd4`), not yet F5-tested live.**
+Grepped today's log for `ClaudeTrackerAddOn`: every miss on the 2 fresh test trades (3rd/4th
+of the day) logged `"no match for ES 12-26 across 0 Application.Current.Windows"` — count is
+**zero**, confirming the theory in the previous block exactly (chart windows live on their own
+UI thread and never register in `Application.Current.Windows`, which only auto-registers
+windows created on the main Application thread). Implemented the planned fix in
+`nt8/addons/ClaudeTrackerAddOn.cs`: P/Invoke `EnumWindows` + `GetWindowThreadProcessId`
+(filtered to this process) to get real top-level hwnds, `HwndSource.FromHwnd(hwnd)` (static,
+any-thread-safe) to recover each one's WPF object, then `hs.Dispatcher.Invoke` to read
+`RootVisual as Chart` on that window's own thread. Same two-hop thread discipline as before,
+same active-tab-first/any-tab-fallback matching logic, same diagnostic dump preserved for a
+next miss — just sourcing candidate windows natively instead of from the empty WPF collection.
+Compile-checked clean in isolation (`scripts\nt8_compile_check.ps1 nt8\addons\ClaudeTrackerAddOn.cs`
+→ `COMPILE_OK`; the bare no-arg form of that script currently fails on PRE-EXISTING unrelated
+cross-file namespace collisions — `LevelLineStyle` dup between SessionSRLevelsV7/V9,
+`ApproxExtensions` dup between ClaudeTracker/ClaudeTrackerV2/TradeLifecycle — not caused by
+this change, not touched). Deployed to `Custom\AddOns\ClaudeTrackerAddOn.cs`, byte-verified.
+**NOT YET F5'd/tested — new chat's first move: ask user to F5 when flat, fire one more test
+trade, and grep the log again for `ClaudeTrackerAddOn` to confirm a screenshot actually gets
+written (trade folder + `Screenshots_MASTER`) instead of another "no match" line.** If it still
+misses, the diagnostic block now dumps real native chart-window data (active instrument + tab
+list per window) instead of an empty collection, so a further mismatch (e.g. `Instrument.FullName`
+string-format difference) will be visible directly in the log.
 
 **Why this exists:** ClaudeTrackerV2 (the NT8 Strategy that journals every trade to
 trade-playbook) kept getting disabled by NT8 itself — see
