@@ -1613,7 +1613,44 @@ if (name.StartsWith("TARGET"))
 
                         if (targetChart == null)
                         {
-                            Log("[ClaudeTrackerAddOn] Screenshot: no open chart (active OR background tab) showing " + wantFullName + " — skipped", LogLevel.Warning);
+                            // Second miss in a row even after widening to every tab — rather than
+                            // guess a third root cause blind, dump exactly what's actually in
+                            // Application.Current.Windows so the next miss is diagnosable from the
+                            // log alone (same approach this codebase already uses elsewhere for
+                            // "disable" mysteries — on-demand diagnostics, not another blind guess).
+                            try
+                            {
+                                int winCount = Application.Current.Windows.Count;
+                                Log("[ClaudeTrackerAddOn] Screenshot: no match for " + wantFullName
+                                    + " across " + winCount + " Application.Current.Windows:", LogLevel.Warning);
+                                foreach (Window w in Application.Current.Windows)
+                                {
+                                    Chart cw = w as Chart;
+                                    if (cw == null)
+                                    {
+                                        Log("[ClaudeTrackerAddOn]   window type=" + w.GetType().FullName + " title=" + w.Title, LogLevel.Warning);
+                                        continue;
+                                    }
+                                    string active = cw.ActiveChartControl != null && cw.ActiveChartControl.Instrument != null
+                                        ? cw.ActiveChartControl.Instrument.FullName : "(none)";
+                                    string tabs = "(no MainTabControl)";
+                                    if (cw.MainTabControl != null)
+                                    {
+                                        List<string> names = new List<string>();
+                                        foreach (object item in cw.MainTabControl.Items)
+                                        {
+                                            ChartTab tab = item as ChartTab;
+                                            string inst = tab != null && tab.ChartControl != null && tab.ChartControl.Instrument != null
+                                                ? tab.ChartControl.Instrument.FullName : "(null)";
+                                            names.Add(inst);
+                                        }
+                                        tabs = "[" + string.Join(", ", names) + "]";
+                                    }
+                                    Log("[ClaudeTrackerAddOn]   Chart window: HasActiveChart=" + cw.HasActiveChart
+                                        + " active=" + active + " tabs=" + tabs, LogLevel.Warning);
+                                }
+                            }
+                            catch (Exception diagEx) { Log("[ClaudeTrackerAddOn] Screenshot diagnostic dump failed: " + diagEx.Message, LogLevel.Error); }
                             return;
                         }
 
