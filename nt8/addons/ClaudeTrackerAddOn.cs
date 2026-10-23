@@ -1574,7 +1574,14 @@ if (name.StartsWith("TARGET"))
                 {
                     try
                     {
+                        // First pass: prefer a window whose ALREADY-ACTIVE tab matches — zero
+                        // visual disruption. Only if that finds nothing do we fall back to
+                        // scanning every tab (a chart can be open in a background tab a trader
+                        // isn't currently looking at — this is exactly what was missed on the
+                        // 2026-10-23 live test, ES tracked correctly but no chart matched).
                         Chart targetChart = null;
+                        ChartTab targetTab = null;
+
                         foreach (Window w in Application.Current.Windows)
                         {
                             Chart cw = w as Chart;
@@ -1584,9 +1591,29 @@ if (name.StartsWith("TARGET"))
                             targetChart = cw;
                             break;
                         }
+
                         if (targetChart == null)
                         {
-                            Log("[ClaudeTrackerAddOn] Screenshot: no open chart showing " + wantFullName + " — skipped", LogLevel.Warning);
+                            foreach (Window w in Application.Current.Windows)
+                            {
+                                Chart cw = w as Chart;
+                                if (cw == null || cw.MainTabControl == null) continue;
+                                foreach (object item in cw.MainTabControl.Items)
+                                {
+                                    ChartTab tab = item as ChartTab;
+                                    if (tab == null || tab.ChartControl == null || tab.ChartControl.Instrument == null) continue;
+                                    if (tab.ChartControl.Instrument.FullName != wantFullName) continue;
+                                    targetChart = cw;
+                                    targetTab = tab;
+                                    break;
+                                }
+                                if (targetChart != null) break;
+                            }
+                        }
+
+                        if (targetChart == null)
+                        {
+                            Log("[ClaudeTrackerAddOn] Screenshot: no open chart (active OR background tab) showing " + wantFullName + " — skipped", LogLevel.Warning);
                             return;
                         }
 
@@ -1596,18 +1623,36 @@ if (name.StartsWith("TARGET"))
                             {
                                 await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
 
-                                RenderTargetBitmap sc = targetChart.GetScreenshot(ShareScreenshotType.Chart);
-                                if (sc == null) { Log("[ClaudeTrackerAddOn] Screenshot: null capture", LogLevel.Warning); return; }
+                                // Only WPF Window.Windows items need the earlier Application
+                                // Dispatcher hop to enumerate; switching THIS window's own tab
+                                // selection is safe here because we're already on its thread.
+                                object previousTab = targetChart.MainTabControl.SelectedItem;
+                                bool switchedTab = targetTab != null && !ReferenceEquals(previousTab, targetTab);
+                                if (switchedTab)
+                                {
+                                    targetChart.MainTabControl.SelectedItem = targetTab;
+                                    await System.Threading.Tasks.Task.Delay(50); // let WPF actually render the newly-selected tab
+                                }
 
-                                PngBitmapEncoder e1 = new PngBitmapEncoder();
-                                e1.Frames.Add(BitmapFrame.Create(sc));
-                                using (Stream s = File.Create(tradePath)) e1.Save(s);
+                                try
+                                {
+                                    RenderTargetBitmap sc = targetChart.GetScreenshot(ShareScreenshotType.Chart);
+                                    if (sc == null) { Log("[ClaudeTrackerAddOn] Screenshot: null capture", LogLevel.Warning); return; }
 
-                                PngBitmapEncoder e2 = new PngBitmapEncoder();
-                                e2.Frames.Add(BitmapFrame.Create(sc));
-                                using (Stream s = File.Create(masterPath)) e2.Save(s);
+                                    PngBitmapEncoder e1 = new PngBitmapEncoder();
+                                    e1.Frames.Add(BitmapFrame.Create(sc));
+                                    using (Stream s = File.Create(tradePath)) e1.Save(s);
 
-                                DebugPrint("Screenshot saved: " + fileName);
+                                    PngBitmapEncoder e2 = new PngBitmapEncoder();
+                                    e2.Frames.Add(BitmapFrame.Create(sc));
+                                    using (Stream s = File.Create(masterPath)) e2.Save(s);
+
+                                    DebugPrint("Screenshot saved: " + fileName);
+                                }
+                                finally
+                                {
+                                    if (switchedTab) targetChart.MainTabControl.SelectedItem = previousTab;
+                                }
                             }
                             catch (Exception ex) { Log("[ClaudeTrackerAddOn] Screenshot capture failed: " + ex.Message, LogLevel.Error); }
                         });
