@@ -1,5 +1,31 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-23 (machine-time W. Europe, same new chat, continued yet again) —
+**USER DECISION: `ClaudeTrackerV2` (the Strategy) is RETIRED, effective now. Only
+`ClaudeTrackerAddOn` is to be used/trusted going forward.** Trigger: live incident same
+session — user was mid-trade, journal showed nothing; root cause turned out to be BOTH
+`journal_uploader.py` processes (main + AddOn) having died when the earlier chat session
+ended (they run as plain background processes, not a service/scheduled task — known
+limitation, documented above). Tracking itself was fine (`ClaudeTrackerAddOn` had already
+logged the live trade correctly); restarting both uploaders fixed the immediate symptom. In
+the course of that, user stated flatly: not using the Strategy anymore, AddOn only.
+**NOT YET ACTIONED on the live NT8 install** — user was mid-trade when this was said; nothing
+on the chart or in NT8 was touched (per the hard "never change live/system state without
+asking" rule, and disabling a Strategy mid-position is exactly the risky-timing mistake this
+repo's incident history already warns about). **New chat / next time user is flat: disable
+`ClaudeTrackerV2` on his chart (NT8 UI action, not remotely scriptable) and confirm whether
+the main (`uploader_config.json`) journal uploader should keep running or be stopped** (it's
+harmless either way once the Strategy stops producing new trades, but hasn't been explicitly
+addressed). Do not delete/uncommit `ClaudeTrackerV2.cs` from the repo — "retired" means
+stop running it, not lose the file (same `nt8/README.md` "never leave a file only on the NT8
+machine, never lose history" discipline applies to retiring too, see e.g. how
+`L1TapeRecorderAddOn.cs`/`MarketDepthRecorderAddOn.cs` were retired: renamed `.cs.disabled`
+on the deployed side, repo copy untouched, status noted in the README table).
+
+---
+
+**Earlier same-day history below:**
+
 **Last Updated:** 2026-10-23 (machine-time W. Europe, same new chat, continued once more) —
 **BreakoutBoysLiteV3 chart-lag fix, unrelated to the ClaudeTracker screenshot work above —
 different file, same session. NOT YET F5'd/tested.**
