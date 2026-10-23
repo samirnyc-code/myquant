@@ -1,5 +1,53 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-23 (machine-time W. Europe, same new chat, continued again) — **v2
+fix (title match) deployed + F5'd + tested live — screenshots FINALLY saved to disk (first
+real wins: `10-23_Fri_T1_ADDON_LONG_0936_*.png`, trade folder + Screenshots_MASTER both
+confirmed in the log) but from the WRONG chart window — title alone can't tell which open
+chart is the real execution one when more than one shows the same instrument. v3 fix (tag
+the execution chart explicitly) now shipped, commit `8749c04`, deployed, NOT YET F5'd.**
+
+v2 (title match) worked mechanically — no more "no match" misses, real files landed on disk
+for the first time all day. But the user reported the captured image was the wrong chart (not
+the one actually traded from). Root cause: NT8 titles every chart window `"Chart -
+<Instrument.FullName>"` after whichever tab is currently active in it — that only identifies
+the INSTRUMENT, not which specific open chart/tab is the trading one. The user has more than
+one window/tab capable of showing `ES 12-26` as active (e.g. an analysis chart alongside the
+real execution chart), and title-matching just grabbed whichever the OS happened to enumerate
+first — arbitrary, not necessarily correct.
+
+**v3 fix — user's own idea, "can we name the chart somehow":** added
+`nt8/indicators/ClaudeTrackerChartRegistry.cs` (a tiny shared static
+`Dictionary<instrument full name, ChartControl>` in the plain `NinjaTrader.NinjaScript`
+namespace, reachable from both an Indicator and an AddOn since all Custom `.cs` files share
+one compiled assembly) and `nt8/indicators/ClaudeTrackerChartTag.cs` (an invisible marker
+indicator — drop it on the ONE chart you actually execute from; on load it registers its own
+`ChartControl` into the registry keyed by instrument, on unload it removes itself).
+`ClaudeTrackerAddOn.RequestScreenshot` now checks the registry FIRST — an exact, unambiguous
+`ChartControl` if the execution chart has been tagged (resolved to its parent `Chart` window
+via `Window.GetWindow(cc.Parent)`, the same pattern already proven elsewhere in this repo,
+see `nt8/indicators/PATsChartButtons.cs:79`) — and only falls back to the v2 title-matching
+path for an instrument nobody has tagged yet.
+Compile-checked all three files together clean (note: `powershell -File script.ps1 a.cs b.cs
+c.cs`, space- OR comma-separated bare args, only binds the FIRST file into a `[string[]]`
+param in this environment — confirmed empirically, contradicts the usual PowerShell docs
+assumption. Use `-Command "& 'script.ps1' -Files @('a.cs','b.cs','c.cs')"` with an explicit
+array splat instead, every time multiple files need checking together). Deployed to
+`Custom\AddOns\` and `Custom\Indicators\`, byte-verified.
+**New chat's first move: tell the user to drop `ClaudeTracker Chart Tag` onto the ONE chart
+they actually execute from (NinjaScript → Indicators → search "ClaudeTracker Chart Tag"),
+F5 when flat, fire one more test trade, and grep the log for `ClaudeTrackerAddOn` — confirm
+the saved screenshot is now from the CORRECT chart** (the log line will say "Screenshot
+saved (tagged chart): ..." if the registry path fired, vs plain "Screenshot saved: ..." if
+it silently fell back to title-matching because the tag wasn't found — that distinction
+alone tells you whether the tag actually took effect, no need to open the PNG to check).
+
+---
+
+**Earlier same-day history below, superseded by the above but kept for the full chain of
+reasoning (v1 EnumWindows fix → still broken → v2 title-match fix → right mechanism, wrong
+chart → v3 tag fix):**
+
 **Last Updated:** 2026-10-23 (machine-time W. Europe, same new chat, continued) — **v1 fix
 (EnumWindows) deployed + F5'd + tested live — found the 4 real chart windows (vs
 Application.Current.Windows' permanent 0) but STILL no screenshot, a second independent bug.
