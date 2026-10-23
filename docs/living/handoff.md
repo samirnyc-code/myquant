@@ -1,5 +1,121 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-23 (machine-time W. Europe, this chat) — **ClaudeTrackerAddOn built +
+deployed, running live side-by-side with ClaudeTrackerV2 for comparison. Trade-tracking
+confirmed correct on 2 live test trades; screenshots still broken, diagnostic build deployed,
+root cause not yet confirmed — THIS IS THE FIRST THING THE NEW CHAT SHOULD CHASE.**
+
+**Why this exists:** ClaudeTrackerV2 (the NT8 Strategy that journals every trade to
+trade-playbook) kept getting disabled by NT8 itself — see
+`docs/living/claudetracker_incidents.md` for the full pattern across 5+ incidents. User asked
+directly whether turning it into an AddOn would eliminate the whole class of bug (AddOns have
+no Strategies-tab enable/disable state for NT8 to touch). Built `nt8/addons/ClaudeTrackerAddOn.cs`
+— full port of the trade-tracking logic (ported from the Strategy's current STABLE baseline,
+commit `6f2ce067`, not the riskier reload-resume rewrite that caused the 10-22 incident), plus
+re-applied the entry-merge-window fix (multi-lot market orders mislabeled ADD_ON) that had been
+reverted alongside that incident despite being explicitly flagged as unrelated to it.
+
+**Current live state (both running simultaneously, on purpose, for direct comparison):**
+
+- `ClaudeTrackerV2` (Strategy) — writes to `G:\My Drive\!NT Tracker Export`.
+- `ClaudeTrackerAddOn` (AddOn) — writes to a SEPARATE folder, `G:\My Drive\!NT Tracker
+  Export_AddOnTest` (prevents the two from corrupting each other's CSVs — `WriteEntryStudyMerged`
+  does a read-whole-file/filter/rewrite that is not safe for two processes to do concurrently on
+  the same file). Deployed to `Custom\AddOns\ClaudeTrackerAddOn.cs`, F5'd, confirmed loaded.
+- Every TradeID the AddOn generates is suffixed `_ADDON` (e.g.
+  `ES_12-26_20261023_083713_SHORT_T1_ADDON`) — **user explicitly wants both trackers' trades
+  uploaded to the SAME live production Journal**, on purpose, to compare them directly as
+  separate rows (Trade.id is the upsert primary key — without the distinct suffix the second
+  upload would silently overwrite the first instead of producing two comparable rows).
+- Two separate `journal_uploader.py` instances were started to make that happen:
+  `scripts\uploader_config.json` (existing, Strategy's folder) and the new
+  `scripts\uploader_config_addon.json` (AddOn's `_AddOnTest` folder) in the **trade-playbook**
+  repo (`Desktop\trade-playbook`). Launchers: `start_journal_uploader.bat` /
+  `start_journal_uploader_addon.bat`.
+  **⚠️ Both were started as background processes under THIS chat session (not a Windows
+  service/scheduled task) — they stopped when this session ended. The new chat's first
+  practical step, before anything else, should be restarting both** (see the two .bat files,
+  or re-run `python scripts/journal_uploader.py` / `--config scripts/uploader_config_addon.json`
+  from `Desktop\trade-playbook`) if the user wants uploads continuing.
+- Fixed a real gitignore gap while setting this up: `.gitignore` only matched the exact
+  filename `uploader_config.json`, not the new `_addon` sibling — would have let the ingest
+  secret get committed on a future `git add`. Now `scripts/uploader_config*.json` (verified the
+  wildcard still leaves `uploader_config.example.json`, the committed template, untracked... i.e.
+  NOT ignored — confirmed via `git check-ignore`).
+
+**Live test results, 2026-10-23, 2 real SIM101 ES test trades, both trackers running:**
+
+1. **Trade-tracking: AddOn correct, Strategy failed — and WHY is now understood, not guessed.**
+   First test trade: AddOn tracked entry/stop/exit and closed with the right PnL. ClaudeTrackerV2
+   (the Strategy) never closed its side. NT8 log shows the actual cause: user clicked "Chart
+   Trader close position," which disabled **two** strategies in the same instant —
+   `BreakoutBoysLiteV3` AND `ClaudeTrackerV2` — half a second before the exit fill landed. This
+   is NT8's own platform behavior (manually closing a position via Chart Trader disables
+   strategies on that instrument) — a DIFFERENT disable trigger than the uncaught-exception ones
+   already in the incident log, and the AddOn is immune to it too (no Strategies-tab state at
+   all). Second test trade (full entry → target move → stop move → stop-out) also tracked
+   correctly end-to-end by the AddOn (PnL=-950.00, matches a stopped-out LONG). **This is live
+   confirmation the whole premise behind building the AddOn is correct** — added to
+   `docs/living/claudetracker_incidents.md`.
+2. **Screenshots: broken, root cause narrowed but NOT confirmed — pending chat's first task.**
+   Both test trades: every screenshot attempt (entry, target move, stop move, exit) logged
+   `"no open chart ... showing ES 12-26 — skipped"`. Two fix attempts so far:
+   - v1: only checked each chart window's `ActiveChartControl` (the focused tab). Failed.
+   - v2: widened to scan every tab via `Chart.MainTabControl.Items` → `ChartTab.ChartControl`.
+     STILL failed, same miss, even though a chart titled exactly "Chart - ES 12-26" demonstrably
+     exists — confirmed independently via raw Win32 `EnumWindows` against the live NT8 process
+     (4 separate "Chart - ..." OS windows found, not a guess).
+   - **Leading theory, not yet confirmed:** `Chart` derives from `Window` (confirmed via
+     reflection against `NinjaTrader.Gui.dll`), but NT8 is documented in this very file's own
+     comments (and the 2026-10-16 incident) to run each chart window on its OWN dedicated UI
+     thread. WPF's `Application.Current.Windows` — what both fix attempts searched — typically
+     only auto-registers windows created on the main Application thread. If chart windows here
+     are created off-thread, they may never appear in that collection AT ALL regardless of how
+     it's searched, which would explain both misses despite the window provably existing.
+   - **v3, just deployed (commit `eaf8d47`), diagnostic only — not yet a fix:** on a lookup miss,
+     dumps every `Application.Current.Windows` entry to the Log (count, each window's .NET type
+     + title, and for Chart windows: HasActiveChart + active instrument + every tab's instrument).
+     **User is firing one more test trade right now, as this handoff is being written, so this
+     diagnostic should have fired by the time the new chat picks this up.**
+   - **New chat's first move:** read today's NT8 log
+     (`C:\Users\Admin\Documents\NinjaTrader 8\log\log.<today's date, yyyymmdd>.00000.en.txt`,
+     `grep "ClaudeTrackerAddOn"`) for the fresh diagnostic dump. If it confirms
+     `Application.Current.Windows` is empty/missing the Chart windows (the theory above), the
+     fix is to stop using `Application.Current.Windows` entirely and instead walk native window
+     handles directly: P/Invoke `EnumWindows` + `GetWindowThreadProcessId` (filtered to this
+     process — already proven to work, see the PowerShell one-liner used to confirm the 4 chart
+     windows exist, reusable as a reference) to get every top-level hwnd belonging to NT8, then
+     `System.Windows.Interop.HwndSource.FromHwnd(hwnd).RootVisual as Chart` to recover the WPF
+     `Chart` object directly, bypassing `Application.Windows`. `HwndSource.FromHwnd` is a static
+     lookup, safe to call from any thread; `.Dispatcher` on the result is likewise safe to read
+     cross-thread (it's how you'd then marshal onto that window's own thread to safely touch
+     `.RootVisual`/`.ActiveChartControl` etc.) — reasoned through but NOT yet implemented or
+     tested. If the diagnostic dump instead shows the windows ARE present with the right
+     instrument and it STILL doesn't match, the bug is somewhere else (e.g. a string-format
+     mismatch in `Instrument.FullName` between the resolved tracking instrument and the live
+     chart's) and the dump will show that directly instead (logs both sides' exact strings).
+   - Not blocking: screenshots are the only broken piece. Trade/stop/target/risk tracking,
+     uploading, and the Journal's IR/AR editing (separate earlier piece of work this session,
+     see below) are all unaffected and working.
+
+**Do NOT, in the new chat:** guess a 4th fix for the screenshot lookup without reading the
+diagnostic dump first — this file has an explicit prior lesson (2026-10-20 session, PATsChartButtons)
+about not repeating blind guesses, and this exact pattern (2 failed guesses already) is why v3 is
+diagnostic-only instead of another blind attempt.
+
+---
+
+**Separate earlier piece of this session (different repo, already shipped, not in question):**
+Built editable Initial Risk (IR) / Actual Risk (AR) fields in the **trade-playbook** Journal app
+(`Desktop\trade-playbook`, Vercel-deployed, separate from myquant) — stop price + risk-points
+editing with hand-edit protection against future NT8 re-ingest overwrites, AR-basis R-multiple
+everywhere IR's was, a real MFE-efficiency subset-mismatch bug fix, Expectancy R, and several
+rounds of tile-layout fixes (paired IR/AR tiles, then merged into one combined "R performance"
+table after layout churn). All committed + pushed + deployed; production DB schema migrated
+(4 new columns) via `npm run db:push`, verified. Fully done, not pending anything.
+
+---
+
 **Last Updated:** 2026-10-20 (machine-time W. Europe, separate chat) — **S146 continued: FOUND +
 FIXED the actual permanent-flatline mechanism on BidAskVolumeRatio/Split/Delta.cs, after the
 earlier same-day fixes (one-shot load, stale-day backfill) turned out not to be the whole story.**
