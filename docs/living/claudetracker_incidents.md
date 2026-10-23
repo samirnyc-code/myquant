@@ -58,6 +58,24 @@ history.
 it side by side with the existing Strategy for at least one full session, comparing output
 files, before retiring the Strategy — not swapping in blind, per the 10-22 lesson.
 
+**First live test, same day (2026-10-23), both trackers running side by side:** ES SIM101
+test trade, one entry/one exit. Results: the AddOn tracked the fill, risk, and close
+correctly (PnL=-50.00) with zero disabling. **ClaudeTrackerV2 (the Strategy) did NOT close
+the trade** — but not from a code bug: the NT8 log shows `Chart Trader close position`
+disabled TWO strategies in the same instant (`BreakoutBoysLiteV3` and `ClaudeTrackerV2`),
+half a second before the actual exit fill landed — this is NT8's own platform behavior
+(manually closing a position via Chart Trader disables strategies on that instrument), not
+anything specific to this file. Live confirmation that the Strategy is vulnerable to a
+disable trigger beyond the ones already in this log (uncaught exceptions) — simply clicking
+"Close Position" can do it too — and that the AddOn is immune to the whole class.
+
+Also found: AddOn screenshots didn't fire (`"no open chart showing ES 12-26 — skipped"`,
+both entry and exit) — the chart-window lookup only checked each window's
+`ActiveChartControl` (the currently-focused tab); the ES chart was apparently open in a
+non-active tab. Fixed same day: falls back to scanning every tab via
+`Chart.MainTabControl.Items` → `ChartTab.ChartControl.Instrument`, switching to a background
+match briefly (restored after capture) if the active tab doesn't have it.
+
 ---
 
 ## 2026-10-22 — the reload-fix itself broke live trading within hours of deploy
