@@ -116,6 +116,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private double _entryPx, _stopPx, _tgtPx;
 		private Swing  _swing;
 
+		// Dragging the stop line on the chart makes NT8 report a stream of intermediate
+		// SEstop price updates (one per tick the mouse crosses), not just a single update at
+		// mouse-up. OnOrderUpdate used to react to every one of those with a live ChangeOrder
+		// + Print — on a multi-tick drag that's dozens of order-modify round trips and
+		// UI-thread Print flushes within one mouse gesture, which is what made dragging feel
+		// "slow motion" (reported 2026-10-23). Debounced instead: each update just records the
+		// latest price and (re)starts a short timer; only once no further update arrives
+		// within DragSettleMs does the real recompute + single ChangeOrder + single Print fire.
+		private const int DragSettleMs = 200;
+		private System.Timers.Timer _stopDragTimer;
+		private double _pendingStopDragPrice;
+
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -147,6 +159,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				if (ChartControl != null)
 					ChartControl.Dispatcher.InvokeAsync((Action)DisposeWPFControls);
+				if (_stopDragTimer != null) { _stopDragTimer.Stop(); _stopDragTimer.Dispose(); _stopDragTimer = null; }
 			}
 		}
 
@@ -399,6 +412,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 		// stop's new price, then move the resting SEtgt order to match. Only
 		// reacts to orders still working — a filled/cancelled order can't be
 		// "moved" and nothing downstream needs recalculating from it.
+		// Debounced (see _stopDragTimer comment above) — this just records the latest
+		// dragged price and restarts a short settle timer; the actual ChangeOrder+Print
+		// happens once in ApplySettledStopDrag, only after the drag has paused.
 		protected override void OnOrderUpdate(Order order, double limitPrice, double stopPrice, int quantity,
 			int filled, double averageFillPrice, OrderState orderState, DateTime time, ErrorCode error, string comment)
 		{
@@ -407,7 +423,26 @@ namespace NinjaTrader.NinjaScript.Strategies
 			double tick = TickSize;
 			if (Math.Abs(stopPrice - _stopPx) < tick / 2) return;   // unchanged — including our own just-submitted price
 
-			_stopPx = stopPrice;
+			_pendingStopDragPrice = stopPrice;
+
+			if (_stopDragTimer == null)
+			{
+				_stopDragTimer = new System.Timers.Timer(DragSettleMs) { AutoReset = false };
+				_stopDragTimer.Elapsed += (o, e) => TriggerCustomEvent(st => ApplySettledStopDrag(), null);
+			}
+			_stopDragTimer.Stop();
+			_stopDragTimer.Start();
+		}
+
+		// Runs on the strategy's own valid thread (marshaled via TriggerCustomEvent from the
+		// timer's background thread, same mechanism this file's Chart Trader buttons already
+		// use to cross from the WPF UI thread — see CreateWPFControls' Click handlers) once
+		// the stop-drag has settled: one ChangeOrder, one Print, using whatever price was
+		// last seen, not whatever triggered the timer.
+		private void ApplySettledStopDrag()
+		{
+			double tick = TickSize;
+			_stopPx = _pendingStopDragPrice;
 			bool isLong = _dir == 1;
 			double risk = Math.Abs(Position.AveragePrice - _stopPx);
 			double newTgt = Round(isLong ? Position.AveragePrice + risk * _rMult : Position.AveragePrice - risk * _rMult);
