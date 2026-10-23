@@ -344,6 +344,14 @@ namespace NinjaTrader.NinjaScript.AddOns
         // in that incident — explicitly noted as safe — just bundled into a full revert).
         private const int EntryMergeWindowMs = 1500;
         private const int ScreenshotDelayMs = 100;
+        // Appended to every TradeID this instance generates. Running this AddOn alongside
+        // ClaudeTrackerV2.cs on the SAME account means both independently generate a TradeID
+        // for the SAME real fill from the same {instrument,entry-second,direction,counter}
+        // formula — without something to tell them apart, the second one uploaded to the
+        // Journal (Trade.id is the primary key) would silently overwrite the first instead of
+        // producing two separate, comparable rows. User's own call (2026-10-23): upload both,
+        // on purpose, specifically to compare them side by side in the live Journal.
+        private const string TradeIdSourceTag = "_ADDON";
 
         // A Strategy gets Instrument/Account/Position for free from whatever chart it's on;
         // an AddOn has none of that built in. These three stand in for them, backed by our
@@ -614,7 +622,8 @@ namespace NinjaTrader.NinjaScript.AddOns
                                   + "_" + ex.Time.ToString("yyyyMMdd", INV)
                                   + "_" + ex.Time.ToString("HHmmss", INV)
                                   + "_" + (signedQty > 0 ? "LONG" : "SHORT")
-                                  + "_T" + dailyTradeCounter.ToString(INV);
+                                  + "_T" + dailyTradeCounter.ToString(INV)
+                                  + TradeIdSourceTag;
 
             int sessionBar, sessionLastBar;
             GetBarInfo(ex.Time, out sessionBar, out sessionLastBar);
@@ -722,7 +731,8 @@ namespace NinjaTrader.NinjaScript.AddOns
                 + "_" + now.ToString("yyyyMMdd", INV)
                 + "_" + now.ToString("HHmmss", INV)
                 + "_" + (signedQty > 0 ? "LONG" : "SHORT")
-                + "_RECOVERED_T" + dailyTradeCounter.ToString(INV);
+                + "_RECOVERED_T" + dailyTradeCounter.ToString(INV)
+                + TradeIdSourceTag;
 
             int sessionBar, sessionLastBar;
             GetBarInfo(now, out sessionBar, out sessionLastBar);
