@@ -1,5 +1,33 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-23 (machine-time W. Europe, same new chat, continued once more) —
+**BreakoutBoysLiteV3 chart-lag fix, unrelated to the ClaudeTracker screenshot work above —
+different file, same session. NOT YET F5'd/tested.**
+
+User reported: running `BreakoutBoysLiteV3` and entering a trade made the whole platform go
+"slow motion" — dragging the stop or target line on the chart specifically laborsome, nothing
+smooth. Diagnosed from source, not guessed: `OnOrderUpdate` (tracks the `SEstop` order to keep
+the target a true R-multiple as the stop moves) reacted to EVERY intermediate price update NT8
+reports DURING a drag — one per tick the mouse crosses, not just one at mouse-up — with a live
+`ChangeOrder` on the target order plus a `Print`. A multi-tick drag fired dozens of order-modify
+round trips and UI-thread `Print` flushes within one mouse gesture, on the same UI thread trying
+to render the drag.
+**Fix (commit `07ab386`):** debounced. `OnOrderUpdate` now just records the latest dragged price
+and (re)starts a 200ms `System.Timers.Timer`; the real recompute + single `ChangeOrder` + single
+`Print` (moved into new `ApplySettledStopDrag()`) only fires once no further update arrives
+within that window — i.e. once the drag has actually paused. The timer callback marshals onto
+the strategy's own valid thread via `TriggerCustomEvent`, the SAME mechanism this file's own
+Chart Trader buttons already use to cross from the WPF UI thread (not a new pattern — see
+`CreateWPFControls`' `Click` handlers). Compile-checked clean alongside `BreakoutBoysLiteV1.cs`
+(shared `BBLiteStopMode`/`BBEntryKind` enums), deployed to `Custom\Strategies\`, byte-verified.
+**New chat's move if this comes up again: ask whether the user has F5'd + confirmed the lag is
+gone on a live/Sim trade with an actual stop drag** — not yet confirmed by either of us, this
+was diagnosed and fixed in one pass but the fix itself hasn't been exercised live.
+
+---
+
+**Earlier same-day history below (ClaudeTracker screenshot work, separate from the above):**
+
 **Last Updated:** 2026-10-23 (machine-time W. Europe, same new chat, continued again) — **v2
 fix (title match) deployed + F5'd + tested live — screenshots FINALLY saved to disk (first
 real wins: `10-23_Fri_T1_ADDON_LONG_0936_*.png`, trade folder + Screenshots_MASTER both
