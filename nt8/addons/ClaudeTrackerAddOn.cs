@@ -19,22 +19,28 @@
 // own Events.csv) that caused the 2026-10-22 live incident was deliberately NOT carried
 // over here — starting from the simpler, longer-proven-stable baseline on purpose.
 //
-// WHAT THIS DOES DROP vs the Strategy version (both deliberate, not oversights):
-//   1. Auto screenshot capture — needs a ChartControl, which a Strategy gets for free from
-//      whatever chart it's dropped on and an AddOn does not have at all. Finding an open
-//      chart window from an AddOn is possible but unproven in this codebase (the ONE other
-//      place this repo touched cross-thread chart access from an unexpected context caused
-//      this exact kind of disable, per the comment above) — not worth the risk for a v1.
-//      RequestScreenshot() below is kept as a no-op stub so every call site elsewhere in
-//      this file didn't need touching. The Journal app already has a manual "+ Add
-//      screenshot (recorder missed one)" upload for exactly this gap.
-//   2. Bar/session-bar tracking (SessionBar, BarsHeld, bar-based MAE/MFE) — a Strategy gets
-//      bars for free from its chart; an AddOn has none. MAE/MFE now tracks off live tick
-//      prices (MarketData.Last) instead of bar High/Low — arguably more accurate, not less.
-//      GetBarInfo() is kept as a stub always returning -1 so the many call sites that
-//      already handle "-1 = unknown" (the Strategy version's own graceful-degradation path
-//      when sessionIterator isn't ready) didn't need touching either.
-//   3. Multi-chart ownership arbitration — not applicable, an AddOn loads once.
+// SCREENSHOTS: kept, not dropped. RequestScreenshot() finds an open chart showing the
+// tracked instrument via TWO dispatcher hops — Application.Current.Dispatcher to safely
+// enumerate Application.Current.Windows, then that specific chart WINDOW's own Dispatcher
+// (confirmed via reflection against NinjaTrader.Gui.dll: Chart.ActiveChartControl.Instrument
+// identifies it, Chart.Dispatcher is its own UI thread, Chart.GetScreenshot(ShareScreenshotType)
+// is the same call the Strategy version used) to actually call GetScreenshot(). The
+// Strategy-side crash this file originally cited (2026-10-16) was a SINGLE wrong-thread hop —
+// touching a different chart's window from inside another chart's own dispatcher without ever
+// jumping to the target's. This never does that: every touch of a given window happens only on
+// that window's own dispatcher. Real limitation, not a threading one: no chart open showing the
+// tracked instrument = no screenshot that cycle (logged, not fatal) — the Journal app's manual
+// "+ Add screenshot" upload is the fallback for exactly that case.
+//
+// WHAT THIS DOES DROP vs the Strategy version (deliberate, not an oversight):
+//   Bar/session-bar tracking (SessionBar, BarsHeld, bar-based MAE/MFE) — a Strategy gets bars
+//   for free from its chart; an AddOn has none. MAE/MFE now tracks off live tick prices
+//   (MarketData.Last) instead of bar High/Low — arguably more accurate, not less. GetBarInfo()
+//   is kept as a stub always returning -1 so the many call sites that already handle "-1 =
+//   unknown" (the Strategy version's own graceful-degradation path when sessionIterator wasn't
+//   ready) didn't need touching. Multi-chart ownership arbitration is also gone — not dropped
+//   functionality, just not applicable: an AddOn loads once, there's no second instance to
+//   arbitrate against.
 //
 // CONFIG (the one manual step per machine, same convention as L1TapeRecorderAddOn's
 // contract-roll const): set AccountName below to the live/sim account THIS copy should
@@ -56,6 +62,9 @@ using NinjaTrader.Cbi;
 using NinjaTrader.Data;
 using System.Globalization;
 using NinjaTrader.NinjaScript;
+using NinjaTrader.Gui.Chart;
+using System.Windows;
+using System.Windows.Media.Imaging;
 #endregion
 
 namespace NinjaTrader.NinjaScript.AddOns
@@ -326,6 +335,7 @@ namespace NinjaTrader.NinjaScript.AddOns
         // reverted out of the Strategy version on 2026-10-22 (not because it was implicated
         // in that incident — explicitly noted as safe — just bundled into a full revert).
         private const int EntryMergeWindowMs = 1500;
+        private const int ScreenshotDelayMs = 100;
 
         // A Strategy gets Instrument/Account/Position for free from whatever chart it's on;
         // an AddOn has none of that built in. These three stand in for them, backed by our
@@ -1519,13 +1529,75 @@ if (name.StartsWith("TARGET"))
 
         #region Screenshot
 
-        // Deliberately a no-op — see the file header's "WHAT THIS DOES DROP" note. Kept as a
-        // real method (not deleted) so every call site elsewhere in this file — all ported
-        // unchanged from the Strategy version — didn't need touching. The Journal app's
-        // manual "+ Add screenshot" upload covers this gap until/unless a chart-window
-        // lookup gets proven safe from an AddOn context.
+        // An AddOn has no ChartControl of its own (unlike a Strategy, which gets one for free
+        // from whatever chart it's dropped on) — this finds one. The Strategy version's old
+        // crash (2026-10-16, see the file header) came from touching a DIFFERENT chart's
+        // window from the WRONG thread in a single hop. The fix is two hops, each onto the
+        // thread that actually owns the object being touched:
+        //   1. Application.Current.Dispatcher — the only thread allowed to enumerate
+        //      Application.Current.Windows at all.
+        //   2. targetChart.Dispatcher — NT8 gives each chart WINDOW its own UI thread; the
+        //      screenshot call itself has to happen on THAT window's thread, not whichever
+        //      thread found it.
+        // No chart open for the tracked instrument = no screenshot, logged, not a crash.
         private void RequestScreenshot(string label, DateTime time, string tradeId, DateTime tradeTime)
         {
+            if (instrument == null) return;
+            try
+            {
+                string fileName   = TradeFileStem(tradeId, tradeTime) + "_" + label + ".png";
+                string tradeDir   = EnsureTradeFolder(tradeId, tradeTime);
+                string masterDir  = EnsureMasterScreenshotsFolder(tradeTime);
+                string tradePath  = Path.Combine(tradeDir, fileName);
+                string masterPath = Path.Combine(masterDir, fileName);
+                string wantFullName = instrument.FullName;
+
+                Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    try
+                    {
+                        Chart targetChart = null;
+                        foreach (Window w in Application.Current.Windows)
+                        {
+                            Chart cw = w as Chart;
+                            if (cw == null || !cw.HasActiveChart || cw.ActiveChartControl == null) continue;
+                            if (cw.ActiveChartControl.Instrument == null) continue;
+                            if (cw.ActiveChartControl.Instrument.FullName != wantFullName) continue;
+                            targetChart = cw;
+                            break;
+                        }
+                        if (targetChart == null)
+                        {
+                            Log("[ClaudeTrackerAddOn] Screenshot: no open chart showing " + wantFullName + " — skipped", LogLevel.Warning);
+                            return;
+                        }
+
+                        targetChart.Dispatcher.InvokeAsync(async () =>
+                        {
+                            try
+                            {
+                                await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
+
+                                RenderTargetBitmap sc = targetChart.GetScreenshot(ShareScreenshotType.Chart);
+                                if (sc == null) { Log("[ClaudeTrackerAddOn] Screenshot: null capture", LogLevel.Warning); return; }
+
+                                PngBitmapEncoder e1 = new PngBitmapEncoder();
+                                e1.Frames.Add(BitmapFrame.Create(sc));
+                                using (Stream s = File.Create(tradePath)) e1.Save(s);
+
+                                PngBitmapEncoder e2 = new PngBitmapEncoder();
+                                e2.Frames.Add(BitmapFrame.Create(sc));
+                                using (Stream s = File.Create(masterPath)) e2.Save(s);
+
+                                DebugPrint("Screenshot saved: " + fileName);
+                            }
+                            catch (Exception ex) { Log("[ClaudeTrackerAddOn] Screenshot capture failed: " + ex.Message, LogLevel.Error); }
+                        });
+                    }
+                    catch (Exception ex) { Log("[ClaudeTrackerAddOn] Screenshot window-lookup failed: " + ex.Message, LogLevel.Error); }
+                });
+            }
+            catch (Exception ex) { Log("[ClaudeTrackerAddOn] Screenshot request failed: " + ex.Message, LogLevel.Error); }
         }
 
         #endregion
