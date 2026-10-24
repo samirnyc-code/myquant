@@ -52,7 +52,8 @@ in this same subfolder, so that constraint still holds).
 | `PriorWeekOHLCV4.cs` | Prior-week O/H/L/C — custom SharpDX render (per-print-bar start anchoring, extend-right offset, centered labels, PWO LABELS Chart Trader button, own `PWOLineStyle` enum so no cross-file dependency). Works on intraday + Daily. Also kept REGION-LESS (same NT8 bug). Renamed V1→V4; V4 is canonical. | ⚠ untested (F5 pending) |
 | `CVDDivergenceOscillator.cs` | Standalone NT8 port of TradingView's TradingFinder "Cumulative Volume Delta Divergence Periodic EMA" — bar-proxy CVD (rolling-sum Periodic or EMA mode) + fixed-lookback fractal regular divergence (trend-EMA filtered). Deliberately kept separate from `CumulativeDelta.cs`'s own tick-level live-zigzag divergence feature so the two can be compared. Omits Pine's Forex/Crypto multi-broker "Ultra Data" volume sum (no NT8 equivalent on a single CME feed) — see file header for full list of documented deviations from the Pine source. Compile-checked clean 2026-10-18 | ✅ current, F5 pending |
 | `ZerolagExporter.cs` | Exports ZLO state to CSV for BA overlay (S31) | ❌ LOST — not committed |
-| `AlwaysIn.cs` | Exports AlwaysIn regime state to CSV (S36) | ❌ LOST — not committed |
+| `AlwaysIn.cs` | Logan "Always In" regime port: EMA(20) + zscore-of-range big-bar trigger + 2-consecutive-closes trigger → +1/-1 direction; green/red ribbon subpanel, flip-bar racing stripes, CSV export (`EmaFast,Mid,ZScore` — matches the old S36 export this entry used to say was lost). Recovered 2026-10-24 from the live NT8 Custom folder — was never actually committed until now | ✅ current (recovered 2026-10-24) |
+| `AlwaysInHtfEma.cs` | EMA(20) plotted on the primary **tick** series, colored by Always-In state derived from the **5-min** series: N consecutive 5-min closes above/below the tick EMA flips state (default N=2), plus an optional "strong breakout" override (5-min body > multiplier × tick ABR, or the opening gap, closing through both the EMA and its own open). Multi-series (`AddDataSeries(Minute, 5)` on a tick chart). Recovered 2026-10-24 from the live NT8 Custom folder — was never committed, not previously in this README | ✅ current (recovered 2026-10-24) |
 | `QSSignalOverlay.cs` | Overlays Python-generated QS signals on chart (S41) | ❌ LOST — not committed |
 
 ### strategies/
@@ -93,20 +94,19 @@ always named `.cs` regardless of deployed state — this table is the source of 
 
 ## ❌ Lost files
 
-Three indicator/strategy files were written and compiled in NT8 but never committed.
-They need to be recreated:
+Two indicator/strategy files were written and compiled in NT8 but never committed.
+They need to be recreated. (`AlwaysIn.cs` and `AlwaysInHtfEma.cs` were ALSO missing from
+the repo under this same failure mode — recovered 2026-10-24 from the live NT8 Custom
+folder, see the indicators/ table above; removed from this list.)
 
 1. **`ZerolagExporter.cs`** (S31) — exports `MCVolumeExport/ZLO_State.csv` with columns
    `BarTime, BaseTrend, TrendState, Oscillator`. Wired into BA overlay.
 
-2. **`AlwaysIn.cs`** (S36) — exports `MCVolumeExport/AlwaysIn_State.csv` with columns
-   `Event, BarTime, BarNum, NewDir, O, H, L, C, EmaFast, Mid, ZScore`.
-
-3. **`QSSignalOverlay.cs`** (S41) — reads `qs_signals_{tag}.csv` from the NT8 user
+2. **`QSSignalOverlay.cs`** (S41) — reads `qs_signals_{tag}.csv` from the NT8 user
    directory, overlays Python-generated QS breakout signals on the chart. Format:
    `DateTime(yyyyMMdd HHmmss), Dir(L/S), Type, Status, Price, Stop, BarNum`.
 
-4. **`MCBreakout.cs`** (S32) — MC breakout strategy with pyramiding (N concurrent/dir)
+3. **`MCBreakout.cs`** (S32) — MC breakout strategy with pyramiding (N concurrent/dir)
    and ratchet-lock fix. Was in NT8 Indicators folder.
 
 ## Workflow rule
