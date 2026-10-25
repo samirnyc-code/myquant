@@ -58,6 +58,41 @@ covered it (same 3 tasks, among the 13) — blocked by the harness's own Bash pe
 classifier on scheduled-task modification regardless of user's "just fix it" instruction;
 not worked around. Turned out moot once the concurrent fix was found and verified live.
 
+**Same chat, continued — the two "flagged only" items above are now also fixed (commits
+`1d981805`, `2bad929f`).** User asked to go ahead on both after I explained them in plain
+terms.
+
+- **Gateway Login**: wrapped in `run_at_ct.py --at 05:30`, given two triggers (11:30/12:30
+  Berlin) matching the pattern used on the other 13. Verified live: next run lands on 05:30
+  CT exactly.
+- **Two live incidents hit while building this, both caught before being reported as done**:
+  (1) first attempt anchored new triggers on a FUTURE date (`2026-11-10`) — this doesn't just
+  dodge the DST fold, it suppresses every occurrence before that date, which would have
+  silently stopped all 14 tasks (the original 13 + Gateway Login) from firing until Nov 10.
+  Caught by re-checking `NextRunTime` after applying, not by assuming the fix worked. (2)
+  second attempt anchored on YESTERDAY to dodge the fold — yesterday was still CEST, so the
+  trigger baked in the wrong UTC offset and every future occurrence landed 1h off from what
+  was asked. Final fix: anchor on **today** for everything (today's offset is what every
+  future Mon-Fri occurrence should carry), and only `Evening Brief` — whose 01:05/02:05 sits
+  inside today's actual fall-back fold hour — anchors on **tomorrow** instead (same offset,
+  clear of the fold). Re-verified all 14 against intended CT target: all exact matches, and a
+  forward projection onto Nov 3 confirms the second trigger of each pair is the one that
+  takes over once US DST ends.
+- **Stale scripts reconciled**: `scripts/schedule_options_tasks.ps1` and
+  `scripts/schedule_gateway_login.ps1` now register the same dual-trigger +
+  `run_at_ct.py`-wrapped pattern as `scripts/fix_dst_dual_triggers.ps1`, so re-running either
+  one in the future reproduces the live DST-safe state instead of clobbering it back to a
+  single unsafe trigger. **Not executed live** — only the file content changed; live state
+  was already correct. Parse-checked both, no syntax errors. Left unresolved on purpose:
+  `schedule_options_tasks.ps1`'s "Gameplan" entry is a different, currently-Disabled task
+  from the live "Gameplan Early" (different args/log file) — not merged, just flagged in the
+  script's own comments, since which one is the real current intent wasn't verified here.
+  Gateway Watchdog (disabled live) left on its existing single-trigger design.
+
+**All DST/clock-change work for today is now closed out** — 14 scheduled tasks fixed +
+verified, 2 manual scripts fixed (other chat), 2 registration scripts reconciled. Nothing
+outstanding that either chat flagged.
+
 ---
 
 **Earlier history below:**
