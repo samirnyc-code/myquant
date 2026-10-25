@@ -1,5 +1,48 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-25 (machine-time W. Europe, Germany's clocks fell back today) —
+**DST dual-trigger gap found + fixed across 13 Scheduled Tasks (commit `8f2dcc01`,
+`scripts/fix_dst_dual_triggers.ps1`).** User asked what the German clock change (Oct 25,
+CEST→CET) breaks across mission-control/options-sim. US DST doesn't end until Nov 1 2026,
+so Berlin-Chicago is 6h (not the normal 7h) through Oct 31 — this is the same twice-a-year
+mismatch `scripts/run_at_ct.py` already documents. Verified every "MyQuant*" task's real
+`NextRunTime` converted to America/Chicago: **nothing was broken today**, but found two
+real bugs that would have broken things starting **Mon Nov 2** (once US DST ends and the
+offset reverts to 7h):
+
+1. `MyQuant Dashboard` / `Gateway Ensure` / `L1 Rollover` already carried two Task Scheduler
+   triggers, but the second was 1h on the **wrong side** of the primary (e.g. Dashboard:
+   14:25 and 13:25 Berlin for an 08:25 CT target — 13:25 never maps to 08:25 CT at any real
+   offset). Not an actual DST fix, just dead weight.
+2. `Chain Recorder`, `Deadman 0832`, `Evening Brief`, `Gameplan Early`, `Trigger Daemon`,
+   `Shadow Stop Monitor` had only ONE trigger (correct this week, would silently no-op via
+   `run_at_ct.py`'s ±25min window from Nov 2). `EOD Report`, `Postmortem`, `Spot Feed`,
+   `Marks Watch` had one trigger and **no `run_at_ct.py` guard at all** (would have just run
+   an hour early, unprotected).
+**Fix applied + verified live:** every one of the 13 now has two triggers exactly 1h apart
+(CT-target+6h and CT-target+7h), the 4 unguarded ones got wrapped in `run_at_ct.py` to match.
+Permanent — self-corrects every DST boundary from now on, no more twice-a-year manual touch.
+One registration quirk hit along the way: `Evening Brief`'s first attempt anchored the
+trigger date on Oct 25 itself (the actual fall-back day), landing inside the fold hour and
+silently shifting 01:05→00:05; fixed by re-anchoring the trigger to a non-fold date (Nov 3).
+
+**Two things found but NOT fixed (flagged only):**
+
+- `MyQuant Gateway Login`'s live action has **no `run_at_ct.py` wrapper**, contradicting what
+  `scripts/schedule_gateway_login.ps1` says it should have. Currently fires at 06:00 CT, not
+  its documented 05:30 CT target (pre-existing drift, unrelated to today's clock change) —
+  will become ~05:00 CT after Nov 2. Needs the same dual-trigger+wrap treatment, or a
+  deliberate decision that 05:30 isn't the real target anymore.
+- `scripts/schedule_options_tasks.ps1` (checked into the repo) doesn't match what's actually
+  registered live — it has no dual-trigger/`run_at_ct` logic at all, yet several live tasks
+  do. The repo script is stale versus whatever actually last touched these tasks; whoever
+  picks up the Gateway Login item should reconcile this too so the committed script reflects
+  reality again.
+
+---
+
+**Earlier history below:**
+
 **Last Updated:** 2026-10-23 (machine-time W. Europe, same new chat, continued yet again) —
 **USER DECISION: `ClaudeTrackerV2` (the Strategy) is RETIRED, effective now. Only
 `ClaudeTrackerAddOn` is to be used/trusted going forward.** Trigger: live incident same
