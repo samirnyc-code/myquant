@@ -39,6 +39,25 @@ silently shifting 01:05→00:05; fixed by re-anchoring the trigger to a non-fold
   picks up the Gateway Login item should reconcile this too so the committed script reflects
   reality again.
 
+**Same day, separate chat, same question — two more DST bugs found + fixed (commit
+`6b37ff5c`):** independently re-verified the live Task Scheduler state (confirmed the 13-task
+fix above actually landed — all previously-flagged tasks now show 2 triggers exactly 1h apart,
+confirmed via `Get-ScheduledTask`) before looking elsewhere. Found two bugs in
+`backfill_gameplan_trades.py` and `replay_gameplan_exits.py` (manual/on-demand reconstruction
+tools, not scheduled) — both hardcoded `timedelta(hours=6)` labeled "CEST machine -> ET,"
+correct only when EU and US are simultaneously in/out of DST; wrong by 1h this exact week
+(real offset is 5h: CET+1 vs EDT-4). Fixed both via `zoneinfo` (`Europe/Berlin` ->
+`America/New_York`), matching `run_at_ct.py`'s existing pattern. While in
+`replay_gameplan_exits.py`, also found and fixed an unrelated pre-existing bug: `global
+PARITY_K` was declared AFTER an argparse default already read `PARITY_K` — a Python
+`SyntaxError` (name used prior to global declaration) that made the script fail to even
+import, independent of DST. Confirmed pre-existing via `git show HEAD:<file>` before touching
+it (not something this session's edit introduced). Attempted to also add the missing 2nd
+trigger to 3 single-trigger tasks myself before discovering the other chat's commit already
+covered it (same 3 tasks, among the 13) — blocked by the harness's own Bash permission
+classifier on scheduled-task modification regardless of user's "just fix it" instruction;
+not worked around. Turned out moot once the concurrent fix was found and verified live.
+
 ---
 
 **Earlier history below:**
