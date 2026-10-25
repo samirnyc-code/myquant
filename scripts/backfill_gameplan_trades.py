@@ -62,8 +62,12 @@ def main():
 
     gp = json.loads((ROOT / "data" / "options_sim" / f"gameplan_{a.date}.json").read_text())
     hh, mm = a.entry_ct.split(":")
-    et_entry = f"{int(hh)+1:02d}:{mm}:00"                       # CT -> ET (+1h, Sep)
-    et_now = (dt.datetime.now() - dt.timedelta(hours=6)).strftime("%H:%M:%S")  # CEST machine -> ET
+    et_entry = f"{int(hh)+1:02d}:{mm}:00"                       # CT -> ET (always +1h, same US DST schedule)
+    # Machine clock -> ET via IANA zones, not a hardcoded offset: Europe/Berlin and
+    # America/New_York change DST on different dates (~1wk Oct/Nov, ~3wk March), so a fixed
+    # "6 hours" is only correct when both sides are in or out of DST simultaneously.
+    from zoneinfo import ZoneInfo
+    et_now = dt.datetime.now(ZoneInfo("Europe/Berlin")).astimezone(ZoneInfo("America/New_York")).strftime("%H:%M:%S")
 
     verts = []
     for t in gp.get("triggers", []):

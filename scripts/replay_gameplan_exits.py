@@ -66,6 +66,8 @@ def _at(expiry, strike, right, et_hms):
 
 
 def main():
+    global PARITY_K  # must precede any use of PARITY_K in this function, including the
+                      # argparse default below — Python raises SyntaxError otherwise
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", default="20260921")
     ap.add_argument("--entry-et", default="09:31")   # 08:31 CT open (not_before 08:30)
@@ -74,7 +76,6 @@ def main():
                     help="strike with both a C and P in that day's plan, for parity spot")
     a = ap.parse_args()
     exp = a.date
-    global PARITY_K
     PARITY_K = a.parity_k
 
     cache = {}
@@ -91,7 +92,13 @@ def main():
         return None if (c is None or p is None) else PARITY_K + (c - p)
 
     # time grid: entry -> min(15:45 ET time-stop, now ET)
-    et_now = (dt.datetime.now() - dt.timedelta(hours=6))
+    # Machine clock -> ET via IANA zones, not a hardcoded offset: Europe/Berlin and
+    # America/New_York change DST on different dates (~1wk Oct/Nov, ~3wk March), so a fixed
+    # "6 hours" is only correct when both sides are in or out of DST simultaneously. Stripped
+    # back to naive (date/time fields only) since every downstream use here (.replace(),
+    # arithmetic against other naive datetimes) assumes a naive ET wall-clock value.
+    from zoneinfo import ZoneInfo
+    et_now = dt.datetime.now(ZoneInfo("Europe/Berlin")).astimezone(ZoneInfo("America/New_York")).replace(tzinfo=None)
     hh, mm = map(int, a.entry_et.split(":"))
     t0 = et_now.replace(hour=hh, minute=mm, second=0, microsecond=0)
     ts_h, ts_m = map(int, TIME_STOP_CT.split(":"))
