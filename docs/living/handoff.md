@@ -1,5 +1,49 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-25 — **NEW NT8 S/R zone drawing tool `SuperZones` + companion
+`SuperZoneStats` indicator — PAUSED mid-build, user exhausted, touch-count still wrong.**
+Built from a request for a custom open-ended-right S/R zone tool (2 clicks: top, bottom, left
+edge; extends to current chart edge). Recovered `SuperZones.cs` first — it existed ONLY on the
+NT8 machine, never committed (hard-rule violation from an earlier session), already had
+label/color-by-type/midline/fill from prior work. This session's build, in order of what broke:
+1. Added `IsOpen` open-ended-right mode — worked, but then the tool drew nothing at all.
+2. Root cause #1: a custom `ZoneBuildDone` property (plus `ZoneStartTimeTicks`/
+   `ZoneTopPrice`/etc.) could be externally set via NT8's "reapply last-used property values to
+   a new instance" mechanism — a stale "already built" value leaked onto every fresh zone,
+   skipping build mode entirely. Patched by no-op'ing the setters — **this broke editing**:
+   relabeling/reloading a zone now lost its geometry (setters blocked legitimate restores too).
+3. Tried gating on `StartAnchor.IsNinjaScriptDrawn` (framework flag) instead, decided once at
+   `State.Active` — confirmed via diagnostic prints that this fires too early in the lifecycle
+   to be trusted (reads False even when it should eventually be True), so relabel/reload still
+   broke.
+4. **Full rewrite** (not a patch): removed ALL custom serialized build/geometry state
+   (`ZoneBuildDone`, `ZoneStartTimeTicks`, `isBuilding`, `SyncAnchors`, the whole Session
+   region) and rebuilt the interaction directly on `StartAnchor`/`EndAnchor` + their
+   `IsEditing` flag, mirroring `RiskRewardPro` (same `DrawingTool` base, works daily, no
+   custom state layer). **User confirmed this fixed draw + relabel + reload.**
+5. Companion `SuperZoneStats.cs` indicator (new, `nt8/indicators/`): counts touches + sums
+   volume per zone, writes into the zone's own `StatsText` (zone renders it, indicator never
+   draws). Went through several real bugs: (a) discovery tied only to `OnBarUpdate`/
+   `Calculate.OnBarClose` meant a zone drawn on a Daily chart got no stats until the next day's
+   bar closed — added a paint-free `OnRender` discovery pass too; (b) that introduced a
+   `barsAgo` index into the indicator's own `High[]/Low[]/Volume[]` series, which isn't a safe
+   bound when called from `OnRender` (confirmed via a real `ArgumentOutOfRangeException` in
+   NinjaScript Output, thrown on every single backfill attempt — this is why touches were
+   always 0, not a logic bug) — fixed by reading via `Bars.GetHigh(idx)`/`GetLow`/`GetVolume`
+   (absolute index into the underlying data series) instead.
+6. **Separately, mid-session, an unthrottled diagnostic `Print()` inside `OnRender` froze
+   NinjaTrader** (Output can't keep up with a per-frame print flood) — user had to force-close.
+   Lesson applied for the rest of the session: nothing in `OnRender`'s path prints more than
+   once (see the `PrintOnce`/`loggedOnce` pattern in both files) — do not regress this.
+**STOPPED HERE, not resumed-without-asking:** user's last message says touch-COUNTING is still
+wrong (not zero anymore, but not matching their manual count) and explicitly asked to pause.
+The `Bars.GetHigh/GetLow/GetVolume` fix (point 5b) was deployed but not yet verified by the
+user against a real touch count — that's the next thing to check, not a new theory. Read the
+full session transcript before touching either file again; do not re-introduce a custom
+build-state property on `SuperZones` no matter how convenient it looks — that exact pattern
+broke the tool three times in this session. Files: `nt8/drawingtools/SuperZones.cs`,
+`nt8/indicators/SuperZoneStats.cs` — both committed+pushed this session.
+
 **Last Updated:** 2026-10-25 (machine-time W. Europe, Germany's clocks fell back today) —
 **DST dual-trigger gap found + fixed across 13 Scheduled Tasks (commit `8f2dcc01`,
 `scripts/fix_dst_dual_triggers.ps1`).** User asked what the German clock change (Oct 25,
@@ -92,6 +136,35 @@ terms.
 **All DST/clock-change work for today is now closed out** — 14 scheduled tasks fixed +
 verified, 2 manual scripts fixed (other chat), 2 registration scripts reconciled. Nothing
 outstanding that either chat flagged.
+
+**Same day, separate chat, unrelated incident — Mission Control was down + IB Gateway hit a
+real mid-session re-login failure, both found + resolved.**
+
+1. **Mission Control (`scripts/launcher.py`, :8590) was simply not running** — no process, no
+   port listener, nothing scheduled auto-starts it (it's a manually-run tool, unlike the
+   dashboards it manages). Not a crash, just off. Restarted
+   (`.venv/Scripts/pythonw.exe scripts/launcher.py`); confirmed the normal two-process pair is
+   up and both `/` and `/timeline` respond 200.
+2. **IB Gateway (paper account) crashed at 20:51 CET tonight**, found while the user was
+   separately asked "are we all set for tonight" and the health sweep turned up `IB gateway:
+   idle` — investigated further on the user reporting they'd seen an error. Root cause from
+   `C:\IBC\Logs\IBC-3.24.1_GATEWAY-1045_.txt`: IBKR forced a **mid-session** re-login (not a
+   fresh cold start — Gateway had been up unattended since Fri 10/23); IBC's auto-relogin
+   handler submitted the stored `config.ini` credentials into that specific re-login dialog
+   flow and got **"Unrecognized Username or Password" 12 times in a row**, then gave up and
+   shut down cleanly. First occurrence of this error in any saved log (checked back to
+   August) — not a recurring pattern, not a changed password (`config.ini` untouched since
+   Sep 4). **Fix:** a plain fresh launch (`C:\IBC\StartGateway.bat`, no `/INLINE` so the
+   window actually shows) — the COLD-START login flow worked fine with the same stored
+   credentials, reached `IBKR Gateway` main window, confirmed API port 4002, and
+   `pipeline_health.check_gateway` is back to `ok`. **Open risk, not fixed**: IBC's
+   mid-session re-login handling is the thing that's actually broken, and nothing currently
+   watches for it recurring — `MyQuant Gateway Watchdog` has been Disabled since 8/11. If
+   IBKR forces another mid-session re-login while unattended, Gateway will silently go down
+   again with no page/alert, same as tonight, and need the same manual kill+cold-restart.
+   Not fixed in this session; flagged only, since fixing it means wiring the watchdog back up
+   (or replacing its stuck NOT-ready-retry logic) and that's a deliberate design choice, not a
+   quick patch.
 
 ---
 
@@ -3396,6 +3469,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 
 | # | workstream | status | next action |
 |---|---|---|---|
+| 26 | **NT8 `SuperZones` S/R zone drawing tool + `SuperZoneStats` touch/volume indicator** | 🛑 PAUSED (2026-10-25, user exhausted) | Draw/relabel/reload all confirmed working after a full rewrite onto `StartAnchor`/`EndAnchor` (no custom serialized build-state — that pattern broke it 3x, do not reintroduce it). Touch-counting still wrong per user's last message; a real `Bars.GetHigh/GetLow/GetVolume` indexer fix was just deployed but NOT YET verified against an actual manual count. Read the top-of-file 2026-10-25 block in full before resuming — do not re-theorize, verify the deployed fix first. |
 | 25 | **PATsProfile.cs — VP/TPO indicator rewrite (developing VA, VWAP, historical sessions, toolbar buttons)** | 🟡 PENDING USER F5 (this chat, 2026-10-20) | Removed TPO entirely (VP-only now). Built: tick-accurate live VP via `OnMarketData`; developing (per-bar) VA staircase for today + N historical sessions (`DevHistSessions`, archived per-session in `devHistBySession`); prior-session VA projection generalized to every shown session (was today-only); RTH-anchored IB generalized to every shown session too; session VWAP+SD bands (built then set `ShowVWAP=false` by default — user is using Lizard Trader's VWAP instead, code left dormant); 4 chart-toolbar buttons via `chartWindow.MainMenu.Add()` (VP=master kill, VA=toggles PRIOR/historical sessions' band+stepline specifically — NOT today's own, Stair=stairstep vs flat-current-level toggle, Hist=`DevHistSessions` 0⇄last-value, Lbl=`ShowLabels`); native `Stroke`-typed `DevVaStroke`/`DevPocStroke` properties (color+width+dash+opacity in one NT8 dialog control, pattern from `nt8/vendor/ntlambda/.../NTLAnchoredVwap.cs`) for the developing VA/POC lines. Also fixed a real off-by-one (archived historical sessions were one bar short of their own close) and a VWAP NaN-gate bug (one bad point could kill a whole session's VWAP line). Persisted `nt8/vendor/ab/MyABToolbarButtons.cs` (was only on the NT8 machine — hard-rule violation, fixed). **Nothing in this row has been F5-verified by me.** Full narrative in the block(s) at/near the top of this file dated 2026-10-20. |
 | 24 | **NT8 order-flow build: Bid/Ask Delta+Split, CVD live divergence, SessionSRLevelsV10 POC/VA, L1 recorder restart** | 🟡 PENDING USER F5 (S143 2026-10-18); VP log backfilled (S145 2026-10-18); **bid/ask + CVD plots backfilled (S146 2026-10-19)** | User is compiling live now as ETH opens. Watch for: `DrawOnPricePanel` actually routing CVD divergence lines to the price panel (unverified mechanism); label overlap if divergences cluster (no de-collision yet); `ReversalTicks` default (8t/2pt) likely too sensitive for the usual 16t/4pt Flex Renko box — raise it there; V9.cs must stay deployed alongside V10.cs (shared `LevelLineStyle` enum). S145: `data/vp_levels/session_vp_live_log.csv` backfilled 21 real days via `scripts/backfill_vp_log.py`. **S146: `BidAskVolumeRatio.cs`/`BidAskVolumeDelta.cs`/`BidAskVolumeSplit.cs`/`CumulativeDelta.cs` all now fall back to `data/bid_ask/bid_ask_vol_buckets.csv` (new `scripts/backfill_bid_ask_log.py`, 1-sec buckets off the L1 tape's `Aggr` tag) for any bar with no live tick data — reloading no longer loses the plot. Also fixed a real LightGray-on-dark-background invisible-bar bug in Delta/Split's down-color defaults (→ Firebrick). CVD Oscillator's "turn off labels, keep lines" ask already existed (`ShowLabels` property) — nothing built, just pointed at it. S146 later (2026-10-20, separate chat): fixed write-race/TOCTOU CSV corruption (atomic write + cross-process lock, see block below) AND separately a one-shot-load bug — all 4 indicators only ever read the bucket file once at `State.DataLoaded`, so the cursor ran out and flatlined forever regardless of later backfill refreshes; now re-checked every bar (throttled 30s) with a timestamp-based cursor reseek. Compiled+deployed+byte-verified, committed `c47ac9a`.** User still needs to F5. See S143 + S145 + S146 blocks. |
 | 1 | 0DTE live desk (paper) | 🟢 RUNNING | trades daily; just watch the book |

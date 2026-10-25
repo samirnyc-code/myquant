@@ -3,17 +3,29 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Xml.Serialization;
-using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
-using NinjaTrader.Data;
 #endregion
 
+// S/R zone drawing tool. Two clicks place it: the first click sets the left edge (time) and
+// one price corner, the second sets the opposite price corner — the zone then extends to the
+// current right edge of the chart (IsOpen) instead of being bounded on both sides.
+//
+// Geometry and "is this zone actually placed" both come directly from StartAnchor/EndAnchor —
+// deliberately NOT from any custom serialized property. Earlier versions duplicated the
+// anchors' data into private fields (zoneStartTime, zoneTopPrice, isBuilding, ZoneBuildDone...)
+// and every bug this tool has had (wouldn't draw, froze the UI, vanished on relabel, vanished
+// on reload) traced back to that duplication: NT8 reapplies "last-used" property values to
+// fresh instances for convenience properties, and our custom properties/flags were just as
+// exposed to that as any Display-visible one, which is exactly wrong for state that represents
+// "has this specific zone actually been placed." RiskRewardPro (NinjaTrader.Custom, used daily
+// without any of these problems) is built on DrawingTool the same way and sidesteps all of it
+// by only ever reading/writing the anchors themselves and their IsEditing flag — this file
+// mirrors that pattern instead of inventing a parallel one.
 namespace NinjaTrader.NinjaScript.DrawingTools
 {
 	public enum SuperZoneLabelType
@@ -43,44 +55,39 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 
 	public class SuperZones : DrawingTool
 	{
-		private enum DragHandle { None, TopLeft, TopRight, BottomLeft, BottomRight, Body }
+		private const double cursorSensitivity = 15;
 
-		private const double Hit = 12;
+		private ChartAnchor	editingAnchor;
+		private int				areaOpacity			= 20;
+		private Brush			areaBrush;
+		private DeviceBrush		areaBrushDevice		= new DeviceBrush();
+		private int				outlineOpacity		= 100;
+		private DeviceBrush		outlineBrushDevice	= new DeviceBrush();
+		private Brush			labelBrushField;
+		private DeviceBrush		labelBrushDevice	= new DeviceBrush();
+		private Brush			midLineBrushField;
+		private DeviceBrush		midLineBrushDevice	= new DeviceBrush();
 
-		// ── Zone bounds (computed from snap + extend) ─────────────────────
-		private DateTime	zoneStartTime		= DateTime.MinValue;
-		private DateTime	zoneEndTime			= DateTime.MinValue;
-		private double		zoneTopPrice		= double.NaN;
-		private double		zoneBotPrice		= double.NaN;
+		// One-shot error logging — OnRender runs on every chart repaint, so any Print() in its
+		// path MUST be throttled or a persistent error floods the Output window fast enough to
+		// freeze the UI thread (this happened once already from an unthrottled diagnostic print).
+		private readonly HashSet<string> loggedOnce = new HashSet<string>();
+		private void PrintOnce(string key, string msg)
+		{
+			if (loggedOnce.Contains(key)) return;
+			loggedOnce.Add(key);
+			try { Print(msg); } catch {}
+		}
 
-		// ── Original snap session — base for extend calculations ──────────
-		private DateTime	snapSessionStart	= DateTime.MinValue;
-		private DateTime	snapSessionEnd		= DateTime.MinValue;
+		// Cached DirectWrite/Stroke objects — rebuilt only when their inputs change, not on
+		// every OnRender call.
+		private SharpDX.DirectWrite.TextFormat	cachedTextFormat;
+		private SharpDX.DirectWrite.TextLayout	cachedTextLayout;
+		private string							cachedLabelText		= null;
+		private int								cachedFontSize		= -1;
+		private float							cachedLayoutWidth	= -1f;
+		private readonly Stroke				midLineStroke		= new Stroke();
 
-		// ── Build state ───────────────────────────────────────────────────
-		private bool		isBuilding			= true;
-		private bool		buildPhase1Done		= false;
-
-		// ── Drag state ────────────────────────────────────────────────────
-		private DragHandle	dragHandle			= DragHandle.None;
-		private double		dragStartPrice;
-		private DateTime	dragStartTime;
-
-		// ── Cached bars for session iteration ────────────────────────────
-		private NinjaTrader.Data.Bars cachedBars;
-
-		// ── Device brushes ────────────────────────────────────────────────
-		private int			areaOpacity			= 20;
-		private Brush		areaBrush;
-		private DeviceBrush	areaBrushDevice		= new DeviceBrush();
-		private int			outlineOpacity		= 100;
-		private DeviceBrush	outlineBrushDevice	= new DeviceBrush();
-		private Brush		labelBrushField;
-		private DeviceBrush	labelBrushDevice	= new DeviceBrush();
-		private Brush		midLineBrushField;
-		private DeviceBrush	midLineBrushDevice	= new DeviceBrush();
-
-		// Serialization anchors only — not used for rendering
 		[Browsable(false)] public ChartAnchor StartAnchor { get; set; }
 		[Browsable(false)] public ChartAnchor EndAnchor   { get; set; }
 
@@ -88,6 +95,19 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		{ get { return new[] { StartAnchor, EndAnchor }; } }
 
 		public override object Icon { get { return Gui.Tools.Icons.DrawRegionHighlightY; } }
+
+		#region Properties — Bounds
+
+		private bool isOpenEndedRight = true;
+
+		[Display(Name = "Open-Ended Right", Description = "Zone extends to the current right edge of the chart instead of a fixed end time.", Order = 1, GroupName = "0. Zone Bounds")]
+		public bool IsOpen
+		{
+			get { return isOpenEndedRight; }
+			set { isOpenEndedRight = value; }
+		}
+
+		#endregion
 
 		#region Properties — Fill
 
@@ -178,6 +198,11 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		[Display(Name = "Label Font Size", Order = 7, GroupName = "3. Label")]
 		public int LabelFontSize { get; set; }
 
+		// Written by the companion SuperZoneStats indicator, not by the user. Appended as a
+		// second label line when present.
+		[Browsable(false)]
+		public string StatsText { get; set; }
+
 		#endregion
 
 		#region Properties — MidLine
@@ -211,63 +236,6 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 
 		#endregion
 
-		#region Properties — Session
-
-		[Display(Name = "Snap To Session On Draw", Order = 1, GroupName = "5. Session")]
-		public bool SnapToSession { get; set; }
-
-		private int extendRight = 0;
-		[Range(0, 50)]
-		[Display(Name = "Extend Right (sessions)", Order = 2, GroupName = "5. Session")]
-		public int ExtendRight
-		{
-			get { return extendRight; }
-			set { extendRight = Math.Max(0, value); RecalcExtendedBounds(); }
-		}
-
-		private int extendLeft = 0;
-		[Range(0, 50)]
-		[Display(Name = "Extend Left (sessions)", Order = 3, GroupName = "5. Session")]
-		public int ExtendLeft
-		{
-			get { return extendLeft; }
-			set { extendLeft = Math.Max(0, value); RecalcExtendedBounds(); }
-		}
-
-		#endregion
-
-		#region Serialization fields
-
-		[Browsable(false)]
-		public long ZoneStartTimeTicks
-		{ get { return zoneStartTime.Ticks; } set { zoneStartTime = new DateTime(value); } }
-
-		[Browsable(false)]
-		public long ZoneEndTimeTicks
-		{ get { return zoneEndTime.Ticks; } set { zoneEndTime = new DateTime(value); } }
-
-		[Browsable(false)]
-		public double ZoneTopPrice
-		{ get { return zoneTopPrice; } set { zoneTopPrice = value; } }
-
-		[Browsable(false)]
-		public double ZoneBotPrice
-		{ get { return zoneBotPrice; } set { zoneBotPrice = value; } }
-
-		[Browsable(false)]
-		public bool ZoneBuildDone
-		{ get { return !isBuilding; } set { isBuilding = !value; buildPhase1Done = value; } }
-
-		[Browsable(false)]
-		public long SnapSessionStartTicks
-		{ get { return snapSessionStart.Ticks; } set { snapSessionStart = new DateTime(value); } }
-
-		[Browsable(false)]
-		public long SnapSessionEndTicks
-		{ get { return snapSessionEnd.Ticks; } set { snapSessionEnd = new DateTime(value); } }
-
-		#endregion
-
 		public override bool SupportsAlerts { get { return true; } }
 
 		protected override void Dispose(bool disposing)
@@ -277,6 +245,8 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			try { if (outlineBrushDevice != null) outlineBrushDevice.RenderTarget = null; } catch {}
 			try { if (labelBrushDevice   != null) labelBrushDevice.RenderTarget   = null; } catch {}
 			try { if (midLineBrushDevice != null) midLineBrushDevice.RenderTarget = null; } catch {}
+			try { if (cachedTextLayout != null) cachedTextLayout.Dispose(); cachedTextLayout = null; } catch {}
+			try { if (cachedTextFormat != null) cachedTextFormat.Dispose(); cachedTextFormat = null; } catch {}
 		}
 
 		// ── Color scheme per type ─────────────────────────────────────────
@@ -328,148 +298,67 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			catch { return Brushes.CornflowerBlue; }
 		}
 
-		// ── Label text — only Custom shows text ───────────────────────────
+		// ── Label text — cached, only recomposed when an input actually changes ───
+		private string				cachedDisplayText		= null;
+		private SuperZoneLabelType	cachedDisplayLabelType	= (SuperZoneLabelType)(-1);
+		private string				cachedDisplayCustomLabel;
+		private string				cachedDisplayStatsText;
+
 		private string GetLabelText()
 		{
-			if (LabelType == SuperZoneLabelType.Custom) return CustomLabel ?? "";
-			return "";
+			if (cachedDisplayText != null && cachedDisplayLabelType == LabelType
+				&& cachedDisplayCustomLabel == CustomLabel && cachedDisplayStatsText == StatsText)
+				return cachedDisplayText;
+
+			string baseText = LabelType == SuperZoneLabelType.Custom
+				? (CustomLabel ?? "")
+				: (string.IsNullOrEmpty(CustomLabel) ? SplitCamelCase(LabelType.ToString()) : SplitCamelCase(LabelType.ToString()) + " — " + CustomLabel);
+
+			string text = string.IsNullOrEmpty(StatsText) ? baseText
+				: (string.IsNullOrEmpty(baseText) ? StatsText : baseText + "\n" + StatsText);
+
+			cachedDisplayText			= text;
+			cachedDisplayLabelType		= LabelType;
+			cachedDisplayCustomLabel	= CustomLabel;
+			cachedDisplayStatsText		= StatsText;
+			return text;
 		}
 
-		// ── Zone validity ─────────────────────────────────────────────────
-		private bool ZoneValid()
+		private static string SplitCamelCase(string s)
 		{
-			return zoneStartTime != DateTime.MinValue && zoneEndTime != DateTime.MinValue
-				&& !double.IsNaN(zoneTopPrice) && !double.IsNaN(zoneBotPrice);
+			if (string.IsNullOrEmpty(s)) return s;
+			System.Text.StringBuilder sb = new System.Text.StringBuilder();
+			for (int i = 0; i < s.Length; i++)
+			{
+				if (i > 0 && char.IsUpper(s[i]) && !char.IsUpper(s[i - 1]))
+					sb.Append(' ');
+				sb.Append(s[i]);
+			}
+			return sb.ToString();
 		}
 
-		// ── Pixel rect from zone times + prices ───────────────────────────
-		private bool TryGetPixelRect(ChartControl cc, ChartScale cs, out SharpDX.RectangleF rect)
+		// ── Pixel rect from the anchors directly ──────────────────────────
+		private bool TryGetPixelRect(ChartControl cc, ChartPanel cp, ChartScale cs, out SharpDX.RectangleF rect)
 		{
 			rect = new SharpDX.RectangleF();
 			try
 			{
-				if (!ZoneValid() || cc==null || cs==null) return false;
-				double x1 = cc.GetXByTime(zoneStartTime);
-				double x2 = cc.GetXByTime(zoneEndTime);
-				double y1 = cs.GetYByValue(Math.Max(zoneTopPrice, zoneBotPrice));
-				double y2 = cs.GetYByValue(Math.Min(zoneTopPrice, zoneBotPrice));
+				if (cc==null || cs==null || cp==null || StartAnchor==null || EndAnchor==null) return false;
+				double x1 = cc.GetXByTime(StartAnchor.Time);
+				double x2 = isOpenEndedRight ? cp.X + cp.W : cc.GetXByTime(EndAnchor.Time);
+				double y1 = cs.GetYByValue(Math.Max(StartAnchor.Price, EndAnchor.Price));
+				double y2 = cs.GetYByValue(Math.Min(StartAnchor.Price, EndAnchor.Price));
 				float left=(float)Math.Min(x1,x2), top=(float)Math.Min(y1,y2);
 				float w=(float)Math.Abs(x2-x1),    h=(float)Math.Abs(y2-y1);
-				if (w<1f||h<1f) return false;
+				// clamp instead of bailing — two clicks close together in price (easy on a
+				// zoomed-out chart, where a 1-tick gap can be sub-pixel) must still draw
+				// something, not silently vanish
+				if (w<2f) w=2f;
+				if (h<2f) h=2f;
 				rect = new SharpDX.RectangleF(left, top, w, h);
 				return true;
 			}
-			catch { return false; }
-		}
-
-		// ── Hit testing ───────────────────────────────────────────────────
-		private DragHandle GetHandleAtPoint(Point pt, ChartControl cc, ChartScale cs)
-		{
-			try
-			{
-				if (!ZoneValid()||cc==null||cs==null) return DragHandle.None;
-				double x1=cc.GetXByTime(zoneStartTime), x2=cc.GetXByTime(zoneEndTime);
-				double y1=cs.GetYByValue(Math.Max(zoneTopPrice,zoneBotPrice));
-				double y2=cs.GetYByValue(Math.Min(zoneTopPrice,zoneBotPrice));
-				double l=Math.Min(x1,x2),r=Math.Max(x1,x2),t=Math.Min(y1,y2),b=Math.Max(y1,y2);
-				if ((pt-new Point(l,t)).Length<=Hit) return DragHandle.TopLeft;
-				if ((pt-new Point(r,t)).Length<=Hit) return DragHandle.TopRight;
-				if ((pt-new Point(l,b)).Length<=Hit) return DragHandle.BottomLeft;
-				if ((pt-new Point(r,b)).Length<=Hit) return DragHandle.BottomRight;
-				if (pt.X>=l-Hit&&pt.X<=r+Hit&&pt.Y>=t-Hit&&pt.Y<=b+Hit) return DragHandle.Body;
-			}
-			catch {}
-			return DragHandle.None;
-		}
-
-		// ── Session snap — finds session CONTAINING the click time ────────
-		private void TrySnapToSession(DateTime clickTime, ChartControl cc)
-		{
-			try
-			{
-				if (!SnapToSession||cc==null) return;
-				NinjaTrader.Data.Bars bars = GetBars(cc);
-				if (bars==null) return;
-
-				SessionIterator si = new SessionIterator(bars);
-				// includeCurrentSession=true ensures we find the session that contains clickTime
-				// rather than skipping to the next one
-				si.GetNextSession(clickTime, true);
-				snapSessionStart = si.ActualSessionBegin;
-				snapSessionEnd   = si.ActualSessionEnd;
-
-				// Apply extend
-				RecalcExtendedBoundsWithIterator(si);
-			}
-			catch {}
-		}
-
-		// ── Recalc zone start/end from snap + extend properties ───────────
-		private void RecalcExtendedBounds()
-		{
-			try
-			{
-				if (snapSessionStart==DateTime.MinValue||snapSessionEnd==DateTime.MinValue) return;
-				if (cachedBars==null) return;
-				SessionIterator si = new SessionIterator(cachedBars);
-				si.GetNextSession(snapSessionStart, true);
-				RecalcExtendedBoundsWithIterator(si);
-				SyncAnchors();
-			}
-			catch {}
-		}
-
-		private void RecalcExtendedBoundsWithIterator(SessionIterator si)
-		{
-			try
-			{
-				// Extend right from snap session end
-				DateTime end = snapSessionEnd;
-				for (int i=0;i<extendRight;i++)
-				{
-					si.GetNextSession(end.AddSeconds(1), false);
-					end = si.ActualSessionEnd;
-				}
-				zoneEndTime = end;
-
-				// Extend left from snap session start — walk backward
-				// We step back by calling GetNextSession on a time slightly before
-				// each found session begin
-				DateTime start = snapSessionStart;
-				SessionIterator si2 = new SessionIterator(cachedBars);
-				for (int i=0;i<extendLeft;i++)
-				{
-					// Step back 1 minute before current start to land in previous session
-					si2.GetNextSession(start.AddMinutes(-1), true);
-					start = si2.ActualSessionBegin;
-				}
-				zoneStartTime = start;
-			}
-			catch {}
-		}
-
-		private NinjaTrader.Data.Bars GetBars(ChartControl cc)
-		{
-			try
-			{
-				if (cachedBars!=null) return cachedBars;
-				var ba=cc.BarsArray;
-				if (ba!=null)
-					foreach (var cb in ba)
-						if (cb!=null&&cb.Bars!=null) { cachedBars=cb.Bars; return cachedBars; }
-			}
-			catch {}
-			return null;
-		}
-
-		private void SyncAnchors()
-		{
-			try
-			{
-				if (StartAnchor!=null) { StartAnchor.Time=zoneStartTime; StartAnchor.Price=Math.Max(zoneTopPrice,zoneBotPrice); }
-				if (EndAnchor  !=null) { EndAnchor.Time  =zoneEndTime;   EndAnchor.Price  =Math.Min(zoneTopPrice,zoneBotPrice); }
-			}
-			catch {}
+			catch (Exception ex) { PrintOnce("TryGetPixelRect", "SuperZones.TryGetPixelRect: " + ex); return false; }
 		}
 
 		// ── NT overrides ──────────────────────────────────────────────────
@@ -478,10 +367,11 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		{
 			try
 			{
-				MinValue=double.MaxValue; MaxValue=double.MinValue;
-				if (!IsVisible||!ZoneValid()) return;
-				MinValue=Math.Min(zoneTopPrice,zoneBotPrice);
-				MaxValue=Math.Max(zoneTopPrice,zoneBotPrice);
+				MinValue = double.MaxValue;
+				MaxValue = double.MinValue;
+				if (!IsVisible || StartAnchor == null || EndAnchor == null) return;
+				MinValue = Math.Min(StartAnchor.Price, EndAnchor.Price);
+				MaxValue = Math.Max(StartAnchor.Price, EndAnchor.Price);
 			}
 			catch {}
 		}
@@ -490,8 +380,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		{
 			try
 			{
+				ChartPanel cp = cc.ChartPanels[PanelIndex];
 				SharpDX.RectangleF r;
-				if (!TryGetPixelRect(cc,cs,out r)) return new Point[0];
+				if (!TryGetPixelRect(cc,cp,cs,out r)) return new Point[0];
 				return new[]{new Point(r.Left,r.Top),new Point(r.Right,r.Top),new Point(r.Left,r.Bottom),new Point(r.Right,r.Bottom)};
 			}
 			catch { return new Point[0]; }
@@ -508,9 +399,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		{
 			try
 			{
-				double minP=Math.Min(zoneTopPrice,zoneBotPrice),maxP=Math.Max(zoneTopPrice,zoneBotPrice);
-				DateTime minT=zoneStartTime<zoneEndTime?zoneStartTime:zoneEndTime;
-				DateTime maxT=zoneStartTime<zoneEndTime?zoneEndTime:zoneStartTime;
+				double minP=Math.Min(StartAnchor.Price,EndAnchor.Price),maxP=Math.Max(StartAnchor.Price,EndAnchor.Price);
+				DateTime minT=StartAnchor.Time;
+				DateTime maxT=isOpenEndedRight ? DateTime.MaxValue : EndAnchor.Time;
 				return MathHelper.DidPredicateCross(values,v=>{bool i=v.Value>=minP&&v.Value<=maxP&&v.Time>=minT&&v.Time<=maxT;return condition==Condition.CrossInside?i:!i;});
 			}
 			catch { return false; }
@@ -520,11 +411,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		{
 			try
 			{
-				if (isBuilding) return true;
-				if (!ZoneValid()) return false;
-				DateTime minT=zoneStartTime<zoneEndTime?zoneStartTime:zoneEndTime;
-				DateTime maxT=zoneStartTime<zoneEndTime?zoneEndTime:zoneStartTime;
-				return minT<=last&&maxT>=first;
+				if (StartAnchor.IsEditing) return true; // still being built, always show the preview
+				if (isOpenEndedRight) return StartAnchor.Time <= last;
+				return StartAnchor.Time <= last && EndAnchor.Time >= first;
 			}
 			catch { return true; }
 		}
@@ -533,17 +422,21 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		{
 			try
 			{
-				if (isBuilding) return Cursors.Pen;
-				if (!ZoneValid()) return null;
-				if (DrawingState==DrawingState.Moving)  return IsLocked?Cursors.No:Cursors.SizeAll;
-				if (DrawingState==DrawingState.Editing) return IsLocked?Cursors.No:Cursors.SizeAll;
-				DragHandle h=GetHandleAtPoint(point,cc,cs);
-				switch(h)
+				switch (DrawingState)
 				{
-					case DragHandle.TopLeft:  case DragHandle.BottomRight: return IsLocked?Cursors.Arrow:Cursors.SizeNWSE;
-					case DragHandle.TopRight: case DragHandle.BottomLeft:  return IsLocked?Cursors.Arrow:Cursors.SizeNESW;
-					case DragHandle.Body:      return IsLocked?Cursors.Arrow:Cursors.SizeAll;
-					default:                  return null;
+					case DrawingState.Building: return Cursors.Pen;
+					case DrawingState.Editing:  return IsLocked ? Cursors.No : Cursors.SizeNS;
+					case DrawingState.Moving:   return IsLocked ? Cursors.No : Cursors.SizeAll;
+					default:
+						ChartAnchor closest = GetClosestAnchor(cc, cp, cs, cursorSensitivity, point);
+						if (closest != null)
+							return IsLocked ? Cursors.Arrow : Cursors.SizeNS;
+
+						SharpDX.RectangleF rect;
+						if (!TryGetPixelRect(cc,cp,cs,out rect)) return null;
+						if (point.X>=rect.Left && point.X<=rect.Right && point.Y>=rect.Top && point.Y<=rect.Bottom)
+							return IsLocked ? Cursors.Arrow : Cursors.SizeAll;
+						return null;
 				}
 			}
 			catch { return null; }
@@ -553,85 +446,88 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		{
 			try
 			{
-				if (isBuilding)
+				switch (DrawingState)
 				{
-					if (!buildPhase1Done)
-					{
-						// Cache bars for session iteration
-						GetBars(cc);
-						zoneStartTime   = dataPoint.Time;
-						zoneEndTime     = dataPoint.Time;
-						zoneTopPrice    = dataPoint.Price;
-						zoneBotPrice    = dataPoint.Price;
-						snapSessionStart= dataPoint.Time;
-						snapSessionEnd  = dataPoint.Time;
-						TrySnapToSession(dataPoint.Time, cc);
-						buildPhase1Done = true;
-					}
-					else
-					{
-						zoneBotPrice = dataPoint.Price;
-						double tick  = AttachedTo!=null?AttachedTo.Instrument.MasterInstrument.TickSize:0.25;
-						if (Math.Abs(zoneTopPrice-zoneBotPrice)<tick*0.5) zoneBotPrice=zoneTopPrice-tick;
-						isBuilding   = false;
-						DrawingState = DrawingState.Normal;
-						IsSelected   = false;
-						SyncAnchors();
-					}
-					return;
-				}
+					case DrawingState.Building:
+						if (StartAnchor.IsEditing)
+						{
+							dataPoint.CopyDataValues(StartAnchor);
+							dataPoint.CopyDataValues(EndAnchor);
+							StartAnchor.IsEditing = false;
+						}
+						else if (EndAnchor.IsEditing)
+						{
+							dataPoint.Time      = StartAnchor.Time;      // single shared left edge
+							dataPoint.SlotIndex  = StartAnchor.SlotIndex;
+							dataPoint.CopyDataValues(EndAnchor);
+							EndAnchor.IsEditing = false;
+						}
+						if (!StartAnchor.IsEditing && !EndAnchor.IsEditing)
+						{
+							double tick = AttachedTo!=null ? AttachedTo.Instrument.MasterInstrument.TickSize : 0.25;
+							if (Math.Abs(StartAnchor.Price-EndAnchor.Price) < tick*0.5)
+								EndAnchor.Price = StartAnchor.Price - tick;
+							DrawingState = DrawingState.Normal;
+							IsSelected   = false;
+						}
+						break;
 
-				dragHandle     = GetHandleAtPoint(dataPoint.GetPoint(cc,cp,cs),cc,cs);
-				dragStartPrice = dataPoint.Price;
-				dragStartTime  = dataPoint.Time;
-				if (dragHandle==DragHandle.None) IsSelected=false;
-				else DrawingState=dragHandle==DragHandle.Body?DrawingState.Moving:DrawingState.Editing;
+					case DrawingState.Normal:
+						Point point = dataPoint.GetPoint(cc, cp, cs);
+						editingAnchor = GetClosestAnchor(cc, cp, cs, cursorSensitivity, point);
+						if (editingAnchor != null)
+						{
+							editingAnchor.IsEditing = true;
+							DrawingState = DrawingState.Editing;
+						}
+						else
+						{
+							SharpDX.RectangleF rect;
+							if (TryGetPixelRect(cc,cp,cs,out rect)
+								&& point.X>=rect.Left && point.X<=rect.Right && point.Y>=rect.Top && point.Y<=rect.Bottom)
+								DrawingState = DrawingState.Moving;
+							else
+								IsSelected = false;
+						}
+						break;
+				}
 			}
-			catch {}
+			catch (Exception ex) { PrintOnce("OnMouseDown", "SuperZones.OnMouseDown: " + ex); }
 		}
 
 		public override void OnMouseMove(ChartControl cc,ChartPanel cp,ChartScale cs,ChartAnchor dataPoint)
 		{
 			try
 			{
-				if (IsLocked&&!isBuilding) return;
+				if (IsLocked && DrawingState != DrawingState.Building) return;
 
-				if (isBuilding&&buildPhase1Done)
+				if (DrawingState == DrawingState.Building && EndAnchor.IsEditing)
 				{
-					zoneBotPrice=dataPoint.Price;
-					if (!SnapToSession) zoneEndTime=dataPoint.Time;
-					return;
+					dataPoint.Time = StartAnchor.Time; // keep pinned to the left edge while dragging price
+					dataPoint.CopyDataValues(EndAnchor);
 				}
-
-				if (DrawingState!=DrawingState.Moving&&DrawingState!=DrawingState.Editing) return;
-
-				double   dp=dataPoint.Price-dragStartPrice;
-				TimeSpan dt=dataPoint.Time -dragStartTime;
-
-				switch(dragHandle)
+				else if (DrawingState == DrawingState.Editing && editingAnchor != null)
 				{
-					case DragHandle.Body:        zoneTopPrice+=dp;zoneBotPrice+=dp;zoneStartTime=zoneStartTime.Add(dt);zoneEndTime=zoneEndTime.Add(dt);snapSessionStart=snapSessionStart.Add(dt);snapSessionEnd=snapSessionEnd.Add(dt);break;
-					case DragHandle.TopLeft:     zoneTopPrice+=dp;zoneStartTime=zoneStartTime.Add(dt);snapSessionStart=snapSessionStart.Add(dt);break;
-					case DragHandle.TopRight:    zoneTopPrice+=dp;zoneEndTime=zoneEndTime.Add(dt);snapSessionEnd=snapSessionEnd.Add(dt);break;
-					case DragHandle.BottomLeft:  zoneBotPrice+=dp;zoneStartTime=zoneStartTime.Add(dt);snapSessionStart=snapSessionStart.Add(dt);break;
-					case DragHandle.BottomRight: zoneBotPrice+=dp;zoneEndTime=zoneEndTime.Add(dt);snapSessionEnd=snapSessionEnd.Add(dt);break;
+					editingAnchor.Price = dataPoint.Price; // price only — keeps the shared left edge in sync
 				}
-
-				dragStartPrice=dataPoint.Price;
-				dragStartTime =dataPoint.Time;
-				SyncAnchors();
+				else if (DrawingState == DrawingState.Moving)
+				{
+					foreach (ChartAnchor anchor in Anchors)
+						anchor.MoveAnchor(InitialMouseDownAnchor, dataPoint, cc, cp, cs, this);
+				}
 			}
-			catch {}
+			catch (Exception ex) { PrintOnce("OnMouseMove", "SuperZones.OnMouseMove: " + ex); }
 		}
 
 		public override void OnMouseUp(ChartControl cc,ChartPanel cp,ChartScale cs,ChartAnchor dataPoint)
 		{
 			try
 			{
-				if (isBuilding) return;
-				DrawingState=DrawingState.Normal;
-				dragHandle=DragHandle.None;
-				SyncAnchors();
+				if (DrawingState == DrawingState.Building) return;
+				if (DrawingState == DrawingState.Editing || DrawingState == DrawingState.Moving)
+					DrawingState = DrawingState.Normal;
+				if (editingAnchor != null) editingAnchor.IsEditing = false;
+				editingAnchor = null;
 			}
 			catch {}
 		}
@@ -643,13 +539,10 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 				if (cc==null||cs==null) return;
 				ChartPanel cp=cc.ChartPanels[PanelIndex];
 				if (cp==null) return;
-				if (isBuilding&&!buildPhase1Done) return;
-
-				// Cache bars if not yet done
-				if (cachedBars==null) GetBars(cc);
+				if (StartAnchor==null || EndAnchor==null || StartAnchor.IsEditing) return; // nothing placed yet
 
 				SharpDX.RectangleF rect;
-				if (!TryGetPixelRect(cc,cs,out rect)) return;
+				if (!TryGetPixelRect(cc,cp,cs,out rect)) return;
 
 				RenderTarget.AntialiasMode=SharpDX.Direct2D1.AntialiasMode.PerPrimitive;
 
@@ -665,7 +558,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 							RenderTarget.FillRectangle(rect,areaBrushDevice.BrushDX);
 					}
 				}
-				catch { areaBrushDevice.Brush=null; }
+				catch (Exception ex) { areaBrushDevice.Brush=null; PrintOnce("Fill", "SuperZones.OnRender Fill: " + ex); }
 
 				// Outline
 				try
@@ -680,7 +573,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 						if (dx!=null) RenderTarget.DrawRectangle(rect,dx,OutlineStroke.Width,OutlineStroke.StrokeStyle);
 					}
 				}
-				catch { outlineBrushDevice.Brush=null; }
+				catch (Exception ex) { outlineBrushDevice.Brush=null; PrintOnce("Outline", "SuperZones.OnRender Outline: " + ex); }
 
 				// MidLine
 				if (!IsInHitTest&&MidLineVisible&&midLineBrushField!=null)
@@ -693,11 +586,12 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 						if (midLineBrushDevice.BrushDX!=null)
 						{
 							float midY=rect.Top+rect.Height/2f;
-							Stroke tmp=new Stroke();tmp.DashStyleHelper=MidLineDashStyle;tmp.RenderTarget=RenderTarget;
+							midLineStroke.DashStyleHelper=MidLineDashStyle;
+							midLineStroke.RenderTarget=RenderTarget;
 							RenderTarget.DrawLine(
 								new SharpDX.Vector2(rect.Left,midY),
 								new SharpDX.Vector2(rect.Right,midY),
-								midLineBrushDevice.BrushDX,MidLineWidth,tmp.StrokeStyle);
+								midLineBrushDevice.BrushDX,MidLineWidth,midLineStroke.StrokeStyle);
 						}
 					}
 					catch { midLineBrushDevice.Brush=null; }
@@ -716,44 +610,58 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 							labelBrushDevice.RenderTarget=RenderTarget;
 							if (labelBrushDevice.BrushDX!=null)
 							{
-								using (SharpDX.DirectWrite.TextFormat tf=new SharpDX.DirectWrite.TextFormat(
-									Core.Globals.DirectWriteFactory,"Arial",
-									SharpDX.DirectWrite.FontWeight.Bold,
-									SharpDX.DirectWrite.FontStyle.Normal,
-									SharpDX.DirectWrite.FontStretch.Normal,
-									(float)LabelFontSize))
+								if (cachedTextFormat==null||cachedFontSize!=LabelFontSize)
 								{
-									tf.TextAlignment=SharpDX.DirectWrite.TextAlignment.Leading;
-									tf.WordWrapping =SharpDX.DirectWrite.WordWrapping.NoWrap;
-									using (SharpDX.DirectWrite.TextLayout tl=new SharpDX.DirectWrite.TextLayout(
-										Core.Globals.DirectWriteFactory,txt,tf,rect.Width+200f,(float)LabelFontSize+4f))
-									{
-										float th=tl.Metrics.Height,tw=tl.Metrics.Width;
-										float midY=rect.Top+rect.Height/2f;
-										float offset=(float)LabelOutsideOffset;
-										float x,y;
-										switch(LabelPosition)
-										{
-											case SuperZoneLabelPosition.TopLeft:      x=rect.Left+4f;     y=rect.Top+3f;          break;
-											case SuperZoneLabelPosition.TopRight:     x=rect.Right-tw-4f; y=rect.Top+3f;          break;
-											case SuperZoneLabelPosition.BottomLeft:   x=rect.Left+4f;     y=rect.Bottom-th-3f;    break;
-											case SuperZoneLabelPosition.BottomRight:  x=rect.Right-tw-4f; y=rect.Bottom-th-3f;    break;
-											case SuperZoneLabelPosition.CenterLeft:   x=rect.Left+4f;     y=midY-th-2f;           break;
-											case SuperZoneLabelPosition.CenterRight:  x=rect.Right-tw-4f; y=midY-th-2f;           break;
-											case SuperZoneLabelPosition.OutsideTop:   x=rect.Left+4f;     y=rect.Top-th-offset;   break;
-											case SuperZoneLabelPosition.OutsideBottom:x=rect.Left+4f;     y=rect.Bottom+offset;   break;
-											default:                                  x=rect.Left+4f;     y=rect.Top+3f;          break;
-										}
-										RenderTarget.DrawTextLayout(new SharpDX.Vector2(x,y),tl,labelBrushDevice.BrushDX,SharpDX.Direct2D1.DrawTextOptions.NoSnap);
-									}
+									if (cachedTextLayout != null) cachedTextLayout.Dispose();
+									cachedTextLayout=null;
+									if (cachedTextFormat != null) cachedTextFormat.Dispose();
+									cachedTextFormat=new SharpDX.DirectWrite.TextFormat(
+										Core.Globals.DirectWriteFactory,"Arial",
+										SharpDX.DirectWrite.FontWeight.Bold,
+										SharpDX.DirectWrite.FontStyle.Normal,
+										SharpDX.DirectWrite.FontStretch.Normal,
+										(float)LabelFontSize);
+									cachedTextFormat.TextAlignment=SharpDX.DirectWrite.TextAlignment.Leading;
+									cachedTextFormat.WordWrapping =SharpDX.DirectWrite.WordWrapping.NoWrap;
+									cachedFontSize=LabelFontSize;
 								}
+
+								float layoutWidth=rect.Width+200f;
+								if (cachedTextLayout==null||cachedLabelText!=txt||Math.Abs(cachedLayoutWidth-layoutWidth)>0.5f)
+								{
+									if (cachedTextLayout != null) cachedTextLayout.Dispose();
+									int lineCount=1; foreach(char ch in txt) if (ch=='\n') lineCount++;
+									cachedTextLayout=new SharpDX.DirectWrite.TextLayout(
+										Core.Globals.DirectWriteFactory,txt,cachedTextFormat,layoutWidth,(float)(LabelFontSize*lineCount)+4f);
+									cachedLabelText=txt;
+									cachedLayoutWidth=layoutWidth;
+								}
+
+								SharpDX.DirectWrite.TextLayout tl=cachedTextLayout;
+								float th=tl.Metrics.Height,tw=tl.Metrics.Width;
+								float midY=rect.Top+rect.Height/2f;
+								float offset=(float)LabelOutsideOffset;
+								float x,y;
+								switch(LabelPosition)
+								{
+									case SuperZoneLabelPosition.TopLeft:      x=rect.Left+4f;     y=rect.Top+3f;          break;
+									case SuperZoneLabelPosition.TopRight:     x=rect.Right-tw-4f; y=rect.Top+3f;          break;
+									case SuperZoneLabelPosition.BottomLeft:   x=rect.Left+4f;     y=rect.Bottom-th-3f;    break;
+									case SuperZoneLabelPosition.BottomRight:  x=rect.Right-tw-4f; y=rect.Bottom-th-3f;    break;
+									case SuperZoneLabelPosition.CenterLeft:   x=rect.Left+4f;     y=midY-th-2f;           break;
+									case SuperZoneLabelPosition.CenterRight:  x=rect.Right-tw-4f; y=midY-th-2f;           break;
+									case SuperZoneLabelPosition.OutsideTop:   x=rect.Left+4f;     y=rect.Top-th-offset;   break;
+									case SuperZoneLabelPosition.OutsideBottom:x=rect.Left+4f;     y=rect.Bottom+offset;   break;
+									default:                                  x=rect.Left+4f;     y=rect.Top+3f;          break;
+								}
+								RenderTarget.DrawTextLayout(new SharpDX.Vector2(x,y),tl,labelBrushDevice.BrushDX,SharpDX.Direct2D1.DrawTextOptions.NoSnap);
 							}
 						}
 					}
-					catch { labelBrushDevice.Brush=null; }
+					catch (Exception ex) { labelBrushDevice.Brush=null; PrintOnce("Label", "SuperZones.OnRender Label: " + ex); }
 				}
 			}
-			catch {}
+			catch (Exception ex) { PrintOnce("OnRender", "SuperZones.OnRender: " + ex); }
 		}
 
 		protected override void OnStateChange()
@@ -784,18 +692,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 				MidLineWidth     = 1f;
 				MidLineDashStyle = DashStyleHelper.Dash;
 
-				SnapToSession = false;
-				extendRight   = 0;
-				extendLeft    = 0;
-			}
-			else if (State==State.Active)
-			{
-				if (ZoneBuildDone&&ZoneValid())
-				{
-					isBuilding      = false;
-					buildPhase1Done = true;
-					DrawingState    = DrawingState.Normal;
-				}
+				isOpenEndedRight = true;
 			}
 			else if (State==State.Terminated)
 				Dispose();
