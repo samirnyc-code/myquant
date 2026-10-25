@@ -26,6 +26,13 @@
 # (via run_at_ct.py's own window check); the other is a no-op. This is permanent -- it never
 # needs touching again for this twice-a-year mismatch.
 #
+# UPDATE (same day, later): MyQuant Gateway Login had the same exposure and was additionally
+# already drifted on its own (registered for 12:00 Berlin = 06:00 CT right now, vs its
+# documented 05:30 CT target in scripts/schedule_gateway_login.ps1 -- a pre-existing 30min
+# miss, not caused by today's clock change) and carried NO run_at_ct.py guard at all. Fixed
+# the same way: wrapped the action in run_at_ct.py --at 05:30 and gave it two triggers 1h
+# apart (11:30 / 12:30 Berlin) bracketing the 6h/7h offset.
+#
 # Idempotent -- safe to re-run. Run:  powershell -ExecutionPolicy Bypass -File scripts\fix_dst_dual_triggers.ps1
 
 $repo = "C:\Users\Admin\myquant"
@@ -33,9 +40,25 @@ $py   = "$repo\.venv\Scripts\python.exe"
 $pyw  = "$repo\.venv\Scripts\pythonw.exe"
 $runAtCt = "$repo\scripts\run_at_ct.py"
 
-function Set-TwoTriggers($name, $at6, $at7, $days) {
-    $t1 = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $days -At $at6
-    $t2 = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $days -At $at7
+# $at6/$at7 are "HH:mm" strings. New-ScheduledTaskTrigger -At(string) bakes the CURRENT
+# system UTC offset into the trigger's StartBoundary at the moment this script runs. Anchor
+# on TODAY (the normal case) and that offset matches every future occurrence's offset for
+# these Mon-Fri afternoon/evening times -- no issue. Two traps found live, both now avoided:
+#   1. A FUTURE anchor date (tried "2026-11-10" first) suppresses every occurrence before
+#      that date -- it silently stopped all 14 tasks from firing until Nov 10.
+#   2. A PAST anchor date on the other side of a DST flip (tried "yesterday", 2026-10-24,
+#      still CEST) bakes in the WRONG offset (+02:00 instead of today's +01:00) and Windows
+#      carries that baked offset forward, shifting every future occurrence 1h off from what
+#      -At's HH:mm actually asked for.
+# TODAY is safe for every one of these tasks except Evening Brief, whose 01:05/02:05 sits
+# inside TODAY's own 02:00-03:00 fall-back fold hour (ambiguous local time) -- that one is
+# anchored on TOMORROW instead, which is still today's same +01:00 CET offset, just clear of
+# the fold, and loses nothing (Evening Brief doesn't fire on Sun/Mon anyway).
+$safeAnchorDate = (Get-Date).ToString("yyyy-MM-dd")
+$foldSafeAnchorDate = (Get-Date).AddDays(1).ToString("yyyy-MM-dd")
+function Set-TwoTriggers($name, $at6, $at7, $days, $anchor = $safeAnchorDate) {
+    $t1 = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $days -At ([datetime]"$anchor $at6")
+    $t2 = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $days -At ([datetime]"$anchor $at7")
     Set-ScheduledTask -TaskName $name -Trigger @($t1, $t2) | Out-Null
     Write-Output ("fixed triggers   {0,-28} {1} / {2}" -f $name, $at6, $at7)
 }
@@ -45,8 +68,8 @@ function Set-ActionAndTriggers($name, $ctTime, $payloadExe, $payloadArgs, $at6, 
     if ($useWindow) { $argline += " --window $useWindow" }
     $argline += " -- `"$payloadExe`" $payloadArgs"
     $action = New-ScheduledTaskAction -Execute $pyw -Argument $argline -WorkingDirectory $repo
-    $t1 = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $days -At $at6
-    $t2 = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $days -At $at7
+    $t1 = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $days -At ([datetime]"$safeAnchorDate $at6")
+    $t2 = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $days -At ([datetime]"$safeAnchorDate $at7")
     Set-ScheduledTask -TaskName $name -Action $action -Trigger @($t1, $t2) | Out-Null
     Write-Output ("wrapped+fixed    {0,-28} {1} / {2}  (run_at_ct --at {3})" -f $name, $at6, $at7, $ctTime)
 }
@@ -61,7 +84,7 @@ Set-TwoTriggers "MyQuant L1 Rollover"    "22:05" "23:05" @('Sunday','Monday','Tu
 # --- group 2: single-trigger, already run_at_ct-wrapped -- just add the missing second trigger ---
 Set-TwoTriggers "MyQuant Chain Recorder"      "14:25" "15:25" $weekdays
 Set-TwoTriggers "MyQuant Deadman 0832"        "14:32" "15:32" $weekdays
-Set-TwoTriggers "MyQuant Evening Brief"       "01:05" "02:05" @('Tuesday','Wednesday','Thursday','Friday','Saturday')
+Set-TwoTriggers "MyQuant Evening Brief"       "01:05" "02:05" @('Tuesday','Wednesday','Thursday','Friday','Saturday') $foldSafeAnchorDate
 Set-TwoTriggers "MyQuant Gameplan Early"      "13:05" "14:05" $weekdays
 Set-TwoTriggers "MyQuant Trigger Daemon"      "14:29" "15:29" $weekdays
 Set-TwoTriggers "MyQuant Shadow Stop Monitor" "14:35" "15:35" $weekdays
@@ -71,6 +94,15 @@ Set-ActionAndTriggers "MyQuant EOD Report"  "15:20" $py  "`"$repo\scripts\eod_re
 Set-ActionAndTriggers "MyQuant Postmortem"  "15:15" $py  "`"$repo\scripts\options_postmortem.py`"" "21:15" "22:15" $weekdays
 Set-ActionAndTriggers "MyQuant Spot Feed"   "08:26" $py  "`"$repo\scripts\spot_feed.py`""          "14:26" "15:26" $weekdays
 Set-ActionAndTriggers "MyQuant Marks Watch" "08:26" $py  "`"$repo\scripts\options_mark.py`" --watch 120" "14:26" "15:26" $weekdays
+
+# --- group 4: Gateway Login -- unguarded + already 30min drifted, wrap + fix like the rest ---
+$loginArgs = '/c ""' + $py + '" -u "' + $runAtCt + '" --at 05:30 -- cmd.exe /c C:\IBC\StartGateway.bat /INLINE >> "' +
+             "$repo\data\options_sim\gateway_login_sched.log" + '" 2>&1"'
+$loginAction = New-ScheduledTaskAction -Execute "cmd.exe" -Argument $loginArgs -WorkingDirectory "C:\IBC"
+$t1 = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $weekdays -At ([datetime]"$safeAnchorDate 11:30")
+$t2 = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $weekdays -At ([datetime]"$safeAnchorDate 12:30")
+Set-ScheduledTask -TaskName "MyQuant Gateway Login" -Action $loginAction -Trigger @($t1, $t2) | Out-Null
+Write-Output ("wrapped+fixed    MyQuant Gateway Login        11:30 / 12:30  (run_at_ct --at 05:30)")
 
 Write-Output "`ndone. Verify with:"
 Write-Output "  schtasks /query /tn `"MyQuant Dashboard`" /xml   (should show 2 CalendarTriggers, 1h apart)"
