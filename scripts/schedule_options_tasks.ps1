@@ -14,31 +14,51 @@
 # daemon has live spot from the open; the same feed covers the 15:59 BPS window.
 # Prereq each morning: IB Gateway logged in (paper 4002).
 #
+# UPDATED 2026-10-25: this file had drifted from what's actually registered live (someone
+# had hand-edited the real tasks to add run_at_ct.py + dual triggers without updating this
+# script — found while investigating the Germany DST clock change). Re-running the OLD
+# version of this file would have silently clobbered that fix back to a single, DST-unsafe
+# trigger per task. Set-QTask now always registers the same dual-trigger + run_at_ct.py
+# pattern as scripts/fix_dst_dual_triggers.ps1 (CT-target+6h and CT-target+7h, 1h apart,
+# bracketing the twice-a-year EU/US DST mismatch — see that script's header for the full
+# explanation). Re-running this file is now safe and reproduces the live DST-safe state.
+#
+# NOT reconciled here (left as-is, flagged only): "MyQuant Gameplan" below is a DIFFERENT,
+# currently-Disabled task from the live "MyQuant Gameplan Early" (different args/log file) —
+# this script does not know which one is the real current intent, so it still registers the
+# old "Gameplan" name rather than guessing a merge. Likewise Levels Fetch / Gamma Scanner /
+# Health Check / MQ Mine are currently Disabled live; registering (Force) will re-create them
+# ENABLED — check live state before re-running this script if that's not what you want.
+#
 # Run:  powershell -ExecutionPolicy Bypass -File scripts\schedule_options_tasks.ps1
 
 $repo = "C:\Users\Admin\myquant"
 $py   = "$repo\.venv\Scripts\python.exe"
+$pyw  = "$repo\.venv\Scripts\pythonw.exe"
 $sd   = "$repo\scripts"
+$runAtCt = "$sd\run_at_ct.py"
 
-# Times below are given in EXCHANGE time (US Central = Chicago, where Cboe/CME sit).
-# Task Scheduler fires in the machine's LOCAL time, so convert CT -> local (DST-aware).
-$ctz = [System.TimeZoneInfo]::FindSystemTimeZoneById("Central Standard Time")
-function CTtoLocal($ctTime) {
-    $today = (Get-Date).ToString('yyyy-MM-dd')
-    $ctDt  = [datetime]::ParseExact("$today $ctTime", "yyyy-MM-dd HH:mm", $null)
-    $utc   = [System.TimeZoneInfo]::ConvertTimeToUtc($ctDt, $ctz)
-    ([System.TimeZoneInfo]::ConvertTimeFromUtc($utc, [System.TimeZoneInfo]::Local)).ToString("HH:mm")
+# Dual-trigger, DST-safe: CT-target+6h lands correctly during the ~1wk Oct/Nov + ~3wk March
+# EU/US DST-mismatch windows, CT-target+7h lands correctly the rest of the year. Anchor on
+# TODAY (not a past/future date — both can bake in the wrong UTC offset or suppress near-term
+# occurrences; see scripts/fix_dst_dual_triggers.ps1 for the two ways this went wrong live).
+$anchor = (Get-Date).ToString("yyyy-MM-dd")
+function CtPlusHours($ctTime, $hours) {
+    $hh, $mm = $ctTime.Split(":")
+    ([datetime]"$anchor $hh`:$mm").AddHours($hours).ToString("HH:mm")
 }
 
 function Set-QTask($name, $script, $ctTime, $taskArgs = "") {
-    $local   = CTtoLocal $ctTime
-    $argline = "`"$sd\$script`""
+    $at6 = CtPlusHours $ctTime 6
+    $at7 = CtPlusHours $ctTime 7
+    $argline = "`"$runAtCt`" --at $ctTime -- `"$py`" `"$sd\$script`""
     if ($taskArgs) { $argline += " $taskArgs" }
-    $action  = New-ScheduledTaskAction -Execute $py -Argument $argline -WorkingDirectory $repo
-    $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At $local
+    $action  = New-ScheduledTaskAction -Execute $pyw -Argument $argline -WorkingDirectory $repo
+    $t1      = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At ([datetime]"$anchor $at6")
+    $t2      = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At ([datetime]"$anchor $at7")
     $set     = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 8)
-    Register-ScheduledTask -TaskName $name -Action $action -Trigger $trigger -Settings $set -Force | Out-Null
-    Write-Output ("registered  {0,-26} {1} CT (= {2} local)  {3} {4}" -f $name, $ctTime, $local, $script, $taskArgs)
+    Register-ScheduledTask -TaskName $name -Action $action -Trigger @($t1, $t2) -Settings $set -Force | Out-Null
+    Write-Output ("registered  {0,-26} {1} CT (triggers {2} / {3})  {4} {5}" -f $name, $ctTime, $at6, $at7, $script, $taskArgs)
 }
 
 Set-QTask "MyQuant Dashboard"      "options_dashboard_live.py" "08:25" "--host 0.0.0.0 --port 8600"
