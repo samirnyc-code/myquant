@@ -166,6 +166,20 @@ real mid-session re-login failure, both found + resolved.**
    (or replacing its stuck NOT-ready-retry logic) and that's a deliberate design choice, not a
    quick patch.
 
+**Same chat, continued — journal uploader "dead" in Mission Control, closes the 10/23 open
+item below ("confirm whether the main journal uploader should keep running or be stopped").**
+User reported the dead health tile; root cause wasn't a crash, it was the **Startup folder
+shortcut** (`Trade Journal Uploader.lnk`, auto-launches at login) still pointing at
+`start_journal_uploader.bat` — the MAIN uploader, i.e. the one that watches for
+`ClaudeTrackerV2` CSVs. Since V2 was retired 10/23 and produces nothing, that process running
+would do nothing useful even if alive; it just hadn't survived whatever last logged this
+machine out/in, which is why the tile showed dead instead of idle. **Decision made (resolves
+the open item): the main uploader is NOT needed going forward, only the AddOn one.** Started
+`journal_uploader.py --config uploader_config_addon.json` live (confirmed via
+`pipeline_health`: `ok, watching for new trades`), and repointed the Startup shortcut at
+`start_journal_uploader_addon.bat` so it comes back up correctly on every future login/reboot
+without a manual restart. Main uploader left stopped on purpose, not restarted.
+
 ---
 
 **Earlier history below:**
