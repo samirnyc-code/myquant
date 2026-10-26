@@ -180,6 +180,28 @@ the open item): the main uploader is NOT needed going forward, only the AddOn on
 `start_journal_uploader_addon.bat` so it comes back up correctly on every future login/reboot
 without a manual restart. Main uploader left stopped on purpose, not restarted.
 
+**Same chat, continued — Trade Playbook Neon storage checked (user saw ~80MB of
+"screenshots" in Vercel, asked how much headroom we have).** Corrected a wrong assumption
+first: the app does NOT use Vercel Blob (`@vercel/blob` is an installed-but-unused
+dependency, confirmed via `vercel storage list` — no storage resources attached) —
+screenshots live as raw bytes in the `Image` Postgres table, so the 80MB Vercel showed is
+Neon DB storage, not a separate blob quota. User pulled the actual numbers from the Neon
+console directly (screenshots), confirmed:
+- trade-playbook project: **219.64 MB** Postgres storage used, Free plan, **1 GB/project**
+  cap (Neon raised this from 0.5GB on 2026-10-02) — **~21% used, ~804MB headroom**. Neon
+  Object Storage on this project: 0 kB (unused).
+- Account-wide: 4 Neon projects (trade-playbook, healthtracker, farescout, jobscout),
+  0.34GB combined storage — separately capped at **20GB/account total** (enforced
+  independently of the per-project 1GB caps), nowhere close.
+**Options discussed for when 1GB gets closer** (verified via Neon's own docs, not guessed):
+(1) move screenshots out of Postgres into Neon's own Object Storage — separate 5GB/project
+free quota, same provider/dashboard, zero new vendor, would pull the ~80MB (and all future
+screenshots) off the Postgres cap entirely; (2) wire up the already-installed-but-unused
+Vercel Blob instead — same effect, different vendor; (3) prune old screenshots — stopgap,
+not a fix; (4) upgrade Neon to Launch ($0.35/GB-mo storage, $0.106/CU-hr compute, no fixed
+cap) — at current size this would cost cents/month. **Not acted on — informational only,
+no urgency at 21% usage.** No code changed.
+
 ---
 
 **Earlier history below:**
