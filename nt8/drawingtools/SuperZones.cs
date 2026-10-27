@@ -7,13 +7,15 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Xml.Serialization;
+using NinjaTrader.Data;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
 #endregion
 
 // S/R zone drawing tool. Two clicks place it: the first click sets the left edge (time) and
-// one price corner, the second sets the opposite price corner — the zone then extends to the
-// current right edge of the chart (IsOpen) instead of being bounded on both sides.
+// one price corner, the second sets the opposite price corner. How far right it extends is
+// the Extent property: the session it started in, a fixed number of sessions forward, or
+// forever (follows the current chart edge).
 //
 // Geometry and "is this zone actually placed" both come directly from StartAnchor/EndAnchor —
 // deliberately NOT from any custom serialized property. Earlier versions duplicated the
@@ -51,6 +53,13 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		CenterRight,
 		OutsideTop,
 		OutsideBottom
+	}
+
+	public enum SuperZoneExtentMode
+	{
+		ThisSessionOnly,
+		NumberOfSessions,
+		Infinite
 	}
 
 	public class SuperZones : DrawingTool
@@ -98,13 +107,23 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 
 		#region Properties — Bounds
 
-		private bool isOpenEndedRight = true;
+		private SuperZoneExtentMode extentMode = SuperZoneExtentMode.Infinite;
 
-		[Display(Name = "Open-Ended Right", Description = "Zone extends to the current right edge of the chart instead of a fixed end time.", Order = 1, GroupName = "0. Zone Bounds")]
-		public bool IsOpen
+		[Display(Name = "Extent", Description = "How far right the zone extends: the session it started in, a fixed number of sessions forward, or forever (current chart edge).", Order = 1, GroupName = "0. Zone Bounds")]
+		public SuperZoneExtentMode Extent
 		{
-			get { return isOpenEndedRight; }
-			set { isOpenEndedRight = value; }
+			get { return extentMode; }
+			set { extentMode = value; }
+		}
+
+		private int sessionCount = 1;
+
+		[Range(1, 100)]
+		[Display(Name = "Number Of Sessions", Description = "Only used when Extent = Number Of Sessions.", Order = 2, GroupName = "0. Zone Bounds")]
+		public int SessionCount
+		{
+			get { return sessionCount; }
+			set { sessionCount = Math.Max(1, value); }
 		}
 
 		#endregion
@@ -197,11 +216,6 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		[Range(6, 32)]
 		[Display(Name = "Label Font Size", Order = 7, GroupName = "3. Label")]
 		public int LabelFontSize { get; set; }
-
-		// Written by the companion SuperZoneStats indicator, not by the user. Appended as a
-		// second label line when present.
-		[Browsable(false)]
-		public string StatsText { get; set; }
 
 		#endregion
 
@@ -302,25 +316,20 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		private string				cachedDisplayText		= null;
 		private SuperZoneLabelType	cachedDisplayLabelType	= (SuperZoneLabelType)(-1);
 		private string				cachedDisplayCustomLabel;
-		private string				cachedDisplayStatsText;
 
 		private string GetLabelText()
 		{
 			if (cachedDisplayText != null && cachedDisplayLabelType == LabelType
-				&& cachedDisplayCustomLabel == CustomLabel && cachedDisplayStatsText == StatsText)
+				&& cachedDisplayCustomLabel == CustomLabel)
 				return cachedDisplayText;
 
-			string baseText = LabelType == SuperZoneLabelType.Custom
+			string text = LabelType == SuperZoneLabelType.Custom
 				? (CustomLabel ?? "")
 				: (string.IsNullOrEmpty(CustomLabel) ? SplitCamelCase(LabelType.ToString()) : SplitCamelCase(LabelType.ToString()) + " — " + CustomLabel);
-
-			string text = string.IsNullOrEmpty(StatsText) ? baseText
-				: (string.IsNullOrEmpty(baseText) ? StatsText : baseText + "\n" + StatsText);
 
 			cachedDisplayText			= text;
 			cachedDisplayLabelType		= LabelType;
 			cachedDisplayCustomLabel	= CustomLabel;
-			cachedDisplayStatsText		= StatsText;
 			return text;
 		}
 
@@ -337,6 +346,67 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			return sb.ToString();
 		}
 
+		// ── Right edge for the two session-based Extent modes ─────────────
+		// Fixed once computed (session boundaries don't move), so this is cached and only
+		// recomputed when the zone's start time or the Extent settings actually change — not
+		// on every render.
+		private NinjaTrader.Data.Bars GetBars(ChartControl cc)
+		{
+			try
+			{
+				var ba = cc.BarsArray;
+				if (ba != null)
+					foreach (var cb in ba)
+						if (cb != null && cb.Bars != null) return cb.Bars;
+			}
+			catch {}
+			return null;
+		}
+
+		private bool				cachedRightEdgeValid;
+		private DateTime			cachedRightEdgeTime;
+		private DateTime			cachedRightEdgeForStart	= DateTime.MinValue;
+		private SuperZoneExtentMode	cachedRightEdgeMode		= (SuperZoneExtentMode)(-1);
+		private int					cachedRightEdgeSessionCount	= -1;
+
+		// Returns false if session boundaries can't be resolved (e.g. Bars not available yet) —
+		// caller falls back to the chart's current right edge rather than render nothing.
+		private bool TryGetSessionRightEdge(ChartControl cc, out DateTime edge)
+		{
+			if (cachedRightEdgeValid && cachedRightEdgeForStart == StartAnchor.Time
+				&& cachedRightEdgeMode == extentMode && cachedRightEdgeSessionCount == sessionCount)
+			{
+				edge = cachedRightEdgeTime;
+				return true;
+			}
+
+			edge = DateTime.MinValue;
+			NinjaTrader.Data.Bars bars = GetBars(cc);
+			if (bars == null) return false;
+
+			try
+			{
+				int count = extentMode == SuperZoneExtentMode.ThisSessionOnly ? 1 : sessionCount;
+				SessionIterator si = new SessionIterator(bars);
+				si.GetNextSession(StartAnchor.Time, true); // the session CONTAINING the zone's start
+				DateTime end = si.ActualSessionEnd;
+				for (int i = 1; i < count; i++)
+				{
+					si.GetNextSession(end.AddSeconds(1), false);
+					end = si.ActualSessionEnd;
+				}
+
+				cachedRightEdgeValid		= true;
+				cachedRightEdgeTime		= end;
+				cachedRightEdgeForStart		= StartAnchor.Time;
+				cachedRightEdgeMode		= extentMode;
+				cachedRightEdgeSessionCount	= sessionCount;
+				edge = end;
+				return true;
+			}
+			catch (Exception ex) { PrintOnce("TryGetSessionRightEdge", "SuperZones.TryGetSessionRightEdge: " + ex); return false; }
+		}
+
 		// ── Pixel rect from the anchors directly ──────────────────────────
 		private bool TryGetPixelRect(ChartControl cc, ChartPanel cp, ChartScale cs, out SharpDX.RectangleF rect)
 		{
@@ -345,7 +415,14 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			{
 				if (cc==null || cs==null || cp==null || StartAnchor==null || EndAnchor==null) return false;
 				double x1 = cc.GetXByTime(StartAnchor.Time);
-				double x2 = isOpenEndedRight ? cp.X + cp.W : cc.GetXByTime(EndAnchor.Time);
+				double x2;
+				if (extentMode == SuperZoneExtentMode.Infinite)
+					x2 = cp.X + cp.W;
+				else
+				{
+					DateTime rightEdge;
+					x2 = TryGetSessionRightEdge(cc, out rightEdge) ? cc.GetXByTime(rightEdge) : cp.X + cp.W;
+				}
 				double y1 = cs.GetYByValue(Math.Max(StartAnchor.Price, EndAnchor.Price));
 				double y2 = cs.GetYByValue(Math.Min(StartAnchor.Price, EndAnchor.Price));
 				float left=(float)Math.Min(x1,x2), top=(float)Math.Min(y1,y2);
@@ -401,7 +478,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			{
 				double minP=Math.Min(StartAnchor.Price,EndAnchor.Price),maxP=Math.Max(StartAnchor.Price,EndAnchor.Price);
 				DateTime minT=StartAnchor.Time;
-				DateTime maxT=isOpenEndedRight ? DateTime.MaxValue : EndAnchor.Time;
+				DateTime maxT;
+				if (extentMode == SuperZoneExtentMode.Infinite) maxT = DateTime.MaxValue;
+				else if (!TryGetSessionRightEdge(cc, out maxT)) maxT = DateTime.MaxValue;
 				return MathHelper.DidPredicateCross(values,v=>{bool i=v.Value>=minP&&v.Value<=maxP&&v.Time>=minT&&v.Time<=maxT;return condition==Condition.CrossInside?i:!i;});
 			}
 			catch { return false; }
@@ -412,8 +491,10 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			try
 			{
 				if (StartAnchor.IsEditing) return true; // still being built, always show the preview
-				if (isOpenEndedRight) return StartAnchor.Time <= last;
-				return StartAnchor.Time <= last && EndAnchor.Time >= first;
+				if (extentMode == SuperZoneExtentMode.Infinite) return StartAnchor.Time <= last;
+				DateTime rightEdge;
+				if (!TryGetSessionRightEdge(cc, out rightEdge)) return StartAnchor.Time <= last;
+				return StartAnchor.Time <= last && rightEdge >= first;
 			}
 			catch { return true; }
 		}
@@ -692,7 +773,8 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 				MidLineWidth     = 1f;
 				MidLineDashStyle = DashStyleHelper.Dash;
 
-				isOpenEndedRight = true;
+				extentMode  = SuperZoneExtentMode.Infinite;
+				sessionCount = 1;
 			}
 			else if (State==State.Terminated)
 				Dispose();

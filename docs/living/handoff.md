@@ -1,5 +1,28 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-27 — **`SuperZones` follow-up: stats feature removed, new `Extent`
+property added (This Session Only / Number Of Sessions / Infinite).** Picked back up from the
+2026-10-25 pause (full block below). Two changes, both committed+pushed+deployed:
+
+1. **`SuperZoneStats.cs` removed entirely** — user: "it simply doesn't work" (its touch-count
+   was still wrong after the 2026-10-25 session's fixes). Deleted the indicator file (repo +
+   NT8 Custom\Indicators) and stripped the now-dead `StatsText` property + its label-append
+   logic out of `SuperZones.cs`. If touch/volume counting is ever revisited, treat it as a
+   fresh build, not a resume — the old version's bug history is in the 2026-10-25 block.
+2. **New `Extent` property** on `SuperZones`, replacing the old `IsOpen` bool: `ThisSessionOnly`
+   (right edge = end of the session the zone's StartAnchor.Time falls in — confirmed with user:
+   the session it started in, NOT "today"), `NumberOfSessions` (new `SessionCount` 1-100 field,
+   walks forward via NT8's `SessionIterator`), `Infinite` (unchanged — the old always-on
+   behavior, kept as the default so existing zones don't change). Right-edge time is cached per
+   zone (keyed on StartAnchor.Time + Extent + SessionCount) so session-boundary math only runs
+   when something actually changes, not every render.
+
+**Not yet verified by an F5** — compiled clean (`nt8_compile_check.ps1`) and deployed, but no
+user confirmation yet that This-Session-Only/Number-Of-Sessions actually snaps to the right bar.
+Next session: ask before assuming it works.
+
+---
+
 **Last Updated:** 2026-10-25 — **NEW NT8 S/R zone drawing tool `SuperZones` + companion
 `SuperZoneStats` indicator — PAUSED mid-build, user exhausted, touch-count still wrong.**
 Built from a request for a custom open-ended-right S/R zone tool (2 clicks: top, bottom, left
@@ -3505,7 +3528,7 @@ any item, drop "WIP <A/B>" in its row so the other chat leaves it alone.
 
 | # | workstream | status | next action |
 |---|---|---|---|
-| 26 | **NT8 `SuperZones` S/R zone drawing tool + `SuperZoneStats` touch/volume indicator** | 🛑 PAUSED (2026-10-25, user exhausted) | Draw/relabel/reload all confirmed working after a full rewrite onto `StartAnchor`/`EndAnchor` (no custom serialized build-state — that pattern broke it 3x, do not reintroduce it). Touch-counting still wrong per user's last message; a real `Bars.GetHigh/GetLow/GetVolume` indexer fix was just deployed but NOT YET verified against an actual manual count. Read the top-of-file 2026-10-25 block in full before resuming — do not re-theorize, verify the deployed fix first. |
+| 26 | **NT8 `SuperZones` S/R zone drawing tool** | 🟡 PENDING USER F5 (2026-10-27) | Draw/relabel/reload confirmed working (full rewrite onto `StartAnchor`/`EndAnchor`, no custom serialized build-state — that pattern broke it 3x earlier, do not reintroduce it). `SuperZoneStats` touch/volume indicator REMOVED entirely 2026-10-27 (user: "it simply doesn't work") — do not resume that feature without being asked. NEW 2026-10-27: `Extent` property (ThisSessionOnly/NumberOfSessions/Infinite) replacing `IsOpen`, deployed but not yet F5-verified. Read the 2026-10-27 and 2026-10-25 top-of-file blocks before touching this file again. |
 | 25 | **PATsProfile.cs — VP/TPO indicator rewrite (developing VA, VWAP, historical sessions, toolbar buttons)** | 🟡 PENDING USER F5 (this chat, 2026-10-20) | Removed TPO entirely (VP-only now). Built: tick-accurate live VP via `OnMarketData`; developing (per-bar) VA staircase for today + N historical sessions (`DevHistSessions`, archived per-session in `devHistBySession`); prior-session VA projection generalized to every shown session (was today-only); RTH-anchored IB generalized to every shown session too; session VWAP+SD bands (built then set `ShowVWAP=false` by default — user is using Lizard Trader's VWAP instead, code left dormant); 4 chart-toolbar buttons via `chartWindow.MainMenu.Add()` (VP=master kill, VA=toggles PRIOR/historical sessions' band+stepline specifically — NOT today's own, Stair=stairstep vs flat-current-level toggle, Hist=`DevHistSessions` 0⇄last-value, Lbl=`ShowLabels`); native `Stroke`-typed `DevVaStroke`/`DevPocStroke` properties (color+width+dash+opacity in one NT8 dialog control, pattern from `nt8/vendor/ntlambda/.../NTLAnchoredVwap.cs`) for the developing VA/POC lines. Also fixed a real off-by-one (archived historical sessions were one bar short of their own close) and a VWAP NaN-gate bug (one bad point could kill a whole session's VWAP line). Persisted `nt8/vendor/ab/MyABToolbarButtons.cs` (was only on the NT8 machine — hard-rule violation, fixed). **Nothing in this row has been F5-verified by me.** Full narrative in the block(s) at/near the top of this file dated 2026-10-20. |
 | 24 | **NT8 order-flow build: Bid/Ask Delta+Split, CVD live divergence, SessionSRLevelsV10 POC/VA, L1 recorder restart** | 🟡 PENDING USER F5 (S143 2026-10-18); VP log backfilled (S145 2026-10-18); **bid/ask + CVD plots backfilled (S146 2026-10-19)** | User is compiling live now as ETH opens. Watch for: `DrawOnPricePanel` actually routing CVD divergence lines to the price panel (unverified mechanism); label overlap if divergences cluster (no de-collision yet); `ReversalTicks` default (8t/2pt) likely too sensitive for the usual 16t/4pt Flex Renko box — raise it there; V9.cs must stay deployed alongside V10.cs (shared `LevelLineStyle` enum). S145: `data/vp_levels/session_vp_live_log.csv` backfilled 21 real days via `scripts/backfill_vp_log.py`. **S146: `BidAskVolumeRatio.cs`/`BidAskVolumeDelta.cs`/`BidAskVolumeSplit.cs`/`CumulativeDelta.cs` all now fall back to `data/bid_ask/bid_ask_vol_buckets.csv` (new `scripts/backfill_bid_ask_log.py`, 1-sec buckets off the L1 tape's `Aggr` tag) for any bar with no live tick data — reloading no longer loses the plot. Also fixed a real LightGray-on-dark-background invisible-bar bug in Delta/Split's down-color defaults (→ Firebrick). CVD Oscillator's "turn off labels, keep lines" ask already existed (`ShowLabels` property) — nothing built, just pointed at it. S146 later (2026-10-20, separate chat): fixed write-race/TOCTOU CSV corruption (atomic write + cross-process lock, see block below) AND separately a one-shot-load bug — all 4 indicators only ever read the bucket file once at `State.DataLoaded`, so the cursor ran out and flatlined forever regardless of later backfill refreshes; now re-checked every bar (throttled 30s) with a timestamp-based cursor reseek. Compiled+deployed+byte-verified, committed `c47ac9a`.** User still needs to F5. See S143 + S145 + S146 blocks. |
 | 1 | 0DTE live desk (paper) | 🟢 RUNNING | trades daily; just watch the book |
