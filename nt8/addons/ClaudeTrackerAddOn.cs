@@ -442,33 +442,52 @@ namespace NinjaTrader.NinjaScript.AddOns
         // orders and executions can land (and matter) before the feed is up or during a
         // brief hiccup. Resolved independently of SubscribeMarketData below, which is the
         // one piece that genuinely does need a live connection (tick-based MAE/MFE only).
+        // lock(subLock) here is load-bearing, not defensive boilerplate: settleTimer is a
+        // System.Timers.Timer, which is reentrant — if an Elapsed tick runs long (or several
+        // queue up under startup load, confirmed in the 2026-10-27 log: 4 near-simultaneous
+        // "instrument resolved"/"account resolved" lines from ONE AddOn instance within the
+        // same millisecond), multiple threads can each pass the `if (x != null) return` guard
+        // before the first one's assignment is visible. For TryResolveAccount specifically,
+        // that meant `Account.ExecutionUpdate += OnAccountExecutionUpdate` ran more than once
+        // — every real execution after that fired the handler once per duplicate subscription,
+        // each one independently incrementing dailyTradeCounter and writing its own trade
+        // record (the "_T1_ADDON" / "_T2_ADDON" duplicate-journal-entry, one with screenshots
+        // one without, from a single fill). The lock makes check-then-set atomic.
         private void TryResolveInstrument()
         {
             if (instrument != null) return;
-            try
+            lock (subLock)
             {
-                Instrument found = NinjaTrader.Cbi.Instrument.GetInstrument(SymbolName);
-                if (found == null) return;
-                instrument = found;
-                Log("[ClaudeTrackerAddOn] instrument resolved: " + instrument.FullName, LogLevel.Information);
+                if (instrument != null) return;
+                try
+                {
+                    Instrument found = NinjaTrader.Cbi.Instrument.GetInstrument(SymbolName);
+                    if (found == null) return;
+                    instrument = found;
+                    Log("[ClaudeTrackerAddOn] instrument resolved: " + instrument.FullName, LogLevel.Information);
+                }
+                catch (Exception ex) { Log("[ClaudeTrackerAddOn] TryResolveInstrument error: " + ex.Message, LogLevel.Error); }
             }
-            catch (Exception ex) { Log("[ClaudeTrackerAddOn] TryResolveInstrument error: " + ex.Message, LogLevel.Error); }
         }
 
         private void TryResolveAccount()
         {
             if (Account != null) return;
-            try
+            lock (subLock)
             {
-                Account found = NinjaTrader.Cbi.Account.All.FirstOrDefault(a => a.Name == AccountName);
-                if (found == null) return;
-                Account = found;
-                Account.OrderUpdate     += OnAccountOrderUpdate;
-                Account.ExecutionUpdate += OnAccountExecutionUpdate;
-                Log("[ClaudeTrackerAddOn] account resolved: " + Account.Name, LogLevel.Information);
-                ReconcileOpenPosition();
+                if (Account != null) return;
+                try
+                {
+                    Account found = NinjaTrader.Cbi.Account.All.FirstOrDefault(a => a.Name == AccountName);
+                    if (found == null) return;
+                    Account = found;
+                    Account.OrderUpdate     += OnAccountOrderUpdate;
+                    Account.ExecutionUpdate += OnAccountExecutionUpdate;
+                    Log("[ClaudeTrackerAddOn] account resolved: " + Account.Name, LogLevel.Information);
+                    ReconcileOpenPosition();
+                }
+                catch (Exception ex) { Log("[ClaudeTrackerAddOn] TryResolveAccount error: " + ex.Message, LogLevel.Error); }
             }
-            catch (Exception ex) { Log("[ClaudeTrackerAddOn] TryResolveAccount error: " + ex.Message, LogLevel.Error); }
         }
 
         // Market data (for tick-based MAE/MFE — see OnMarketData) DOES need a live price
