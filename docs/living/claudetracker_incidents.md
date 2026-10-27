@@ -239,3 +239,62 @@ general shape directly (durable per-fill ledger + continuous broker-aligned
 resume), not just the specific trigger — but it has not yet been proven live
 through an actual reload. Add the next incident here regardless of whether
 it's a "new" failure mode or this fix just didn't cover some case.
+
+---
+
+## 2026-10-27 — AddOn's assumed-singleton immunity was wrong: settleTimer reentrancy caused duplicate trade records, same day NT8 crashed mid-trade
+
+User reported a SIM ES 12-26 LONG showing as **two** Journal cards for what
+was one 2-lot entry/stop-out (-$610 each) — one card had screenshots, one
+didn't. Same session, separately, NT8 crashed while the user was in a trade
+(SIM, no real-money exposure; position was already flat per the log by the
+time of the crash, confirmed before advising a restart).
+
+**First investigated and ruled out:** the screenshot-targeting mechanism
+itself (`ClaudeTrackerChartRegistry` + `ClaudeTrackerChartTag.cs`, built
+2026-10-23) — log evidence showed it had been silently falling back to
+ambiguous title-matching on 100% of screenshots since 10-24 (zero
+`"(tagged chart)"` lines in any log from 10-24 through 10-27, despite
+working all of 10-23). Root cause there: `Register()` only fires once at
+`State.DataLoaded`, which can land before `ChartControl` is populated
+after an overnight session rollover — one missed registration, stuck for
+days with no retry and no warning logged. Fixed: `ClaudeTrackerChartTag`
+now re-registers every bar (self-healing); `ClaudeTrackerAddOn` now logs a
+`Warning` on every fallback and lists every candidate window when more
+than one chart shares a title, instead of only logging on a zero-match.
+This explained *which chart* got screenshotted wrong, but not why there
+were two trade records in the first place.
+
+**Real root cause, found in the actual trade's log:** `ClaudeTrackerAddOn`'s
+header comment claims it's "a natural singleton (one AddOn instance per
+NT8 process)," immune to the class of duplicate-instance bug documented in
+Part 6.5 above. That's false in the way that matters: `TryResolveInstrument()`
+/ `TryResolveAccount()` are driven by `settleTimer`, a `System.Timers.Timer`
+(1s interval) — which is **reentrant**. Confirmed directly in the
+crash-restart log: one `"loaded for Sim101..."` line (SetDefaults ran once,
+genuinely one instance) but **four** `"instrument resolved"` and **four**
+`"account resolved"` lines, all within the same millisecond — a burst of
+queued Elapsed ticks (startup contention: dozens of vendor DLLs + workspace
+restoring at the same moment) racing through the unguarded
+`if (x != null) return` check before the first tick's assignment was
+visible to the others. `TryResolveAccount` subscribing
+`Account.ExecutionUpdate += OnAccountExecutionUpdate` more than once meant
+every real fill fired the handler once per duplicate subscription — each
+firing independently incremented `dailyTradeCounter` and wrote its own
+trade record (`_T1_ADDON` / `_T2_ADDON` from one fill), and independently
+called `RequestScreenshot`, so each hit the tagged-chart-registry race
+differently (one got `"(tagged chart)"`, one got the fallback) — which is
+also why the two cards differed on screenshots specifically.
+
+**Fix:** wrapped both resolve methods in a double-checked `lock` on the
+existing (previously underused) `subLock` field, making check-then-set
+atomic. `[myquant] fdc7b27`. This likely also explains the old unsolved
+Part 6.5 question ("why two instances could simultaneously hold ownership
+was never root-caused") — same reentrancy class, different host (the
+Strategy had an analogous poll-and-resolve pattern that was never
+instrumented closely enough to catch the race in the act).
+
+**Not yet deployed live** — copied to the Custom folder but user was
+mid-trade/just-crashed when this was found; needs F5 when flat, same as
+the chart-tag fix above (`[myquant] a745daa`). Both fixes are in the same
+session, deploy together.
