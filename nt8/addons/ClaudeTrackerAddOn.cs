@@ -1670,6 +1670,10 @@ if (name.StartsWith("TARGET"))
                     return;
                 }
 
+                Log("[ClaudeTrackerAddOn] Screenshot: tagged-chart registry has no entry for \"" + wantFullName
+                    + "\" — using ambiguous title-match fallback (picks arbitrarily if >1 chart shows this instrument)."
+                    + " Re-add ClaudeTracker Chart Tag on the real execution chart to restore exact targeting.", LogLevel.Warning);
+
                 System.Threading.Tasks.Task.Run(() =>
                 {
                     try
@@ -1687,10 +1691,22 @@ if (name.StartsWith("TARGET"))
                         // "ES 12-26" as a substring, which Contains would wrongly match against
                         // instrument "ES 12-26" — StartsWith requires the characters right after
                         // "Chart - " to match exactly, so MES vs ES can't collide.
-                        IntPtr matchHwnd = IntPtr.Zero;
+                        List<KeyValuePair<IntPtr, string>> candidates = new List<KeyValuePair<IntPtr, string>>();
                         foreach (KeyValuePair<IntPtr, string> kv in titled)
                         {
-                            if (kv.Value.StartsWith(wantTitlePrefix, StringComparison.Ordinal)) { matchHwnd = kv.Key; break; }
+                            if (kv.Value.StartsWith(wantTitlePrefix, StringComparison.Ordinal)) candidates.Add(kv);
+                        }
+
+                        IntPtr matchHwnd = candidates.Count > 0 ? candidates[0].Key : IntPtr.Zero;
+
+                        if (candidates.Count > 1)
+                        {
+                            Log("[ClaudeTrackerAddOn] Screenshot: " + candidates.Count + " windows titled \""
+                                + wantTitlePrefix + "...\" — picked the first by enumeration order, not necessarily"
+                                + " the trading chart:", LogLevel.Warning);
+                            foreach (KeyValuePair<IntPtr, string> kv in candidates)
+                                Log("[ClaudeTrackerAddOn]   hwnd=" + kv.Key + " title=\"" + kv.Value + "\""
+                                    + (kv.Key == matchHwnd ? "  <-- chosen" : ""), LogLevel.Warning);
                         }
 
                         if (matchHwnd == IntPtr.Zero)

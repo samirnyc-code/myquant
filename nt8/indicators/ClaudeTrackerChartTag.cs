@@ -45,6 +45,17 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
         }
 
-        protected override void OnBarUpdate() { }
+        // Belt-and-suspenders re-registration: State.DataLoaded only fires ONCE, and if
+        // ChartControl happens to be null on that specific pass (observed after an overnight
+        // session/historical-data rollover — worked all day 2026-10-23, silently dead every
+        // day since because that single DataLoaded attempt never retried), the registry entry
+        // for this instrument stays empty/stale forever until someone manually removes and
+        // re-adds the indicator. Re-registering every bar is idempotent (same key/value most
+        // bars) and self-heals within one bar if a DataLoaded registration was missed.
+        protected override void OnBarUpdate()
+        {
+            if (ChartControl != null && Instrument != null)
+                ClaudeTrackerChartRegistry.Register(Instrument.FullName, ChartControl);
+        }
     }
 }
