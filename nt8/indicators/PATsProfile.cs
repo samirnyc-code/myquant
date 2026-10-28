@@ -23,7 +23,7 @@ using SharpDX.DirectWrite;
 //
 //   Volume Profile : POC, 70% value area (MOM Appendix 1, two-at-a-time),
 //                    value-area band OR lines-only, HVN / LVN nodes,
-//                    initial balance (RTH-anchored), prior-session value.
+//                    prior-session value.
 //   Labels         : numeric VAH/VAL/POC (current + prior), de-collided with
 //                    leader lines so text never overlaps a line or another label.
 //   Composite      : merge the last N sessions into one profile.
@@ -41,11 +41,6 @@ using SharpDX.DirectWrite;
 //   - Closed sessions are computed once and cached (barVolBySession) instead
 //     of being re-walked on every recompute.
 //
-// IB (Initial Balance) is anchored to RthStartHHMM (RTH open time-of-day),
-// not to the session's own start bar — on a chart whose session includes
-// overnight/ETH bars, the session start is NOT the RTH open, and classical
-// Market Profile IB is an RTH-only concept.
-//
 // Commit CS to: repo/nt8/indicators/PATsProfile.cs
 // ─────────────────────────────────────────────────────────────────────────────
 namespace NinjaTrader.NinjaScript.Indicators
@@ -57,7 +52,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private Dictionary<double, double> volByRow;
 		private List<double> hvn, lvn;
-		private double poc, vah, val, ibh, ibl, maxVol;
+		private double poc, vah, val, maxVol;
 		private double pPoc = double.NaN, pVah = double.NaN, pVal = double.NaN; // prior VOLUME VA
 		private int winStartBar, priorStartBar = -1, todayStartBar = -1;
 
@@ -133,10 +128,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public double Opacity { get; set; }
 		[NinjaScriptProperty] [Range(6, 24)] [Display(Name = "Label font size", Order = 5, GroupName = "1 Profile")]
 		public int LabelFontSize { get; set; }
-		[NinjaScriptProperty] [Range(5, 240)] [Display(Name = "Initial balance minutes", Order = 6, GroupName = "1 Profile")]
-		public int IbMinutes { get; set; }
-		[NinjaScriptProperty] [Range(0, 2359)] [Display(Name = "RTH start (HHmm, chart time)", Order = 7, GroupName = "1 Profile")]
-		public int RthStartHHMM { get; set; }
 		[NinjaScriptProperty] [Range(0, 60)] [Display(Name = "Historical developing sessions", Order = 8, GroupName = "1 Profile")]
 		public int DevHistSessions { get; set; }
 
@@ -148,8 +139,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public bool ShowVABand { get; set; }
 		[NinjaScriptProperty] [Display(Name = "POC", Order = 3, GroupName = "2 Show")]
 		public bool ShowPOC { get; set; }
-		[NinjaScriptProperty] [Display(Name = "Initial balance", Order = 4, GroupName = "2 Show")]
-		public bool ShowIB { get; set; }
 		[NinjaScriptProperty] [Display(Name = "HVN (high-volume nodes)", Order = 5, GroupName = "2 Show")]
 		public bool ShowHVN { get; set; }
 		[NinjaScriptProperty] [Display(Name = "LVN (low-volume nodes)", Order = 6, GroupName = "2 Show")]
@@ -190,9 +179,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[XmlIgnore] [Display(Name = "LVN", Order = 4, GroupName = "4 Colors")]
 		public System.Windows.Media.Brush LvnColor { get; set; }
 		[Browsable(false)] public string LvnColorSerialize { get { return Serialize.BrushToString(LvnColor); } set { LvnColor = Serialize.StringToBrush(value); } }
-		[XmlIgnore] [Display(Name = "Initial balance", Order = 5, GroupName = "4 Colors")]
-		public System.Windows.Media.Brush IbColor { get; set; }
-		[Browsable(false)] public string IbColorSerialize { get { return Serialize.BrushToString(IbColor); } set { IbColor = Serialize.StringToBrush(value); } }
 		[XmlIgnore] [Display(Name = "VWAP", Order = 6, GroupName = "4 Colors")]
 		public System.Windows.Media.Brush VwapColor { get; set; }
 		[Browsable(false)] public string VwapColorSerialize { get { return Serialize.BrushToString(VwapColor); } set { VwapColor = Serialize.StringToBrush(value); } }
@@ -213,11 +199,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (State == State.SetDefaults)
 			{
 				Name = "PATs Profile (VP)";
-				Description = "Right-margin Volume Profile: POC, value area, HVN/LVN, RTH initial balance, prior-session zone, developing VA staircase (today + N historical sessions), session VWAP+SD bands, labels, composite.";
+				Description = "Right-margin Volume Profile: POC, value area, HVN/LVN, prior-session zone, developing VA staircase (today + N historical sessions), session VWAP+SD bands, labels, composite.";
 				IsOverlay = true; IsChartOnly = true; DrawOnPricePanel = true; IsSuspendedWhileInactive = true;
 				RowTicks = 4; CompositeSessions = 1; VpWidthPx = 150; RightOffsetPx = 6;
-				Opacity = 0.85; LabelFontSize = 11; IbMinutes = 60; RthStartHHMM = 930; DevHistSessions = 1;
-				ShowVP = true; ShowVAHVAL = true; ShowVABand = true; ShowPOC = true; ShowIB = true;
+				Opacity = 0.85; LabelFontSize = 11; DevHistSessions = 1;
+				ShowVP = true; ShowVAHVAL = true; ShowVABand = true; ShowPOC = true;
 				ShowHVN = true; ShowLVN = true; ShowPriorLines = true; ShowPriorBand = true; ShowLabels = true;
 				ShowVWAP = false; // 2026-10-20: user is using Lizard Trader's VWAP instead; code stays, defaults off
 				NodeLookback = 4; HvnFactor = 1.2; LvnFactor = 0.7;
@@ -227,7 +213,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				PriorColor = System.Windows.Media.Brushes.SteelBlue;
 				HvnColor = System.Windows.Media.Brushes.DarkTurquoise;
 				LvnColor = System.Windows.Media.Brushes.IndianRed;
-				IbColor = System.Windows.Media.Brushes.Goldenrod;
 				VwapColor = System.Windows.Media.Brushes.White;
 				DevVaStroke = new Stroke(System.Windows.Media.Brushes.MediumPurple, 1.2f);
 				DevPocStroke = new Stroke(System.Windows.Media.Brushes.Orange, 1.2f);
@@ -446,57 +431,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 				MergeSessionVolume(volByRow, a, a, b, k == sc - 1);
 			}
 
-			ComputeIB(lastStart, endBar);
-
 			poc = double.NaN; maxVol = 0;
 			foreach (KeyValuePair<double, double> kv in volByRow)
 				if (kv.Value > maxVol) { maxVol = kv.Value; poc = kv.Key; }
 			ValueAreaOf(volByRow, poc, out val, out vah);
 			ComputeNodes();
 			ComputePriorLevels();
-		}
-
-		// IB is an RTH-only concept: anchor to the first bar in today's session
-		// whose time-of-day is >= RthStartHHMM (not to the session's own start
-		// bar, which on an ETH-inclusive chart is the overnight/Globex open),
-		// then take the high/low of the next IbMinutes of bars from there.
-		private void ComputeIB(int lastStart, int endBar)
-		{
-			ComputeIBFor(lastStart, endBar, out ibh, out ibl);
-		}
-
-		// 2026-10-20: generalized from "today only" -- user pointed out IB was never computed
-		// for any DevHistSessions entry, only the live session. Same logic, callable per session.
-		// 2026-10-20 BUG FIX: the previous version compared only TimeOfDay (clock time,
-		// no date) against RthStartHHMM. For an ETH-inclusive session that opens in the
-		// EVENING (e.g. 17:00), the very FIRST bar already has TimeOfDay=17:00 >= rthTod
-		// (e.g. 09:30) -- so rthOpenBar locked onto the session's own ETH open instead of
-		// the actual RTH open the NEXT morning. IB was being computed from the overnight
-		// session, not RTH -- exactly the "IBH/L still being calculated on ETH" the user
-		// confirmed. Fixed by anchoring to a full DateTime: start from the session's own
-		// start-bar date + RthStartHHMM; if that clock time has ALREADY passed by the time
-		// the session started (the evening-open case), it must be the following calendar
-		// day's RTH open instead.
-		private void ComputeIBFor(int sessionStartBar, int sessionEndBarInclusive, out double ibhOut, out double iblOut)
-		{
-			ibhOut = double.MinValue; iblOut = double.MaxValue;
-			TimeSpan rthTod = new TimeSpan(RthStartHHMM / 100, RthStartHHMM % 100, 0);
-			DateTime sessStart = Time.GetValueAt(sessionStartBar);
-			DateTime rthOpenDt = sessStart.Date.Add(rthTod);
-			if (rthOpenDt < sessStart) rthOpenDt = rthOpenDt.AddDays(1);
-
-			int rthOpenBar = -1;
-			for (int i = sessionStartBar; i <= sessionEndBarInclusive; i++)
-				if (Time.GetValueAt(i) >= rthOpenDt) { rthOpenBar = i; break; }
-			if (rthOpenBar < 0) return; // this session hasn't reached RTH open yet (or doesn't include it)
-
-			DateTime ibEnd = rthOpenDt.AddMinutes(IbMinutes);
-			for (int i = rthOpenBar; i <= sessionEndBarInclusive; i++)
-			{
-				if (Time.GetValueAt(i) >= ibEnd) break;
-				double h = High.GetValueAt(i), l = Low.GetValueAt(i);
-				if (h > ibhOut) ibhOut = h; if (l < iblOut) iblOut = l;
-			}
 		}
 
 		// Fills `target` with one session's volume-at-price. Prefers real trade-tick
@@ -731,7 +671,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush pocBr = new SolidColorBrush(RenderTarget, Dx(PocColor, 0.95f));
 			SolidColorBrush vaLineBr = new SolidColorBrush(RenderTarget, Dx(VaColor, 0.9f));
 			SolidColorBrush vaBandBr = new SolidColorBrush(RenderTarget, Dx(VaColor, 0.12f));
-			SolidColorBrush ibBr = new SolidColorBrush(RenderTarget, Dx(IbColor, 0.8f));
 			SolidColorBrush priorLineBr = new SolidColorBrush(RenderTarget, Dx(PriorColor, 0.85f));
 			SolidColorBrush priorBandBr = new SolidColorBrush(RenderTarget, Dx(PriorColor, 0.14f));
 			SolidColorBrush hvnBr = new SolidColorBrush(RenderTarget, Dx(HvnColor, 0.95f));
@@ -774,7 +713,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (ShowPOC && !double.IsNaN(poc)) DrawLevel(chartScale, winStartX, todayStartX, poc, pocBr, 1.4f);
 				if (ShowVAHVAL && !double.IsNaN(vah)) { DrawLevel(chartScale, winStartX, todayStartX, vah, vaLineBr, 1.0f); DrawLevel(chartScale, winStartX, todayStartX, val, vaLineBr, 1.0f); }
 			}
-			if (ShowIB && ibh > double.MinValue) { DrawLevel(chartScale, todayStartX, vpMaxRight, ibh, ibBr, 0.9f); DrawLevel(chartScale, todayStartX, vpMaxRight, ibl, ibBr, 0.9f); }
 			DrawDevelopingVA(chartScale, chartControl, todayStartX, vpMaxRight, endBar, vaBandBr, vwapBr);
 			int sc2 = sessionStarts.Count;
 			if (DevHistSessions > 0)
@@ -785,23 +723,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 					int idxH = sc2 - 1 - back;
 					int sBar = sessionStarts[idxH];
 					DrawHistSessionDevVA(chartScale, chartControl, sBar, panelLeft, vaBandBr, vwapBr);
-					// IB, generalized the same way as the VA/prior-VA fixes above: was only ever
-					// computed for today (2026-10-20 user: "IBH/L only gets calculated from the
-					// RTH open onwards!" -- true, but also only for the LIVE session, never shown
-					// on any DevHistSessions entry).
-					if (ShowIB)
-					{
-						int sEnd = sessionStarts[idxH + 1] - 1;
-						double hibh, hibl;
-						ComputeIBFor(sBar, sEnd, out hibh, out hibl);
-						if (hibh > double.MinValue)
-						{
-							float hLeftIb = Math.Max(panelLeft, chartControl.GetXByBarIndex(ChartBars, sBar));
-							float hRightIb = chartControl.GetXByBarIndex(ChartBars, sessionStarts[idxH + 1]);
-							DrawLevel(chartScale, hLeftIb, hRightIb, hibh, ibBr, 0.9f);
-							DrawLevel(chartScale, hLeftIb, hRightIb, hibl, ibBr, 0.9f);
-						}
-					}
 					histDates.Add("H-" + back + " " + Time.GetValueAt(sBar).ToString("MM/dd"));
 				}
 				// Diagnostic readout: which actual calendar dates DevHistSessions resolved to --
@@ -845,14 +766,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// column 0 = current session
 				if (ShowPOC && !double.IsNaN(poc)) AddLbl(labels, chartScale, "POC " + FmtP(poc), poc, pocBr, 0);
 				if (ShowVAHVAL && !double.IsNaN(vah)) { AddLbl(labels, chartScale, "VAH " + FmtP(vah), vah, vaLineBr, 0); AddLbl(labels, chartScale, "VAL " + FmtP(val), val, vaLineBr, 0); }
-				if (ShowIB && ibh > double.MinValue) { AddLbl(labels, chartScale, "IBH " + FmtP(ibh), ibh, ibBr, 0); AddLbl(labels, chartScale, "IBL " + FmtP(ibl), ibl, ibBr, 0); }
 				if (ShowVWAP && !double.IsNaN(curVwap)) AddLbl(labels, chartScale, "VWAP " + FmtP(curVwap), curVwap, vwapBr, 0);
 				// column 1 = prior VOLUME value area
 				if (ShowPriorLines && !double.IsNaN(pVah)) { AddLbl(labels, chartScale, "pVAH " + FmtP(pVah), pVah, priorLineBr, 1); AddLbl(labels, chartScale, "pPOC " + FmtP(pPoc), pPoc, priorLineBr, 1); AddLbl(labels, chartScale, "pVAL " + FmtP(pVal), pVal, priorLineBr, 1); }
 				DrawLabels(labels, labelX, vpMaxRight);
 			}
 
-			teal.Dispose(); pocBr.Dispose(); vaLineBr.Dispose(); vaBandBr.Dispose(); ibBr.Dispose();
+			teal.Dispose(); pocBr.Dispose(); vaLineBr.Dispose(); vaBandBr.Dispose();
 			priorLineBr.Dispose(); priorBandBr.Dispose();
 			hvnBr.Dispose(); lvnBr.Dispose(); vwapBr.Dispose();
 		}
