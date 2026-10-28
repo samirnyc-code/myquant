@@ -32,6 +32,21 @@ deliberately does NOT redeclare the shared `LevelLineStyle` enum and requires
 `SessionSRLevelsV9.cs` to stay present somewhere under `Custom\` (both now live together
 in this same subfolder, so that constraint still holds).
 
+**⚠ `.My`-namespaced indicators auto-duplicate into `Custom\Indicators\My\` — deploy
+THERE, not the top-level folder (found 2026-10-28, cost a full F5 failure).** Any indicator
+declared as `namespace NinjaTrader.NinjaScript.Indicators.My` (most of this repo's
+indicators — RegimeTracker*, SessionSRLevels*, DtDbScanner*, BidAskVolume*, CumulativeDelta,
+CVDDivergenceOscillator, MyWedge, etc.) gets physically mirrored by NT8 itself into a
+`Custom\Indicators\My\` subfolder, and **that copy — not the top-level one — is the one NT8
+actually keeps compiling from** after the first time it does this. Simply `cp`-ing an updated
+file to the top-level `Custom\Indicators\<name>.cs` path (the normal deploy step) leaves a
+STALE top-level orphan sitting there unused — harmless until someone edits+redeploys that
+indicator again, at which point NT8 sees two separate class definitions (one in each copy)
+and the whole file fails to compile with a wall of CS0101/CS0111/CS0229 duplicate-member/
+ambiguity errors that look like file corruption but are just two competing copies. Before
+redeploying any `.My`-namespaced indicator: check whether `Custom\Indicators\My\<name>.cs`
+already exists — if it does, deploy there and delete the top-level orphan, don't leave both.
+
 | File | Purpose | Status |
 |------|---------|--------|
 | `MyOHLCReader.cs` | Exports 5M OHLCV bars to CSV for Python pipeline | ✅ current |
