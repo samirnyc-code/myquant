@@ -12,7 +12,7 @@
 //     classified delta. Works on any bar type incl. non-tick-replay charts.
 //   - "Hist" (the CVD line) is either a rolling-window SUM of that delta over CvdPeriod
 //     bars ("Periodic" mode) or an EMA of it ("EMA" mode) — matches Pine's math.sum /
-//     ta.ema choice exactly, selectable via CumulativeMode.
+//     ta.ema choice exactly, selectable via the UseEmaMode checkbox.
 //   - Divergence uses FIXED-LOOKBACK FRACTAL pivots (n bars either side, like
 //     ta.pivothigh/pivotlow), filtered by a trend EMA, not a live reversal-tick zigzag.
 //     It is retrospective/one-shot: once a new pivot confirms (n bars after it forms)
@@ -68,16 +68,6 @@ using SharpDX.Direct2D1;
 
 namespace NinjaTrader.NinjaScript.Indicators.My
 {
-	// CvdCumulativeMode lives in BidAskSharedEnums.cs (namespace NinjaTrader.NinjaScript) —
-	// NOT redeclared here, and deliberately NOT a second namespace block in THIS file either.
-	// 2026-10-19: moved out after confirming (on BidAskVolumeRatio.cs/CumulativeDelta.cs)
-	// that a SECOND top-level namespace block in a file that ALSO contains an Indicator class
-	// breaks NT8's "My." relative-prefix generation for that class's own convenience-
-	// constructor wrapper (a real, confirmed bug, not the original enum-visibility one this
-	// pattern was first built for — see BidAskSharedEnums.cs's header for the full story).
-	// This file hadn't hit that error yet, but it had the exact same two-block structure that
-	// caused it elsewhere, so fixed proactively while already in this file for the
-	// unfrozen-brush bug below.
     public class CVDDivergenceOscillator : Indicator
     {
         private Series<double> deltaSeries;
@@ -111,7 +101,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
                 DivergenceFractalPeriods = 2;
                 CvdPeriod = 21;
-                CumulativeMode = CvdCumulativeMode.Periodic;
+                UseEmaMode = false; // false = Periodic (rolling SUM), true = EMA — default matches the Pine source
                 TrendEmaPeriod = 50;
                 MaxPivotGapBars = 30;
 
@@ -155,9 +145,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             double selling = range > 0 ? Volume[0] * (High[0] - Close[0]) / range : 0;
             deltaSeries[0] = buying - selling;
 
-            double hist = CumulativeMode == CvdCumulativeMode.Periodic
-                ? SUM(deltaSeries, CvdPeriod)[0]
-                : EMA(deltaSeries, CvdPeriod)[0];
+            double hist = UseEmaMode
+                ? EMA(deltaSeries, CvdPeriod)[0]
+                : SUM(deltaSeries, CvdPeriod)[0];
             histSeries[0] = hist;
             Values[0][0] = hist;
             PlotBrushes[0][0] = hist >= 0 ? PosHistColor : NegHistColor;
@@ -283,10 +273,16 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                  GroupName = "1. Logic Setting", Order = 1)]
         public int CvdPeriod { get; set; }
 
+        // Was a CvdCumulativeMode enum (shared from BidAskSharedEnums.cs) — converted to a
+        // bool 2026-10-28 so this file has zero companion-file dependency: Thomas (or anyone
+        // else) can deploy just this one .cs and compile, no second file needed. Enums must
+        // live in the NinjaTrader.NinjaScript namespace for NT8's generator to resolve them in
+        // sibling namespaces (see BidAskSharedEnums.cs's header) — primitives like bool don't
+        // have that constraint, so there was never a real reason this needed to be an enum.
         [NinjaScriptProperty]
-        [Display(Name = "Cumulative Mode", Description = "Periodic = rolling SUM of delta over CVD Period bars; EMA = EMA of delta over CVD Period bars",
+        [Display(Name = "Use EMA Mode", Description = "Unchecked (default) = Periodic, rolling SUM of delta over CVD Period bars; Checked = EMA of delta over CVD Period bars",
                  GroupName = "1. Logic Setting", Order = 2)]
-        public CvdCumulativeMode CumulativeMode { get; set; }
+        public bool UseEmaMode { get; set; }
 
         [NinjaScriptProperty]
         [Range(2, 500)]
