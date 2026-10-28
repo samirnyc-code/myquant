@@ -378,3 +378,38 @@ window at placement instead would cut that correction window short whenever the 
 itself takes a few seconds to make. `HandleStopUpdate` is back to the pre-session logic
 (window starts on first move). **Do not change this without asking again** — see memory
 `claudetracker-initialstop-window-intentional`.
+
+**Fourth finding, separate chat, later same day — a real cross-thread data race was
+corrupting INITIAL_STOP/ACTUAL_STOP, independent of all three findings above.** User
+reported stop tracking looked wrong immediately after an earlier session's
+settleTimer-reentrancy fix (`fdc7b27f`, see the 2026-10-27 entry above) and pushed hard on
+whether this chat kept breaking things. First theory (Stop1 vs Stop2 moving to different
+prices) was checked against the raw NT8 order log and found **wrong** — in the trade
+examined, Stop1 and Stop2 always moved to the same price together. Retracted before
+building anything on it.
+
+Real root cause, found in the raw unfiltered log at the exact moment of the corruption:
+`"EntryStudy merged: 5 rows"` → `"7 rows"` → `"6 rows"` in consecutive lines for the SAME
+trade. A `List<T>.Count` that rises then falls is only possible if two threads are
+mutating the same list at the same instant — not a theory, direct proof. Mechanism:
+`settleTimer`'s `Elapsed` callback (`SettleTick` → `TryLockInitialStop`/`TryLockTargets`)
+runs on a ThreadPool thread; `OnAccountOrderUpdate`/`OnAccountExecutionUpdate` (real NT8
+order/fill events) run on NT8's own event-dispatch thread. Both touch the same
+`activeTrade`/`activeStudy` objects (including `activeStudy.StopRows`, a plain
+non-thread-safe `List<T>`) with **zero synchronization** — true since this file was ported
+from the Strategy (no separate timer thread needed there) to the AddOn on 10-23. Almost
+certainly the real explanation for the old Part 6.5 "two instances simultaneously holding
+ownership, never root-caused" mystery too — same unsynchronized-shared-state shape, not a
+duplicate-instance problem at all.
+
+Also fixed in the same pass, found while reading this code: the `ACTUAL_STOP_N` label
+counter was `StopRows.Count(StartsWith("ACTUAL_STOP"))`, itself a read-then-label race —
+independent of the cross-thread issue, this alone could put two different real stop prices
+under the same label. Replaced with a dedicated `ActualStopMoveCount` field on
+`ActiveTrade`, incremented in place. `[myquant] e867762`.
+
+**Fix:** dedicated `tradeLock` added, guarding `OnAccountOrderUpdate`,
+`OnAccountExecutionUpdate`, and `SettleTick`'s `TryLockInitialStop`/`TryLockTargets` calls.
+`RunHealthCheck` left unlocked (read-only heartbeat, no mutation). `[myquant] 16bb371`.
+**Not yet F5'd** — this and `e867762` landed after the 02:08:37 F5 already picked up the
+other three fixes above, so these two are still pending the next recompile.
