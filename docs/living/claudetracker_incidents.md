@@ -366,19 +366,15 @@ for a `"[ClaudeTrackerChartTag] registered"` Print (confirms the tag fix) and ve
 flush fix).
 
 **Third finding, same session, user asked directly whether Initial/Actual Risk would now
-record correctly:** `InitialStopLockSeconds = 5` is a settle window meant to filter
-sub-second ATM order-submission chatter at entry, but `HandleStopUpdate` only *started*
-that window on the stop's first subsequent price change — not at the moment the stop was
-first placed. Tonight's stop sat untouched at 7756.50 (true 3.00pt risk) for 4 minutes,
-then got trailed to breakeven (7759.50) the moment Target1 filled. Since nothing moved
-within the first 5 seconds, the window never started until that 4-minutes-later move, so
-`InitialStop` locked onto 7759.50 — `InitialRiskPoints` read 0.00pt instead of the real
-3.00pt. `FirstProtectiveStop` already held the correct 7756.50 the whole time; it just
-wasn't the field `InitialRiskPoints` is computed from.
-
-**Fix:** moved the settle-window start into the `FirstProtectiveStop <= 0` branch (the
-very first stop placement), so it now locks ~5s after entry regardless of whether/when the
-stop next moves. A later legitimate move (breakeven trail, manual adjustment) now correctly
-falls through to `FirstActualStop`/`ACTUAL_STOP_1` instead of overwriting `InitialStop`.
-Compile-checked clean, deployed to the Custom folder, same pending-F5 state as the other
-two fixes above.
+record correctly:** `InitialStopLockSeconds = 5` is a settle window, and the window only
+*starts* on the stop's first subsequent price change, not at the moment the stop was first
+placed — so tonight's stop sitting at 7756.50 for 4 minutes before trailing to breakeven at
+7759.50 (after Target1 filled) locked `InitialStop` at 7759.50, reading 0.00pt risk instead
+of the real 3.00pt. Initially read this as a bug and shipped a fix moving the window start
+to the moment of placement. **Reverted immediately** — user clarified the window starting
+on the first *move*, not placement, is deliberate: it's the mechanism for correcting a
+just-placed stop to the intended price within 5 seconds of moving it, and starting the
+window at placement instead would cut that correction window short whenever the correction
+itself takes a few seconds to make. `HandleStopUpdate` is back to the pre-session logic
+(window starts on first move). **Do not change this without asking again** — see memory
+`claudetracker-initialstop-window-intentional`.
