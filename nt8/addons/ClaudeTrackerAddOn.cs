@@ -297,6 +297,7 @@ namespace NinjaTrader.NinjaScript.AddOns
             public double FirstActualStop;
             public DateTime FirstActualStopTime;
             public bool FirstActualCaptured;
+            public int ActualStopMoveCount; // see HandleStopUpdate — was StopRows.Count(...)-derived, racy
             public double CurrentStop;
             public double CurrentTarget;
             // Keyed by sanitized order name (e.g. "TARGET1") — tracks each target
@@ -1374,9 +1375,10 @@ if (name.StartsWith("TARGET"))
                     activeTrade.CurrentStop = stopPrice;
                     if (!activeTrade.FirstActualCaptured)
                     {
-                        activeTrade.FirstActualCaptured = true;
-                        activeTrade.FirstActualStop     = stopPrice;
-                        activeTrade.FirstActualStopTime = now;
+                        activeTrade.FirstActualCaptured  = true;
+                        activeTrade.FirstActualStop      = stopPrice;
+                        activeTrade.FirstActualStopTime  = now;
+                        activeTrade.ActualStopMoveCount  = 1;
                         AppendStopRowToStudy("ACTUAL_STOP_1", stopPrice, now);
                     }
                 }
@@ -1391,13 +1393,24 @@ if (name.StartsWith("TARGET"))
                     activeTrade.FirstActualCaptured = true;
                     activeTrade.FirstActualStop     = stopPrice;
                     activeTrade.FirstActualStopTime = now;
+                    activeTrade.ActualStopMoveCount = 1;
                     AppendStopRowToStudy("ACTUAL_STOP_1", stopPrice, now);
                 }
                 else
                 {
-                    int n = activeStudy != null
-                        ? activeStudy.StopRows.Count(r => r.StopEvent.StartsWith("ACTUAL_STOP")) : 1;
-                    AppendStopRowToStudy("ACTUAL_STOP_" + (n + 1).ToString(INV), stopPrice, now);
+                    // Was `activeStudy.StopRows.Count(r => r.StopEvent.StartsWith("ACTUAL_STOP"))`
+                    // — a read-count-then-label race. Stop1 and Stop2 (the two separate bracket
+                    // orders on a multi-contract trade) both funnel into this same function with
+                    // no per-order distinction (unlike HandleTargetUpdate below, which already
+                    // keys per order name); two genuinely different stop-order-update events
+                    // landing between a row being counted and actually added to StopRows both
+                    // computed the same `n`, so two DIFFERENT stop prices got written under the
+                    // SAME "ACTUAL_STOP_N" label (confirmed 2026-10-27:
+                    // "ACTUAL_STOP_3 appended: stop=7745.25" then minutes later
+                    // "ACTUAL_STOP_3 appended: stop=7733.50" — same label, different real stops).
+                    // A dedicated counter field, incremented in place, can't race with itself.
+                    activeTrade.ActualStopMoveCount++;
+                    AppendStopRowToStudy("ACTUAL_STOP_" + activeTrade.ActualStopMoveCount.ToString(INV), stopPrice, now);
                 }
             }
         }
