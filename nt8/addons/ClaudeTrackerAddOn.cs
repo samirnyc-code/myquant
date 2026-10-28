@@ -304,6 +304,7 @@ namespace NinjaTrader.NinjaScript.AddOns
             public Dictionary<string, TargetTrackState> Targets = new Dictionary<string, TargetTrackState>();
             public int EventCounter;
             public List<TradeEventRow> EventRows = new List<TradeEventRow>();
+            public int EventRowsFlushedCount; // how many of EventRows are already on disk — see FlushEventsIncremental
             public string TradeFolder;
             public int LastEventSessionBar;
         }
@@ -708,6 +709,8 @@ namespace NinjaTrader.NinjaScript.AddOns
                 SessionBar          = sessionBar
             });
 
+            FlushEventsIncremental();
+
             activeStudy = new SessionStudy
             {
                 TradeID         = tradeId,
@@ -1049,6 +1052,8 @@ namespace NinjaTrader.NinjaScript.AddOns
             activeTrade.LastEventSessionBar = sessionBar;
             activeTrade.LastEventTime       = ex.Time;
 
+            FlushEventsIncremental();
+
             if (eventType == "SCALE_IN" || eventType == "ADD_ON")
                 RequestScreenshot(eventType, ex.Time, activeTrade.TradeID, activeTrade.StartTime);
         }
@@ -1165,6 +1170,8 @@ namespace NinjaTrader.NinjaScript.AddOns
             activeTrade.LastEventSessionBar = sessionBar;
             activeTrade.LastEventTime       = ex.Time;
 
+            FlushEventsIncremental();
+
             if (eventType == "SCALE_OUT" || eventType == "REVERSAL_EXIT")
                 RequestScreenshot(exitLabel + "_" + activeTrade.TotalExitQty.ToString(INV),
                     ex.Time, activeTrade.TradeID, activeTrade.StartTime);
@@ -1214,7 +1221,7 @@ namespace NinjaTrader.NinjaScript.AddOns
                 TradeFolder           = activeTrade.TradeFolder
             };
 
-            WriteEventRows(activeTrade.EventRows, activeTrade.TradeID);
+            FlushEventsIncremental();
             WriteTradeSummary(summary, activeTrade.TradeID);
 
             DebugPrint("Trade closed: " + activeTrade.TradeID
@@ -1916,14 +1923,33 @@ if (name.StartsWith("TARGET"))
 
         #region CSV writers — Events and Trades
 
-        private void WriteEventRows(List<TradeEventRow> rows, string tradeId)
+        // Writes activeTrade.EventRows to disk NOW instead of waiting for CloseTrade.
+        // Found 2026-10-28: Events.csv/TradeSummary.csv were write-on-close only, so any
+        // fill recorded in memory before the trade fully flattened (e.g. a profitable partial
+        // target) was permanently lost from the journal if the AddOn reloaded mid-trade —
+        // no file ever existed for it, nothing to recover. TradeSummary.csv stays write-on-
+        // close (it marks a trade "done" for journal_uploader.py — an interim one would read
+        // as a premature close). The per-trade Events.csv is always rewritten whole (cheap,
+        // idempotent). The master Events_MASTER.csv is append-only, so only rows not yet
+        // flushed are appended, tracked by EventRowsFlushedCount, to avoid re-appending the
+        // same rows on every call.
+        private void FlushEventsIncremental()
         {
-            if (rows == null || rows.Count == 0) return;
-            string masterPath = Path.Combine(MastersFolder(rows[0].Time), "Events_MASTER.csv");
-            string tradePath  = Path.Combine(EnsureTradeFolder(tradeId, rows[0].Time),
-                TradeFileStem(tradeId, rows[0].Time) + "_Events.csv");
-            WriteEventFile(masterPath, rows, true);
-            WriteEventFile(tradePath,  rows, false);
+            if (activeTrade == null || activeTrade.EventRows.Count == 0) return;
+            List<TradeEventRow> rows = activeTrade.EventRows;
+
+            string tradePath = Path.Combine(EnsureTradeFolder(activeTrade.TradeID, rows[0].Time),
+                TradeFileStem(activeTrade.TradeID, rows[0].Time) + "_Events.csv");
+            WriteEventFile(tradePath, rows, false);
+
+            if (activeTrade.EventRowsFlushedCount < rows.Count)
+            {
+                List<TradeEventRow> newRows = rows.GetRange(activeTrade.EventRowsFlushedCount,
+                    rows.Count - activeTrade.EventRowsFlushedCount);
+                string masterPath = Path.Combine(MastersFolder(rows[0].Time), "Events_MASTER.csv");
+                WriteEventFile(masterPath, newRows, true);
+                activeTrade.EventRowsFlushedCount = rows.Count;
+            }
         }
 
         private void WriteTradeSummary(TradeSummaryRow row, string tradeId)

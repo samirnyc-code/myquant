@@ -298,3 +298,69 @@ instrumented closely enough to catch the race in the act).
 mid-trade/just-crashed when this was found; needs F5 when flat, same as
 the chart-tag fix above (`[myquant] a745daa`). Both fixes are in the same
 session, deploy together.
+
+---
+
+## 2026-10-28 — the 10-27 chart-tag fix wasn't enough (OnBarClose too slow); AND a separate bug silently drops a partial exit's P&L from the journal forever
+
+The 10-27 deploy (`a745daa`/`fdc7b27`) never got F5'd before the next trade — confirmed
+by `NinjaTrader.Custom.dll`'s own mtime (2026-10-27 14:23, after both fixes were
+written). So it should have been live. It wasn't effective anyway, for a second,
+independent reason.
+
+**Screenshot-wrong-chart recurred.** Log for tonight's 02:02 ES 12-26 LONG:
+`tagged-chart registry has no entry for "ES 12-26"` — identical failure to 10-24. The
+10-27 fix made `ClaudeTrackerChartTag` re-register every bar close (`Calculate.OnBarClose`)
+instead of only once at `State.DataLoaded`. That self-heal is useless on a 2000-tick ES
+chart during low-volume ETH hours: if the one-shot `DataLoaded` registration missed (the
+original failure mode), a 2000-tick bar can take far longer to close than the gap to the
+next real trade, so the "self-heal" never got a chance to run even once before the
+screenshot fired. Fixed: `Calculate` switched to `OnEachTick` so the re-registration
+retries on every tick instead of every bar close; added registration attempts at
+`State.Historical`/`State.Realtime` too, not just `DataLoaded`; added a one-time `Print`
+on first successful registration (there was previously zero log output on success, only
+on failure — no way to confirm the self-heal had worked without this incident forcing a
+code read).
+
+**Separately: `ClaudeTrackerAddOn` reloaded mid-trade at 02:08:37** — all three AddOns
+(`ClaudeTrackerAddOn`, `L1TapeRecorderAddOn`, `TickExportAddOn`) show `"loaded"` in the
+log within the same second, which only happens on an NT8-wide recompile (F5). Not
+triggered by this session's `.cs` file copy to the Custom folder — NT8 doesn't watch that
+folder; only an explicit F5/Compile reloads NinjaScript. Cause of the F5 itself unconfirmed
+— user was mid-trade at the time.
+
+That reload wiped `ClaudeTrackerAddOn`'s in-memory `activeTrade` for the still-open
+position, and `ReconcileOpenPosition()` did exactly what it's designed to do: recovered a
+new `..._RECOVERED_T1_ADDON` trade record for the 1 contract still open, same entry price
+(7759.50) as the original — this is the "duplicate trade at the same entry price" the user
+saw, and it's not a phantom trade, it's the same real position split across two TradeIDs
+because the tracking process restarted underneath it.
+
+**The real finding is worse than the duplicate.** Cross-checked against NT8's own
+execution log (ground truth): the real trade was entry 2 @ 7759.50, Target1 filled 1 @
+7762.50 at 02:05:40 (+$150), Target2 filled 1 @ 7764.50 at 02:10:28 (+$250) — true total
++$400. The Target1 fill happened *while `ClaudeTrackerAddOn` was still running normally*,
+3 minutes before the reload, and it was never written to `Events.csv`/`TradeSummary.csv`
+at all — `CloseTrade()` was the only place those files got written, and it only runs when
+the position goes fully flat. `activeTrade.EventRows` accumulated every event (including
+the profitable Target1 exit) purely in memory until then. The 02:08:37 reload destroyed
+that in-memory list before the trade ever closed under its original TradeID, so the $150
+leg has no file anywhere in the journal — not a duplicate, a permanent loss, recoverable
+only by reading NT8's raw platform log by hand (which is how this was reconstructed).
+`journal_uploader.py`'s own header comment (`trade-playbook/scripts/journal_uploader.py:11`)
+already documented `Events.csv` as "fill-by-fill event log (full rewrite each fill)" — the
+uploader was built assuming incremental writes the AddOn never actually did.
+
+**Fix:** added `FlushEventsIncremental()` — rewrites the per-trade `Events.csv` whole
+(cheap, idempotent) and appends only not-yet-flushed rows to the master `Events_MASTER.csv`
+(tracked via new `EventRowsFlushedCount` field) — called after every OPEN/SCALE_IN/ADD_ON/
+SCALE_OUT/EXIT event is added, not just at `CloseTrade()`. `TradeSummary.csv` deliberately
+stays write-on-close only — `journal_uploader.py` uses its existence as the "trade is done"
+signal, so an interim one would read as a premature close. `[myquant]` pending commit.
+
+**Not yet F5'd** — both fixes (chart-tag + incremental events) compile-checked clean and
+copied to the Custom folder; trade closed flat by 02:10:28 so no live position is at risk,
+but no F5 has happened this session. Next: F5 when convenient, then watch the next trade
+for a `"[ClaudeTrackerChartTag] registered"` Print (confirms the tag fix) and verify
+`Events.csv` in the trade folder already has rows mid-trade, before any exit (confirms the
+flush fix).
