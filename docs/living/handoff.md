@@ -1,5 +1,38 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-28 — **Scheduler cmd.exe console popups fixed; XSP automation removed.**
+User flagged repeated black cmd.exe windows popping over other work. Root cause: 10 of 44
+`MyQuant *` scheduled tasks called `cmd.exe` directly (needed shell `>>`/`2>&1` redirection to
+log files) — the other 34 already use windowless `pythonw.exe`. Task Scheduler always shows a
+console for a direct `cmd.exe` action; the task's own "Hidden" setting only affects the Task
+Scheduler UI listing, not the console itself.
+
+**Fix:** new `scripts/_sched/run_hidden.vbs` (WScript.Shell.Run, window style 0) + one `.bat`
+per affected task (`scripts/_sched/<name>.bat`, literal copy of the task's original command),
+applied via `scripts/fix_cmd_window_popups.ps1` (idempotent, same pattern as
+`fix_dst_dual_triggers.ps1`). Re-pointed the 10 tasks' Actions at the hidden launcher; triggers/
+schedule left untouched (verified `NextRunTime` identical before/after). Stays in the normal
+interactive session (not Session-0/non-interactive), so Gateway Login's IBC/TWS automation still
+works — only the console chrome is hidden. `run_at_ct.py` already launches its own payload with
+`CREATE_NO_WINDOW` (`scripts/run_at_ct.py:99`), so no other window was ever created beyond this
+one top-level `cmd.exe` layer. Original task XML backed up before any change (scratchpad
+`task_backups/`, not in repo). Affected tasks: Chain Recorder, Deadman 0832, Evening Brief,
+Gameplan Early, Gateway Login, Live Data Backup, Shadow Stop Monitor, TD Shadow Reprice, Tick
+Trove, Trigger Daemon.
+
+**Also removed, same session (user: "get rid of xsp related stuff" — XSP is retired, desk is
+SPX-only per memory `xsp-retired-never-surface`):** deleted `scripts/options_mirror_xsp.py`,
+`scripts/settle_xsp.py`, `scripts/xsp_fee_model.py`; deleted scheduled tasks `MyQuant Chain
+Recorder XSP`, `MyQuant XSP Mirror`, `MyQuant XSP Settle` (disabled first, then deleted on
+explicit follow-up ask — Task Scheduler deletion is irreversible and was blocked once by the
+Claude Code safety classifier until the user confirmed explicitly). Backups of the 3 deleted
+tasks' original XML are in the scratchpad (`task_backups/DELETED_*.xml`). Not touched:
+`scripts/chain_recorder_supervisor.py` still has a generic `--symbol SPX|XSP` flag (shared code
+with the surviving SPX Chain Recorder task) — left as-is, not XSP-dedicated, lower risk to leave
+alone. Committed+pushed `a8fa5a91`.
+
+---
+
 **Last Updated:** 2026-10-27 — **ClaudeTrackerAddOn: two root causes found + fixed for the
 "duplicate trade card, one with screenshots one without" bug, same session NT8 crashed
 mid-trade (SIM, no exposure, position already flat).** Full incident writeup in
