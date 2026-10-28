@@ -1682,6 +1682,96 @@ if (name.StartsWith("TARGET"))
         // fallback for instruments nobody has tagged yet. targetChart.Dispatcher is still
         // needed for the ACTUAL screenshot call either way (GetScreenshot only works on the
         // window's own thread) — that hop is unavoidable and unchanged.
+        // Shared by both the registry-cache hit and the live-scan hit below — identical
+        // capture logic, just reached via two different ways of finding the ChartControl.
+        private void CaptureFromChartControl(NinjaTrader.Gui.Chart.ChartControl cc, string fileName,
+            string tradePath, string masterPath, string sourceTag)
+        {
+            cc.Dispatcher.InvokeAsync(async () =>
+            {
+                try
+                {
+                    Chart targetChart = Window.GetWindow(cc.Parent) as Chart;
+                    if (targetChart == null)
+                    {
+                        Log("[ClaudeTrackerAddOn] Screenshot: " + sourceTag + " chart's ChartControl has no parent Chart window",
+                            LogLevel.Warning);
+                        return;
+                    }
+
+                    await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
+
+                    RenderTargetBitmap sc = targetChart.GetScreenshot(ShareScreenshotType.Chart);
+                    if (sc == null) { Log("[ClaudeTrackerAddOn] Screenshot: null capture (" + sourceTag + ")", LogLevel.Warning); return; }
+
+                    PngBitmapEncoder e1 = new PngBitmapEncoder();
+                    e1.Frames.Add(BitmapFrame.Create(sc));
+                    using (Stream s = File.Create(tradePath)) e1.Save(s);
+
+                    PngBitmapEncoder e2 = new PngBitmapEncoder();
+                    e2.Frames.Add(BitmapFrame.Create(sc));
+                    using (Stream s = File.Create(masterPath)) e2.Save(s);
+
+                    DebugPrint("Screenshot saved (" + sourceTag + "): " + fileName);
+                }
+                catch (Exception ex) { Log("[ClaudeTrackerAddOn] Screenshot capture failed (" + sourceTag + "): " + ex.Message, LogLevel.Error); }
+            });
+        }
+
+        // Direct live inspection, bypassing the push/cache registry entirely — confirmed via
+        // reflection against NinjaTrader.Gui.dll (not guessed): ChartControl.Indicators is a
+        // real IList<IndicatorRenderBase>, ChartTab.ChartControl and ChartControl.Instrument
+        // both exist. Built 2026-10-28 after the registry went stale again hours into a live
+        // session (worked for 5 trades, then an NT8-wide reload at 11:01:45 wiped it and the
+        // per-tick self-heal never recovered — root cause of THAT gap still open, but this
+        // sidesteps it): for each open chart window showing the wanted instrument, checks
+        // whether "ClaudeTracker Chart Tag" is ACTUALLY sitting on it right now, instead of
+        // trusting a cached registration that has now gone silently stale more than once.
+        private NinjaTrader.Gui.Chart.ChartControl FindTaggedChartControlLive(string wantFullName)
+        {
+            try
+            {
+                foreach (IntPtr hwnd in GetTopLevelWindowsForCurrentProcess())
+                {
+                    NinjaTrader.Gui.Chart.ChartControl found = null;
+                    try
+                    {
+                        HwndSource hs = HwndSource.FromHwnd(hwnd);
+                        if (hs == null) continue;
+                        found = hs.Dispatcher.Invoke(() =>
+                        {
+                            Chart chartWindow = hs.RootVisual as Chart;
+                            if (chartWindow == null || chartWindow.MainTabControl == null) return null;
+                            foreach (object item in chartWindow.MainTabControl.Items)
+                            {
+                                NinjaTrader.Gui.Chart.ChartTab tab = item as NinjaTrader.Gui.Chart.ChartTab;
+                                if (tab == null)
+                                {
+                                    System.Windows.Controls.TabItem ti = item as System.Windows.Controls.TabItem;
+                                    if (ti != null) tab = ti.Content as NinjaTrader.Gui.Chart.ChartTab;
+                                }
+                                NinjaTrader.Gui.Chart.ChartControl cc = tab != null ? tab.ChartControl : null;
+                                if (cc == null || cc.Instrument == null) continue;
+                                if (cc.Instrument.FullName != wantFullName) continue;
+                                if (cc.Indicators == null) continue;
+                                bool hasTag = false;
+                                foreach (var ind in cc.Indicators)
+                                {
+                                    if (ind != null && ind.Name == "ClaudeTracker Chart Tag") { hasTag = true; break; }
+                                }
+                                if (hasTag) return cc;
+                            }
+                            return null;
+                        });
+                    }
+                    catch { /* this window's dispatcher may be gone/busy — try the next one */ }
+                    if (found != null) return found;
+                }
+            }
+            catch (Exception ex) { Log("[ClaudeTrackerAddOn] Screenshot: live chart-tag scan failed: " + ex.Message, LogLevel.Error); }
+            return null;
+        }
+
         private void RequestScreenshot(string label, DateTime time, string tradeId, DateTime tradeTime)
         {
             if (instrument == null) return;
@@ -1698,44 +1788,28 @@ if (name.StartsWith("TARGET"))
                 NinjaTrader.Gui.Chart.ChartControl taggedCC = ClaudeTrackerChartRegistry.Get(wantFullName);
                 if (taggedCC != null)
                 {
-                    taggedCC.Dispatcher.InvokeAsync(async () =>
-                    {
-                        try
-                        {
-                            Chart targetChart = Window.GetWindow(taggedCC.Parent) as Chart;
-                            if (targetChart == null)
-                            {
-                                Log("[ClaudeTrackerAddOn] Screenshot: tagged chart's ChartControl has no parent Chart window"
-                                    + " — falling back to title match next time", LogLevel.Warning);
-                                return;
-                            }
-
-                            await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
-
-                            RenderTargetBitmap sc = targetChart.GetScreenshot(ShareScreenshotType.Chart);
-                            if (sc == null) { Log("[ClaudeTrackerAddOn] Screenshot: null capture (tagged chart)", LogLevel.Warning); return; }
-
-                            PngBitmapEncoder e1 = new PngBitmapEncoder();
-                            e1.Frames.Add(BitmapFrame.Create(sc));
-                            using (Stream s = File.Create(tradePath)) e1.Save(s);
-
-                            PngBitmapEncoder e2 = new PngBitmapEncoder();
-                            e2.Frames.Add(BitmapFrame.Create(sc));
-                            using (Stream s = File.Create(masterPath)) e2.Save(s);
-
-                            DebugPrint("Screenshot saved (tagged chart): " + fileName);
-                        }
-                        catch (Exception ex) { Log("[ClaudeTrackerAddOn] Screenshot capture failed (tagged chart): " + ex.Message, LogLevel.Error); }
-                    });
+                    CaptureFromChartControl(taggedCC, fileName, tradePath, masterPath, "tagged chart");
                     return;
                 }
 
-                Log("[ClaudeTrackerAddOn] Screenshot: tagged-chart registry has no entry for \"" + wantFullName
-                    + "\" — using ambiguous title-match fallback (picks arbitrarily if >1 chart shows this instrument)."
-                    + " Re-add ClaudeTracker Chart Tag on the real execution chart to restore exact targeting.", LogLevel.Warning);
-
                 System.Threading.Tasks.Task.Run(() =>
                 {
+                    NinjaTrader.Gui.Chart.ChartControl liveCC = FindTaggedChartControlLive(wantFullName);
+                    if (liveCC != null)
+                    {
+                        // Opportunistic self-heal: the cache was empty but the tag is really
+                        // there — repopulate it so the NEXT call takes the fast registry path
+                        // instead of re-scanning every window again.
+                        ClaudeTrackerChartRegistry.Register(wantFullName, liveCC);
+                        CaptureFromChartControl(liveCC, fileName, tradePath, masterPath, "live scan");
+                        return;
+                    }
+
+                    Log("[ClaudeTrackerAddOn] Screenshot: tagged-chart registry AND live scan both found no"
+                        + " \"ClaudeTracker Chart Tag\" on any open \"" + wantFullName + "\" chart — using"
+                        + " ambiguous title-match fallback (picks arbitrarily if >1 chart shows this instrument).",
+                        LogLevel.Warning);
+
                     try
                     {
                         List<IntPtr> hwnds = GetTopLevelWindowsForCurrentProcess();
