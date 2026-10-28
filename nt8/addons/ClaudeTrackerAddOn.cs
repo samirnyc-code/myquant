@@ -97,6 +97,18 @@ namespace NinjaTrader.NinjaScript.AddOns
         private bool accountHooked;
         private bool marketSubscribed;
         private readonly object subLock = new object();
+        // Guards every read/write of activeTrade/activeStudy. settleTimer's Elapsed callback
+        // (SettleTick -> TryLockInitialStop/TryLockTargets) runs on a ThreadPool thread, fully
+        // concurrently with NT8's own event-dispatch thread calling OnAccountOrderUpdate/
+        // OnAccountExecutionUpdate — neither path was ever synchronized against the other.
+        // Proof (2026-10-27 log): "EntryStudy merged: 5 rows" -> "7 rows" -> "6 rows" in
+        // consecutive log lines for the SAME trade — a List<T>.Count that goes up then down is
+        // only possible if two threads are mutating activeStudy.StopRows at the same instant.
+        // That race is what produced a stray re-fired "INITIAL_STOP appended" 23 minutes after
+        // it had already locked, and corrupted ACTUAL_STOP_N values. This is a separate,
+        // broader bug than today's earlier subLock fix (which only covered the one-time
+        // resolve-and-subscribe step, not ongoing per-trade state).
+        private readonly object tradeLock = new object();
         private System.Timers.Timer settleTimer;
 
         #region Nested classes
@@ -569,8 +581,11 @@ namespace NinjaTrader.NinjaScript.AddOns
             {
                 if (instrument == null) TryResolveInstrument();
                 if (Account == null) { TryResolveAccount(); return; }
-                TryLockInitialStop();
-                TryLockTargets();
+                lock (tradeLock)
+                {
+                    TryLockInitialStop();
+                    TryLockTargets();
+                }
                 RunHealthCheck();
             }
             catch (Exception ex) { Log("[ClaudeTrackerAddOn] SettleTick error: " + ex.Message, LogLevel.Error); }
@@ -587,16 +602,19 @@ namespace NinjaTrader.NinjaScript.AddOns
                 Order o = e.Order;
                 if (o == null || o.Instrument == null || Instrument == null) return;
                 if (o.Instrument.FullName != Instrument.FullName) return;
-                if (activeTrade == null) return;
-                if (IsStopOrder(o)) { double sp = o.StopPrice; if (sp > 0) HandleStopUpdate(sp, o); }
-                else if (IsTargetOrder(o) && (o.Name ?? string.Empty).Trim().ToUpperInvariant().StartsWith("TARGET"))
+                lock (tradeLock)
                 {
-                    // Name-gated: IsTargetOrder() is true for ANY limit order (incl. a
-                    // limit scale-in ENTRY), but only ATM-generated "Target1/2/3" orders
-                    // are actual exit targets — gating on the name avoids logging a fake
-                    // target move/screenshot every time a limit entry order is placed.
-                    double tp = GetTargetPrice(o);
-                    if (tp > 0) HandleTargetUpdate(tp, o);
+                    if (activeTrade == null) return;
+                    if (IsStopOrder(o)) { double sp = o.StopPrice; if (sp > 0) HandleStopUpdate(sp, o); }
+                    else if (IsTargetOrder(o) && (o.Name ?? string.Empty).Trim().ToUpperInvariant().StartsWith("TARGET"))
+                    {
+                        // Name-gated: IsTargetOrder() is true for ANY limit order (incl. a
+                        // limit scale-in ENTRY), but only ATM-generated "Target1/2/3" orders
+                        // are actual exit targets — gating on the name avoids logging a fake
+                        // target move/screenshot every time a limit entry order is placed.
+                        double tp = GetTargetPrice(o);
+                        if (tp > 0) HandleTargetUpdate(tp, o);
+                    }
                 }
             }
             catch (Exception ex) { Log("[ClaudeTrackerAddOn] OnAccountOrderUpdate error: " + ex.Message, LogLevel.Error); }
@@ -610,10 +628,13 @@ namespace NinjaTrader.NinjaScript.AddOns
                 Order o = ex != null ? ex.Order : null;
                 if (ex == null || o == null || o.Instrument == null || Instrument == null) return;
                 if (o.Instrument.FullName != Instrument.FullName) return;
-                if (IsDuplicateExecution(ex, o)) return;
-                int signedQty = GetSignedQty(o.OrderAction, ex.Quantity);
-                if (signedQty == 0) return;
-                HandleExecution(ex, o, signedQty);
+                lock (tradeLock)
+                {
+                    if (IsDuplicateExecution(ex, o)) return;
+                    int signedQty = GetSignedQty(o.OrderAction, ex.Quantity);
+                    if (signedQty == 0) return;
+                    HandleExecution(ex, o, signedQty);
+                }
             }
             catch (Exception ex2) { Log("OnAccountExecutionUpdate error: " + ex2.Message, LogLevel.Error); }
         }
