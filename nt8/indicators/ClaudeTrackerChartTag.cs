@@ -20,6 +20,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
     public class ClaudeTrackerChartTag : Indicator
     {
+        private bool loggedRegistered;
+
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
@@ -31,12 +33,17 @@ namespace NinjaTrader.NinjaScript.Indicators
                 IsChartOnly = true;
                 DrawOnPricePanel = false;
                 IsSuspendedWhileInactive = false;
-                Calculate = NinjaTrader.NinjaScript.Calculate.OnBarClose;
+                // OnEachTick, not OnBarClose: the re-registration in OnBarUpdate below must not
+                // wait for a bar to close. On a 2000-tick ES chart during low-volume ETH hours,
+                // a single bar can take far longer than the time between trades — found
+                // 2026-10-28 when a real trade's screenshot missed the tag because the chart's
+                // only historical 2000-tick bar hadn't closed yet since load, so the "self-heal"
+                // never got a chance to run even once.
+                Calculate = NinjaTrader.NinjaScript.Calculate.OnEachTick;
             }
-            else if (State == State.DataLoaded)
+            else if (State == State.Historical || State == State.DataLoaded || State == State.Realtime)
             {
-                if (ChartControl != null && Instrument != null)
-                    ClaudeTrackerChartRegistry.Register(Instrument.FullName, ChartControl);
+                TryRegister();
             }
             else if (State == State.Terminated)
             {
@@ -45,17 +52,26 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
         }
 
-        // Belt-and-suspenders re-registration: State.DataLoaded only fires ONCE, and if
-        // ChartControl happens to be null on that specific pass (observed after an overnight
-        // session/historical-data rollover — worked all day 2026-10-23, silently dead every
-        // day since because that single DataLoaded attempt never retried), the registry entry
-        // for this instrument stays empty/stale forever until someone manually removes and
-        // re-adds the indicator. Re-registering every bar is idempotent (same key/value most
-        // bars) and self-heals within one bar if a DataLoaded registration was missed.
+        // Belt-and-suspenders re-registration: the State.* hooks above can land before
+        // ChartControl is populated (observed after an overnight session/historical-data
+        // rollover — worked all day 2026-10-23, silently dead every day since because the
+        // single DataLoaded attempt never retried). Re-registering on every tick is idempotent
+        // (same key/value almost every call) and, unlike the old OnBarClose cadence, self-heals
+        // within one real tick instead of waiting on a bar that may not close for a long time.
         protected override void OnBarUpdate()
         {
-            if (ChartControl != null && Instrument != null)
-                ClaudeTrackerChartRegistry.Register(Instrument.FullName, ChartControl);
+            TryRegister();
+        }
+
+        private void TryRegister()
+        {
+            if (ChartControl == null || Instrument == null) return;
+            ClaudeTrackerChartRegistry.Register(Instrument.FullName, ChartControl);
+            if (!loggedRegistered)
+            {
+                loggedRegistered = true;
+                Print("[ClaudeTrackerChartTag] registered \"" + Instrument.FullName + "\" for screenshot targeting.");
+            }
         }
     }
 }
