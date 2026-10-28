@@ -364,3 +364,21 @@ but no F5 has happened this session. Next: F5 when convenient, then watch the ne
 for a `"[ClaudeTrackerChartTag] registered"` Print (confirms the tag fix) and verify
 `Events.csv` in the trade folder already has rows mid-trade, before any exit (confirms the
 flush fix).
+
+**Third finding, same session, user asked directly whether Initial/Actual Risk would now
+record correctly:** `InitialStopLockSeconds = 5` is a settle window meant to filter
+sub-second ATM order-submission chatter at entry, but `HandleStopUpdate` only *started*
+that window on the stop's first subsequent price change — not at the moment the stop was
+first placed. Tonight's stop sat untouched at 7756.50 (true 3.00pt risk) for 4 minutes,
+then got trailed to breakeven (7759.50) the moment Target1 filled. Since nothing moved
+within the first 5 seconds, the window never started until that 4-minutes-later move, so
+`InitialStop` locked onto 7759.50 — `InitialRiskPoints` read 0.00pt instead of the real
+3.00pt. `FirstProtectiveStop` already held the correct 7756.50 the whole time; it just
+wasn't the field `InitialRiskPoints` is computed from.
+
+**Fix:** moved the settle-window start into the `FirstProtectiveStop <= 0` branch (the
+very first stop placement), so it now locks ~5s after entry regardless of whether/when the
+stop next moves. A later legitimate move (breakeven trail, manual adjustment) now correctly
+falls through to `FirstActualStop`/`ACTUAL_STOP_1` instead of overwriting `InitialStop`.
+Compile-checked clean, deployed to the Custom folder, same pending-F5 state as the other
+two fixes above.

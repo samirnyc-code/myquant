@@ -1340,21 +1340,23 @@ if (name.StartsWith("TARGET"))
                 activeTrade.FirstProtectiveStopLocalTime = now;
                 activeTrade.CurrentStop                  = stopPrice;
                 if (activeTrade.ATMStop <= 0) activeTrade.ATMStop = stopPrice;
-                return;
-            }
 
-            if (activeTrade.CurrentStop.ApproxCompare(stopPrice) == 0 && !activeTrade.InitialStopLocked) return;
-
-            if (!activeTrade.InitialStopStarted)
-            {
+                // Settle window starts HERE, at the first stop placement — not on its
+                // first subsequent move. Previously it didn't start until the stop
+                // changed at all, so a stop that sat untouched past the 5s window (e.g.
+                // trailed to breakeven only after a partial fill several minutes later,
+                // found 2026-10-28) got that later, post-move price locked in as
+                // "InitialStop"/InitialRiskPoints instead of the price actually in force
+                // at entry — reported 0.00pt risk instead of the real 3.00pt.
                 activeTrade.InitialStopStarted          = true;
                 activeTrade.InitialStopWindowStartTime  = now;
                 activeTrade.PendingInitialStopCandidate = stopPrice;
                 activeTrade.InitialStop                 = stopPrice;
                 activeTrade.InitialStopTime             = now;
-                activeTrade.CurrentStop                 = stopPrice;
                 return;
             }
+
+            if (activeTrade.CurrentStop.ApproxCompare(stopPrice) == 0 && !activeTrade.InitialStopLocked) return;
 
             if (!activeTrade.InitialStopLocked)
             {
