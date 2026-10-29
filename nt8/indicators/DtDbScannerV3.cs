@@ -1019,14 +1019,23 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // 2026-10-29: z/pct appended only when agrees -- a disagreeing structure isn't a
         // divergence in the first place, so it was never ranked/recorded (see the
         // isRegularAgree branch in SweepDrawn) and has no strength reading to show.
+        // 2026-10-29 FIX: was anchored at x=0/High[0]/Low[0] -- the CURRENT (live) bar's
+        // price, not the pivot's. Every other label in this file (score, pattern name)
+        // anchors to the pivot (bAgo, b.Price); this one drifted to whatever the chart's
+        // right edge looked like at confirm time, disconnected from the peak/trough it
+        // describes. Fixed to d.P2Bar/d.P2Price, same convention as DrawStructure. Offset
+        // bumped 10 -> 25 ticks: the score/pattern-name label (DrawStructure) already
+        // sits at +/-10 ticks off this exact same pivot -- at the same offset the two
+        // would print on top of each other now that this is correctly anchored there too.
         private void DrawCvdDivergenceBadge(DrawnStructure d, bool agrees, double z, double pct)
         {
             double cvd1 = _cvdHist[CurrentBar - d.P1Bar];
             double cvd2 = _cvdHist[CurrentBar - d.P2Bar];
             string txt = (agrees ? "CVD✓ " : "CVD✗ ") + (cvd2 - cvd1 >= 0 ? "+" : "") + (cvd2 - cvd1).ToString("F0");
             if (agrees) txt += "  z" + z.ToString("F1") + " P" + pct.ToString("F0");
-            double y = d.IsTop ? High[0] + 10 * TickSize : Low[0] - 10 * TickSize;
-            TrackDrawObj(Draw.Text(this, d.Tag + "_cvd", txt, 0, y, agrees ? CvdDivBrush : Brushes.Gray));
+            int bAgo = CurrentBar - d.P2Bar;
+            double y = d.IsTop ? d.P2Price + 25 * TickSize : d.P2Price - 25 * TickSize;
+            TrackDrawObj(Draw.Text(this, d.Tag + "_cvd", txt, bAgo, y, agrees ? CvdDivBrush : Brushes.Gray));
         }
 
         // HIDDEN CVD divergence, on the SAME two DT/DB pivots the regular check above
@@ -1109,12 +1118,18 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
         // Only drawn when it actually fires (same as CumulativeDelta.cs's hidden
         // divergence — not labeled "no" for every instance like the regular badge is).
+        // 2026-10-29 FIX: same current-bar-anchoring bug as DrawCvdDivergenceBadge above,
+        // fixed the same way. Offset bumped 20 -> 40 ticks -- stacks above the regular
+        // badge's now-25-tick offset (both can legitimately draw on the same pivot: a
+        // structure that fails CvdAgrees can still pass CvdHiddenAgrees) instead of
+        // overlapping it.
         private void DrawCvdHiddenDivergenceBadge(DrawnStructure d, bool hiddenAgrees, double z, double pct)
         {
             if (!hiddenAgrees) return;
             string txt = "H.CVD  z" + z.ToString("F1") + " P" + pct.ToString("F0");
-            double y = d.IsTop ? High[0] + 20 * TickSize : Low[0] - 20 * TickSize;
-            TrackDrawObj(Draw.Text(this, d.Tag + "_hcvd", txt, 0, y, HiddenCvdBrush));
+            int bAgo = CurrentBar - d.P2Bar;
+            double y = d.IsTop ? d.P2Price + 40 * TickSize : d.P2Price - 40 * TickSize;
+            TrackDrawObj(Draw.Text(this, d.Tag + "_hcvd", txt, bAgo, y, HiddenCvdBrush));
         }
 
         // Diagonal connecting line between the hidden-divergence's own two pivot PRICES —
