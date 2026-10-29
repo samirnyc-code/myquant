@@ -144,6 +144,8 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 StrongNegHistColor = strongNeg;
 
                 HistLineWidth = 2f;
+                ShowPivotConnectors = false;
+                PivotConnectorWidth = 1;
 
                 AddPlot(new Stroke(Brushes.Gray, 2), PlotStyle.Bar, "CVD Hist");
             }
@@ -287,6 +289,11 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
             marks.Add(new DivMark { barA = barA, barB = barB, histA = histA, histB = histB, bearish = bearish });
             HighlightDivergenceSpan(barA, barB);
+            if (ShowPivotConnectors)
+            {
+                Draw.VerticalLine(this, tag + "_vA", Bars.GetTime(barA), color, DashStyleHelper.Dot, PivotConnectorWidth);
+                Draw.VerticalLine(this, tag + "_vB", Bars.GetTime(barB), color, DashStyleHelper.Dot, PivotConnectorWidth);
+            }
         }
 
         // 2026-10-29: re-colors every bar from barA to barB (inclusive) to the "Strong"
@@ -354,6 +361,14 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 double histB = histSeries[CurrentBar - p2Bar];
                 marks.Add(new DivMark { barA = p1Bar, barB = p2Bar, histA = histA, histB = histB, bearish = bearish });
                 HighlightDivergenceSpan(p1Bar, p2Bar);
+                if (ShowPivotConnectors)
+                {
+                    // p.P1Time/p.P2Time already a DateTime straight from the registry —
+                    // no bar-index conversion needed for this one, unlike everywhere else
+                    // in this method that needed Bars.GetBar to go the other direction.
+                    Draw.VerticalLine(this, tag + "_vA", p.P1Time, color, DashStyleHelper.Dot, PivotConnectorWidth);
+                    Draw.VerticalLine(this, tag + "_vB", p.P2Time, color, DashStyleHelper.Dot, PivotConnectorWidth);
+                }
             }
         }
 
@@ -490,6 +505,21 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         [Display(Name = "Divergence line thickness (histogram panel)", Description = "Width of the connecting line drawn on THIS panel (the Hist-to-Hist line). Does not affect the price-panel line's width.",
                  GroupName = "2. Display Setting", Order = 8)]
         public float HistLineWidth { get; set; }
+
+        // 2026-10-29: optional dotted vertical connector at each pivot bar, tying the CVD
+        // panel's pivot to the price chart's pivot at a glance. Draw.VerticalLine spans
+        // every panel on the chart in one call (confirmed working elsewhere in this repo
+        // — RegimePhaseMachine.cs's session-boundary lines use the identical signature),
+        // so this needs no manual per-panel stitching. Off by default.
+        [NinjaScriptProperty]
+        [Display(Name = "Show pivot connectors", Description = "Dotted vertical line at each divergence pivot's bar, spanning from the CVD panel up through the price panel, so the two pivots are easy to line up visually.",
+                 GroupName = "2. Display Setting", Order = 9)]
+        public bool ShowPivotConnectors { get; set; }
+
+        [NinjaScriptProperty]
+        [Range(1, 10)]
+        [Display(Name = "Pivot connector thickness", GroupName = "2. Display Setting", Order = 10)]
+        public int PivotConnectorWidth { get; set; }
         #endregion
     }
 }
