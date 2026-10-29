@@ -151,8 +151,11 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 PaintPriceMarkers = false;
                 IsSuspendedWhileInactive = true;
 
-                // --- defaults = user's settings 2026-10-15 (15-min ES chart) ---
-                SwingStrength     = 1;   // bars required on each side of a pivot to confirm it (bigger = fewer, stronger swings; adds this much lag)
+                // --- defaults = user's settings, re-synced 2026-10-29 from the saved live
+                // template (Documents\NinjaTrader 8\templates\Indicator\DtDbScannerV3\Default.xml)
+                // — this block had drifted from what's actually configured live; every value
+                // below now matches that file exactly, not guessed or carried over stale. ---
+                SwingStrength     = 3;   // bars required on each side of a pivot to confirm it (bigger = fewer, stronger swings; adds this much lag)
                 PeakToleranceTicks = 6;  // max price difference between the two peaks/troughs, in ticks
                 MinValleyDepthTicks = 5;// the pullback between peaks must be at least this deep, in ticks (rejects flat tops)
                 UseAbrSizing      = true;  // true: peak tolerance + min valley depth = multiple of the average bar range instead of fixed ticks
@@ -170,34 +173,34 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 DeleteInvalidated = true;  // true: remove a DT/DB's drawings when price invalidates it (new extreme beyond the peaks/troughs)
                 ShowPatternName   = false; // 'DT'/'DB' text next to each pattern
                 ShowRating        = false; // quality score number next to each pattern
-                DtLegBrush        = Brushes.Firebrick;    // peak -> valley -> peak legs of a DT
-                DbLegBrush        = Brushes.SeaGreen;     // trough -> peak -> trough legs of a DB
+                DtLegBrush        = Brushes.Transparent;  // peak -> valley -> peak legs of a DT (user turned these off live)
+                DbLegBrush        = Brushes.Transparent;  // trough -> peak -> trough legs of a DB (user turned these off live)
                 LegDashStyle      = DashStyleHelper.Solid;
                 LegWidth          = 2;
                 PeakLineBrush     = Brushes.Black;        // line joining the two tops/bottoms
                 PeakLineDashStyle = DashStyleHelper.Solid;
-                PeakLineWidth     = 4;
+                PeakLineWidth     = 2;
                 NecklineDtBrush   = Brushes.Firebrick;    // DT neckline (was hardcoded)
                 NecklineDbBrush   = Brushes.SeaGreen;     // DB neckline (was hardcoded)
                 NecklineDashStyle = DashStyleHelper.Dash;
                 NecklineWidth     = 2;
-                DtDotBrush        = Brushes.DodgerBlue;   // DT neckline-break dot
-                DbDotBrush        = Brushes.DarkSeaGreen;  // DB neckline-break dot
+                DtDotBrush        = Brushes.Transparent;  // DT neckline-break dot (user turned off live)
+                DbDotBrush        = Brushes.Transparent;  // DB neckline-break dot (user turned off live)
                 ShowLastN         = 0;                    // 0 = show all; N = keep only the newest N DT/DB on the chart
-                ShowDebugPrints   = false; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
+                ShowDebugPrints   = true;  // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
 
-                ShowCvdDivergence = true;
+                ShowCvdDivergence = false;
                 CvdPeriod         = 21;
                 CvdMode           = CvdCumulativeMode.Periodic;
                 CvdDivBrush       = Brushes.Cyan;
-                ShowPullbackCvd   = true;
+                ShowPullbackCvd   = false;
                 PullbackWatchBars = 30;
                 RetestToleranceTicks = 4;
-                FilterToDivergenceOnly = false;   // off by default — opt-in, existing behavior unchanged otherwise
-                ShowCvdDivergenceLine = false;
+                FilterToDivergenceOnly = true;
+                ShowCvdDivergenceLine = true;
                 CvdDivLineDtBrush = Brushes.Firebrick;    // matches CVDDivergenceOscillator.cs's BearColor default
                 CvdDivLineDbBrush = Brushes.LimeGreen;    // matches CVDDivergenceOscillator.cs's BullColor default
-                ShowHiddenCvdDivergence = false;
+                ShowHiddenCvdDivergence = true;
                 HiddenCvdBrush = Brushes.Orange;
             }
             else if (State == State.Configure)

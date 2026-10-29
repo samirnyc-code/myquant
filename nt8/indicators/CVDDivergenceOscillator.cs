@@ -111,8 +111,8 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
                 ShowLabels = true;
                 DivLabelFontSize = 10;
-                BullColor = Brushes.LimeGreen;
-                BearColor = Brushes.Firebrick;
+                BullColor = Brushes.Green;   // 2026-10-29: matches user's saved live default (#FF008000) — was LimeGreen
+                BearColor = Brushes.Red;     // 2026-10-29: matches user's saved live default (#FFFF0000) — was Firebrick
                 // .Freeze() both -- 2026-10-19: these were the ONLY two brushes in this file
                 // built from a custom ARGB color instead of a pre-frozen named Brushes.X
                 // constant (BullColor/BearColor etc. all use Brushes.X, already frozen/thread-
@@ -144,7 +144,8 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 StrongNegHistColor = strongNeg;
 
                 HistLineWidth = 2f;
-                ShowPivotConnectors = false;
+                OnlyShowAtDtDb = true;        // 2026-10-29: matches user's saved live default — was implicitly false (never set)
+                ShowPivotConnectors = true;   // 2026-10-29: matches user's saved live default — was false
                 PivotConnectorWidth = 1;
 
                 AddPlot(new Stroke(Brushes.Gray, 2), PlotStyle.Bar, "CVD Hist");
