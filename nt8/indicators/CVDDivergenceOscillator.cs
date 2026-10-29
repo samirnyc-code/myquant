@@ -145,6 +145,8 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 StrongNegHistColor = strongNeg;
 
                 HistLineWidth = 2f;
+                PriceLineWidth = 2;    // 2026-10-29: the price-panel divergence line (Draw.Line API) -- separate
+                                       // from HistLineWidth, which is the CVD-panel line (manual SharpDX render)
                 OnlyShowAtDtDb = true;        // 2026-10-29: matches user's saved live default — was implicitly false (never set)
                 ShowPivotConnectors = false;  // 2026-10-29: re-synced to saved live template — user turned off live
                 PivotConnectorWidth = 1;
@@ -286,7 +288,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             string tag = (bearish ? "cvdFracDivBear_" : "cvdFracDivBull_") + barA + "_" + barB;
             int baA = CurrentBar - barA, baB = CurrentBar - barB;
 
-            Draw.Line(this, tag, false, baA, priceA, baB, priceB, color, DashStyleHelper.Solid, 2);
+            Draw.Line(this, tag, false, baA, priceA, baB, priceB, color, DashStyleHelper.Solid, PriceLineWidth);
             if (ShowLabels)
             {
                 double off = 8 * (TickSize > 0 ? TickSize : 0.25);
@@ -423,7 +425,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 string tag = (p.IsHidden ? "cvdDtDbHidden_" : (bearish ? "cvdDtDbDivBear_" : "cvdDtDbDivBull_")) + p1Bar + "_" + p2Bar;
                 int baA = CurrentBar - p1Bar, baB = CurrentBar - p2Bar;
 
-                Draw.Line(this, tag, false, baA, p.P1Price, baB, p.P2Price, color, DashStyleHelper.Solid, 2);
+                Draw.Line(this, tag, false, baA, p.P1Price, baB, p.P2Price, color, DashStyleHelper.Solid, PriceLineWidth);
                 if (ShowLabels && !p.IsHidden)
                 {
                     double off = 8 * (TickSize > 0 ? TickSize : 0.25);
@@ -610,6 +612,17 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         [Display(Name = "Divergence line thickness (histogram panel)", Description = "Width of the connecting line drawn on THIS panel (the Hist-to-Hist line). Does not affect the price-panel line's width.",
                  GroupName = "2. Display Setting", Order = 8)]
         public float HistLineWidth { get; set; }
+
+        // 2026-10-29: price-panel counterpart to HistLineWidth above -- separate property
+        // because the two lines are drawn through different APIs (this one's Draw.Line,
+        // which takes an int width; HistLineWidth's is a manual SharpDX RenderTarget.DrawLine
+        // in OnRender, which takes a float) and the existing HistLineWidth description
+        // explicitly says it does NOT affect this line.
+        [NinjaScriptProperty]
+        [Range(1, 20)]
+        [Display(Name = "Divergence line thickness (price panel)", Description = "Width of the connecting line drawn on the PRICE panel (both the fractal-pivot path's DrawDivergence and the registry path's DrawFromDtDbRegistry use this).",
+                 GroupName = "2. Display Setting", Order = 8)]
+        public int PriceLineWidth { get; set; }
 
         // 2026-10-29: optional dotted vertical connector at each pivot bar, tying the CVD
         // panel's pivot to the price chart's pivot at a glance. Draw.VerticalLine spans

@@ -224,6 +224,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 ShowHiddenCvdDivergenceLine = true;     // 2026-10-29: default true, matches the line shipping on
                 HiddenCvdBrush = Brushes.Orange;
                 CvdVolLookback = 100;   // 2026-10-29: StdDev window for the divergence-strength z-score
+                CvdDivLineWidth = 2;    // 2026-10-29: shared by both the regular and hidden CVD divergence lines
             }
             else if (State == State.Configure)
             {
@@ -1126,7 +1127,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         private void DrawHiddenCvdDivergenceLine(DrawnStructure d)
         {
             int baA = CurrentBar - d.P1Bar, baB = CurrentBar - d.P2Bar;
-            TrackDrawObj(Draw.Line(this, d.Tag + "_hcvdln", false, baA, d.P1Price, baB, d.P2Price, HiddenCvdBrush, DashStyleHelper.Solid, 2));
+            TrackDrawObj(Draw.Line(this, d.Tag + "_hcvdln", false, baA, d.P1Price, baB, d.P2Price, HiddenCvdBrush, DashStyleHelper.Solid, CvdDivLineWidth));
         }
 
         // Overwrites DrawStructure's "_peaks" line (same tag -> Draw.Line replaces it in
@@ -1154,7 +1155,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             if (!CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price)) return;
             int baA = CurrentBar - d.P1Bar, baB = CurrentBar - d.P2Bar;
             Brush color = d.IsTop ? CvdDivLineDtBrush : CvdDivLineDbBrush;
-            TrackDrawObj(Draw.Line(this, d.Tag + "_cvdln", false, baA, d.P1Price, baB, d.P2Price, color, DashStyleHelper.Solid, 2));
+            TrackDrawObj(Draw.Line(this, d.Tag + "_cvdln", false, baA, d.P1Price, baB, d.P2Price, color, DashStyleHelper.Solid, CvdDivLineWidth));
         }
 
         // watches a just-confirmed structure for the FIRST bar price pulls back to
@@ -1503,6 +1504,10 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         [NinjaScriptProperty, Range(10, 500)]
         [Display(Name = "CVD volatility lookback (bars)", Description = "StdDev window used to normalize divergence magnitude into a z-score, and the population used for the percentile rank shown next to each CVD badge (z/P text).", Order = 15, GroupName = "6. CVD Divergence")]
         public int CvdVolLookback { get; set; }
+
+        [NinjaScriptProperty, Range(1, 20)]
+        [Display(Name = "CVD divergence line width", Description = "Width of the regular and hidden CVD divergence connecting lines (DrawCvdDivergenceLine / DrawHiddenCvdDivergenceLine) -- shared by both.", Order = 16, GroupName = "6. CVD Divergence")]
+        public int CvdDivLineWidth { get; set; }
         #endregion
     }
 }
