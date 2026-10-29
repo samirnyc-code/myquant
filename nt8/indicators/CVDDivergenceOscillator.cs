@@ -291,9 +291,34 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             HighlightDivergenceSpan(barA, barB);
             if (ShowPivotConnectors)
             {
-                Draw.VerticalLine(this, tag + "_vA", Bars.GetTime(barA), color, DashStyleHelper.Dot, PivotConnectorWidth);
-                Draw.VerticalLine(this, tag + "_vB", Bars.GetTime(barB), color, DashStyleHelper.Dot, PivotConnectorWidth);
+                DrawPivotConnectorPricePanel(tag + "_vA", baA, priceA, color);
+                DrawPivotConnectorPricePanel(tag + "_vB", baB, priceB, color);
+                // CVD-panel half of each connector is drawn in OnRender (reaching this
+                // panel's own top edge) — see the ShowPivotConnectors block in OnRender's
+                // mark loop. Can't do it here: that needs RenderTarget, only valid during
+                // the render callback, not at OnBarUpdate time.
             }
+        }
+
+        // 2026-10-29: user's own distinction — wanted the connector bounded between the
+        // two divergence lines specifically, NOT a full-chart Draw.VerticalLine (which
+        // extends above the price panel and below this one). Draws from the pivot's own
+        // price down to the EXACT shared boundary between the price panel and this one
+        // (not an approximation): ChartPanels[0] is always the main price panel (NT8
+        // convention); its bottom pixel (Y+H) converted back to a PRICE value via that
+        // panel's own ChartScale.GetValueByY is the price sitting exactly at the
+        // panel divider — verified real members via reflection against NinjaTrader.Gui.dll
+        // (ChartPanel.Y/H/Scales, ChartScale.GetValueByY), not guessed. Assumes this
+        // indicator's own panel is directly adjacent to the price panel (true here — no
+        // other sub-panel sandwiched between them); if that ever changes, this would reach
+        // toward the wrong boundary.
+        private void DrawPivotConnectorPricePanel(string tag, int barsAgo, double priceValue, System.Windows.Media.Brush color)
+        {
+            if (ChartControl == null || ChartControl.ChartPanels.Count == 0) return;
+            NinjaTrader.Gui.Chart.ChartPanel pricePanel = ChartControl.ChartPanels[0];
+            if (pricePanel.Scales.Count == 0) return;
+            double boundaryPrice = pricePanel.Scales[0].GetValueByY(pricePanel.Y + pricePanel.H);
+            Draw.Line(this, tag, false, barsAgo, priceValue, barsAgo, boundaryPrice, color, DashStyleHelper.Dot, PivotConnectorWidth);
         }
 
         // 2026-10-29: re-colors every bar from barA to barB (inclusive) to the "Strong"
@@ -363,11 +388,8 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 HighlightDivergenceSpan(p1Bar, p2Bar);
                 if (ShowPivotConnectors)
                 {
-                    // p.P1Time/p.P2Time already a DateTime straight from the registry —
-                    // no bar-index conversion needed for this one, unlike everywhere else
-                    // in this method that needed Bars.GetBar to go the other direction.
-                    Draw.VerticalLine(this, tag + "_vA", p.P1Time, color, DashStyleHelper.Dot, PivotConnectorWidth);
-                    Draw.VerticalLine(this, tag + "_vB", p.P2Time, color, DashStyleHelper.Dot, PivotConnectorWidth);
+                    DrawPivotConnectorPricePanel(tag + "_vA", baA, p.P1Price, color);
+                    DrawPivotConnectorPricePanel(tag + "_vB", baB, p.P2Price, color);
                 }
             }
         }
@@ -387,10 +409,41 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 if (m.barA > toV + 1 && m.barB > toV + 1) continue;
                 float xA = chartControl.GetXByBarIndex(ChartBars, m.barA), xB = chartControl.GetXByBarIndex(ChartBars, m.barB);
                 float yA = chartScale.GetYByValue(m.histA), yB = chartScale.GetYByValue(m.histB);
-                RenderTarget.DrawLine(new Vector2(xA, yA), new Vector2(xB, yB), m.bearish ? bearBr : bullBr, HistLineWidth);
+                SharpDX.Direct2D1.Brush br = m.bearish ? bearBr : bullBr;
+                RenderTarget.DrawLine(new Vector2(xA, yA), new Vector2(xB, yB), br, HistLineWidth);
+
+                // CVD-panel half of each pivot connector — reaches THIS panel's own top
+                // edge (y=0, local to this indicator's own RenderTarget), which is the
+                // exact shared boundary with the price panel directly above. The price-
+                // panel half (pivot down to that same boundary) was already drawn at
+                // confirm time in DrawPivotConnectorPricePanel — together the two halves
+                // meet exactly at the panel divider, bounded, not a full-chart line.
+                if (ShowPivotConnectors)
+                {
+                    DrawDottedVerticalLine(xA, yA, 0, br, PivotConnectorWidth);
+                    DrawDottedVerticalLine(xB, yB, 0, br, PivotConnectorWidth);
+                }
             }
 
             bearBr.Dispose(); bullBr.Dispose();
+        }
+
+        // Dependency-free dashing (no Direct2D1 StrokeStyle/Factory needed) — same
+        // technique as PriorWeekOHLCV4.cs's DrawStyledLine, adapted vertical instead of
+        // horizontal.
+        private void DrawDottedVerticalLine(float x, float yFrom, float yTo, SharpDX.Direct2D1.Brush br, float thickness)
+        {
+            float lo = Math.Min(yFrom, yTo), hi = Math.Max(yFrom, yTo);
+            float[] pattern = { 2f, 4f };
+            float y = lo;
+            int pi = 0;
+            while (y < hi)
+            {
+                float seg = Math.Min(pattern[pi % pattern.Length], hi - y);
+                if (pi % 2 == 0) RenderTarget.DrawLine(new Vector2(x, y), new Vector2(x, y + seg), br, thickness);
+                y += seg;
+                pi++;
+            }
         }
 
         private static Color4 ToColor4(System.Windows.Media.Brush b)
