@@ -579,7 +579,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                         + "  neckline " + pendingTop.Neckline.ToString(), Brushes.Red);
                     // alert above fires unconditionally regardless of the filter (same as
                     // score never gating it) — only the confirm-dot VISUAL is gated.
-                    if (ShowDrawings && (!FilterToDivergenceOnly || CvdAgrees(true, pendingTop.P1Bar, pendingTop.P2Bar)))
+                    if (ShowDrawings && (!FilterToDivergenceOnly || CvdAgrees(true, pendingTop.P1Bar, pendingTop.P2Bar, pendingTop.P1Price, pendingTop.P2Price)))
                     {
                         string triTag = "DTconfTri_" + pendingTop.FormBar;
                         TrackDrawObj(DrawConfirmDot(triTag, true, High[0] + 4 * TickSize, DtDotBrush));
@@ -603,7 +603,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                         + "  neckline " + pendingBottom.Neckline.ToString(), Brushes.Lime);
                     // alert above fires unconditionally regardless of the filter (same as
                     // score never gating it) — only the confirm-dot VISUAL is gated.
-                    if (ShowDrawings && (!FilterToDivergenceOnly || CvdAgrees(false, pendingBottom.P1Bar, pendingBottom.P2Bar)))
+                    if (ShowDrawings && (!FilterToDivergenceOnly || CvdAgrees(false, pendingBottom.P1Bar, pendingBottom.P2Bar, pendingBottom.P1Price, pendingBottom.P2Price)))
                     {
                         string triTag = "DBconfTri_" + pendingBottom.FormBar;
                         TrackDrawObj(DrawConfirmDot(triTag, false, Low[0] - 4 * TickSize, DbDotBrush));
@@ -811,7 +811,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     // unchanged.
                     bool cvdHiddenOk = ShowHiddenCvdDivergence
                         && CvdHiddenAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price);
-                    if (FilterToDivergenceOnly && !CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar) && !cvdHiddenOk)
+                    if (FilterToDivergenceOnly && !CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price) && !cvdHiddenOk)
                     {
                         RemoveStructure(d.Tag);
                         drawnHistory.RemoveAll(r => r.Tag == d.Tag);
@@ -843,7 +843,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     // different bar type/chart entirely (confirmed broken live 2026-10-29:
                     // a 2000-tick chart's CVDDivergenceOscillator drew nothing reading this
                     // scanner's 1000-tick bar indices).
-                    if (CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar))
+                    if (CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price))
                         DtDbCvdPivotRegistry.Publish(Instrument.FullName, d.IsTop,
                             Bars.GetTime(d.P1Bar), d.P1Price, Bars.GetTime(d.P2Bar), d.P2Price);
                     // 2026-10-29: separate publish for hidden pivots (isHidden:true) so
@@ -913,11 +913,25 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // the drawn lines/neckline/badge for ones that disagree), and the confirm-dot
         // gate in ManagePending below (same filter, applied to the OTHER place a
         // confirmed structure draws something) — one calculation, three call sites.
-        private bool CvdAgrees(bool isTop, int p1Bar, int p2Bar)
+        //
+        // 2026-10-29 FIX: originally only checked CVD (isTop ? cvd2<cvd1 : cvd2>cvd1),
+        // with NO price condition at all — so a DT whose 2nd top was BOTH lower in price
+        // AND weaker in CVD (price and momentum agreeing, i.e. confirmation, not
+        // divergence) still got flagged as "regular CVD divergence." User caught this
+        // live, twice, with concrete charts (both price and histogram sloping the same
+        // direction on the line this method gates). A real divergence requires price and
+        // CVD to go OPPOSITE ways: price holds/improves (2nd top >= 1st top for a DT,
+        // 2nd bottom <= 1st bottom for a DB) while CVD weakens. Added that price
+        // condition; the DT/DB's own peak-tolerance check (TryDoubleTop/TryDoubleBottom)
+        // only guarantees the two prices are CLOSE, not which one is higher, so this is a
+        // real additional constraint, not a redundant one.
+        private bool CvdAgrees(bool isTop, int p1Bar, int p2Bar, double p1Price, double p2Price)
         {
             double cvd1 = _cvdHist[CurrentBar - p1Bar];
             double cvd2 = _cvdHist[CurrentBar - p2Bar];
-            return isTop ? cvd2 < cvd1 : cvd2 > cvd1;
+            bool priceHeld = isTop ? p2Price >= p1Price : p2Price <= p1Price;
+            bool cvdWeaker = isTop ? cvd2 < cvd1 : cvd2 > cvd1;
+            return priceHeld && cvdWeaker;
         }
 
         // CVD-at-the-two-pivots check, labeled for every confirmed DT/DB (agree or not)
@@ -926,7 +940,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         {
             double cvd1 = _cvdHist[CurrentBar - d.P1Bar];
             double cvd2 = _cvdHist[CurrentBar - d.P2Bar];
-            bool agrees = CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar);
+            bool agrees = CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price);
             string txt = (agrees ? "CVD✓ " : "CVD✗ ") + (cvd2 - cvd1 >= 0 ? "+" : "") + (cvd2 - cvd1).ToString("F0");
             double y = d.IsTop ? High[0] + 10 * TickSize : Low[0] - 10 * TickSize;
             TrackDrawObj(Draw.Text(this, d.Tag + "_cvd", txt, 0, y, agrees ? CvdDivBrush : Brushes.Gray));
@@ -1028,7 +1042,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // condition holds — never a "disagrees" line.
         private void DrawCvdDivergenceLine(DrawnStructure d)
         {
-            if (!CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar)) return;
+            if (!CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price)) return;
             int baA = CurrentBar - d.P1Bar, baB = CurrentBar - d.P2Bar;
             Brush color = d.IsTop ? CvdDivLineDtBrush : CvdDivLineDbBrush;
             TrackDrawObj(Draw.Line(this, d.Tag + "_cvdln", false, baA, d.P1Price, baB, d.P2Price, color, DashStyleHelper.Solid, 2));
