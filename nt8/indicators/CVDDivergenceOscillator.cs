@@ -227,8 +227,14 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 hPrevBar = hLastBar; hPrevPrice = hLastPrice; hPrevHist = hLastHist;
                 hLastBar = pivotBar; hLastPrice = price; hLastHist = hv;
 
+                // 2026-10-29 FIX: dropped the "&& hLastHist > 0 && hPrevHist > 0" sign-match
+                // requirement — it forced both pivots' hist onto the same side of zero,
+                // making a zero-crossing regular divergence impossible by construction, not
+                // just rare. No equivalent constraint exists in DtDbScannerV3.CvdAgrees (the
+                // other regular-divergence definition in this codebase) or in classic
+                // divergence definitions generally (price higher high + indicator lower high
+                // is sufficient regardless of the indicator's sign at either point).
                 if (hPrevBar >= 0 && (hLastBar - hPrevBar) < MaxPivotGapBars
-                    && hLastHist > 0 && hPrevHist > 0
                     && hLastPrice > hPrevPrice && hLastHist < hPrevHist)
                 {
                     DrawDivergence(hPrevBar, hPrevPrice, hPrevHist, hLastBar, hLastPrice, hLastHist, true);
@@ -244,8 +250,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 lPrevBar = lLastBar; lPrevPrice = lLastPrice; lPrevHist = lLastHist;
                 lLastBar = pivotBar; lLastPrice = price; lLastHist = hv;
 
+                // 2026-10-29 FIX: same sign-match removal as the bearish branch above —
+                // dropped "&& lLastHist < 0 && lPrevHist < 0".
                 if (lPrevBar >= 0 && (lLastBar - lPrevBar) < MaxPivotGapBars
-                    && lLastHist < 0 && lPrevHist < 0
                     && lLastPrice < lPrevPrice && lLastHist > lPrevHist)
                 {
                     DrawDivergence(lPrevBar, lPrevPrice, lPrevHist, lLastBar, lLastPrice, lLastHist, false);
