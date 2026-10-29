@@ -13,6 +13,76 @@ scripts referenced below live in the private `trade-playbook` repo
 
 ---
 
+## 2026-10-29 — same reload-mid-trade bug recurred; found NT8 is reloading ALL NinjaScript ~48x/day, cause not yet found
+
+**Symptom:** User screenshotted the Journal showing one real 2-lot SHORT split into two
+cards — `ES 12-26 · SHORT OPEN 09:45 AM` and `ES 12-26 · SHORT CLOSED $552.50 09:46 AM`.
+
+**Root cause — exact same mechanism as 2026-10-27/28, confirmed directly in
+`log.20261029.00000.txt`:** an NT8-wide NinjaScript reload (`ClaudeTrackerAddOn`,
+`L1TapeRecorderAddOn`, and `TickExportAddOn` all log `"loaded"` within the same
+millisecond — not a single-script recompile) fired at 09:46:47, 1m44s after a real
+entry (2 @ 7754.00 SHORT, 09:45:03) with both targets already moved and the position
+still fully open. This wiped `ClaudeTrackerAddOn`'s in-memory `activeTrade`.
+`ReconcileOpenPosition()` then did exactly what it's built to do: found the still-open
+position with nothing tracking it and synthesized a second `..._RECOVERED_T1_ADDON`
+TradeID, which then correctly caught the real Target1 (+$200, 09:47:14) and Target2
+(+$362.50, 09:47:38) exits — true gross +$562.50, net $552.50 after the 2-leg
+commission (the number on the CLOSED card, confirmed correct). The original TradeID's
+card is permanently stuck `OPEN` — it never saw the close.
+
+**Fix applied, not just logged this time:** cross-checked NT8's raw Order/Execution
+log against the orphaned record's own `EntryStudy.csv`/`Events.csv` (written before
+the reload, real: entry 7754.00, stop trailed 7757→7762 at 09:45:08, targets moved to
+7750.00/7746.75) and the RECOVERED record's own `TradeSummary.csv` (real exit fills) —
+all three agree. `Desktop\trade-playbook\scripts\recover_20261029_reload_split_trade.py`
+(same pattern as `recover_20261028_reload_fragmented_trade.py`) re-posted the first
+TradeID as CLOSED with the true combined executions/risk events, re-attached the
+RECOVERED record's 2 real exit screenshots under non-colliding labels, and deleted the
+RECOVERED record. Ran live: both POST and DELETE returned `HTTP 200 ok:true`.
+
+**New finding, not previously documented: the reload itself is NOT rare.** Counted
+48 separate `"[ClaudeTrackerAddOn] loaded for Sim101..."` lines in ONE day's NT8 log
+(2026-10-29, 01:33 through 09:46) — i.e. NinjaScript is being torn down and
+reinstantiated roughly every 10-15 minutes all night and into the morning, in dense
+clusters (e.g. 6 reloads between 08:18-08:49) separated by quieter stretches. This is
+NOT a full NT8 process restart — all 48 reload events live inside the single
+continuous `log.20261029.00000.txt`, meaning the app itself never closed; only the
+NinjaScript assembly is being recompiled/reloaded, repeatedly, unattended, overnight.
+**Cause not found this session** — checked and ruled out: the `MyQuant NT8 Restart`
+scheduled task (confirmed `Disabled`, not running); `desk_watchdog.py` (its
+COMPONENTS list never touches NT8, ClaudeTracker is notify-only there); no
+`Compiling`/error/disable lines anywhere near any reload timestamp. Every reload is
+silent — no preceding log line of any kind. **This is very likely the actual upstream
+cause of this entire class of incident** (10-15, 10-21/22, 10-27, 10-28, and now
+10-29 all trace to a reload landing mid-trade) — worth root-causing directly instead
+of continuing to patch each individual split after the fact. Flagged, not
+investigated further this session (out of scope of the user's immediate ask).
+
+**Second new finding, minor, not yet fixed:** the RECOVERED trade's export folder had
+TWO folders on disk with identical content — `10-29_Thu_T1_ADDON_SHORT_0946` (correct)
+and `10-29_Thu_T1_ADDON_SHORT_0947` (a byte-identical duplicate `Events.csv` for the
+SAME TradeID). Not a duplicate Journal row — `journal_uploader.py` keys off TradeID,
+not folder — but suggests `EnsureTradeFolder`/`FlushEventsIncremental` resolves the
+trade's folder path by current wall-clock minute somewhere instead of the cached
+`TradeFolder` field, which could matter if that path is ever used as a dedup key
+elsewhere. Not investigated further this session.
+
+**Third finding, separate from the trade split:** `C:\Users\Admin\AppData\Local\TradePlaybookJournal\uploader_state.json`
+(the shared de-dupe state `journal_uploader.py` uses to avoid re-posting unchanged
+files) has NO entries for any 2026-10-28 or 2026-10-29 trade — last entries are from
+10-27 — despite today's trades visibly having been uploaded (they showed in the
+Journal). Two `journal_uploader.py` processes were found running simultaneously
+(PID 7284, no visible `--config` arg; PID 11640, `--config
+scripts\uploader_config_addon.json`) against what may be the same state file path —
+consistent with one process's full-dict rewrite clobbering the other's newer entries
+every save. Not root-caused or fixed this session — flagged for the next session that
+touches the uploader; if real, every trade is currently at risk of being re-uploaded
+from scratch after any file touch, which would silently resurrect a just-deleted
+RECOVERED-style duplicate.
+
+---
+
 ## 2026-10-23 — architecture change: AddOn port built to fix the whole "disables itself" class
 
 Every "disable" seen across these incidents (10-16's screenshot cross-thread crash, the
