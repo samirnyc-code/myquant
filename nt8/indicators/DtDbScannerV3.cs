@@ -796,7 +796,21 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     // A structure that fails this just loses its drawings, same cleanup
                     // RemoveStructure already does for an invalidated one; it still
                     // confirmed as far as the rest of the indicator (incl. alerts) knows.
-                    if (FilterToDivergenceOnly && !CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar))
+                    //
+                    // 2026-10-29 FIX: computed cvdHiddenOk BEFORE the gate and let it rescue
+                    // a structure the regular check would otherwise delete. Root cause of
+                    // "hidden divergence never fires" wasn't the earlier strict-inequality
+                    // bug — it's that CvdHiddenAgrees's cvdCond is the exact logical negation
+                    // of CvdAgrees (isTop ? cvd2>cvd1 : cvd2<cvd1, vs CvdAgrees's cvd2<cvd1 :
+                    // cvd2>cvd1). With the old gate removing anything CvdAgrees didn't like
+                    // BEFORE the hidden check ever ran, only agreeing structures survived to
+                    // reach it — and agreeing structures can never satisfy hidden's condition
+                    // by construction (confirmed via diag log: 0/1339 cvdCond=True). Only
+                    // evaluated when the toggle is on, so the no-op case when it's off is
+                    // unchanged.
+                    bool cvdHiddenOk = ShowHiddenCvdDivergence
+                        && CvdHiddenAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price);
+                    if (FilterToDivergenceOnly && !CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar) && !cvdHiddenOk)
                     {
                         RemoveStructure(d.Tag);
                         drawnHistory.RemoveAll(r => r.Tag == d.Tag);
@@ -807,7 +821,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     DrawNeckline(d.Tag, d.IsTop, d.NeckBar, d.Neckline);   // extend to the bar that closed beyond
                     if (ShowCvdDivergence) DrawCvdDivergenceBadge(d);
                     if (ShowCvdDivergenceLine) DrawCvdDivergenceLine(d);
-                    if (ShowHiddenCvdDivergence) DrawCvdHiddenDivergenceBadge(d);
+                    if (ShowHiddenCvdDivergence) DrawCvdHiddenDivergenceBadge(d, cvdHiddenOk);
                     // Publish to the shared registry whenever CVD agrees — independent of
                     // every display toggle above, including FilterToDivergenceOnly, so
                     // CVDDivergenceOscillator.cs's "Only show at DT/DB" mode works off this
@@ -899,8 +913,10 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         }
 
         // HIDDEN CVD divergence, on the SAME two DT/DB pivots the regular check above
-        // uses — independent, separate toggle, does not touch CvdAgrees or anything it
-        // feeds (FilterToDivergenceOnly stays tied to the regular check only).
+        // uses — independent, separate toggle, does not touch CvdAgrees's own return value
+        // or the regular badge/line. It DOES get a say in the FilterToDivergenceOnly
+        // survive/remove gate in SweepDrawn now (2026-10-29 fix below) — otherwise the two
+        // checks being logical negations of each other means hidden could never fire.
         //
         // Mirrors CumulativeDelta.cs's existing ShowHiddenDivergence definition (price
         // makes a SHALLOWER extreme, CVD makes a STRONGER one — continuation shape, the
@@ -950,9 +966,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
         // Only drawn when it actually fires (same as CumulativeDelta.cs's hidden
         // divergence — not labeled "no" for every instance like the regular badge is).
-        private void DrawCvdHiddenDivergenceBadge(DrawnStructure d)
+        private void DrawCvdHiddenDivergenceBadge(DrawnStructure d, bool hiddenAgrees)
         {
-            if (!CvdHiddenAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price)) return;
+            if (!hiddenAgrees) return;
             double y = d.IsTop ? High[0] + 20 * TickSize : Low[0] - 20 * TickSize;
             TrackDrawObj(Draw.Text(this, d.Tag + "_hcvd", "H.CVD", 0, y, HiddenCvdBrush));
         }
