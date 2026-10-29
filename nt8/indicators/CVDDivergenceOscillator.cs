@@ -131,6 +131,20 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 negHist.Freeze();
                 NegHistColor = negHist;
 
+                // 2026-10-29: same colors, full opacity (255 vs the normal 140 alpha) —
+                // bars inside a confirmed divergence's own span (its P1Bar..P2Bar range)
+                // get these instead of the normal Pos/NegHistColor, so the span "pops"
+                // against the rest of the histogram. Frozen for the same cross-thread
+                // reason as posHist/negHist above.
+                var strongPos = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 76, 175, 79));
+                strongPos.Freeze();
+                StrongPosHistColor = strongPos;
+                var strongNeg = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 255, 82, 82));
+                strongNeg.Freeze();
+                StrongNegHistColor = strongNeg;
+
+                HistLineWidth = 2f;
+
                 AddPlot(new Stroke(Brushes.Gray, 2), PlotStyle.Bar, "CVD Hist");
             }
             else if (State == State.Configure)
@@ -272,6 +286,23 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             }
 
             marks.Add(new DivMark { barA = barA, barB = barB, histA = histA, histB = histB, bearish = bearish });
+            HighlightDivergenceSpan(barA, barB);
+        }
+
+        // 2026-10-29: re-colors every bar from barA to barB (inclusive) to the "Strong"
+        // variant of whichever color its own hist sign already calls for — per-bar sign
+        // check (not a single bearish/bullish color for the whole span) since a span can
+        // legitimately cross zero. Writing PlotBrushes[0][ago] for ago>0 recolors bars
+        // already plotted on earlier ticks — NT8 supports this (Plots are Series-backed).
+        private void HighlightDivergenceSpan(int barA, int barB)
+        {
+            for (int b = barA; b <= barB; b++)
+            {
+                int ago = CurrentBar - b;
+                if (ago < 0 || ago > CurrentBar) continue;
+                double h = histSeries[ago];
+                PlotBrushes[0][ago] = h >= 0 ? StrongPosHistColor : StrongNegHistColor;
+            }
         }
 
         // Only called when OnlyShowAtDtDb is on. Reads every DtDbCvdPivotRegistry entry
@@ -322,6 +353,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 double histA = histSeries[CurrentBar - p1Bar];
                 double histB = histSeries[CurrentBar - p2Bar];
                 marks.Add(new DivMark { barA = p1Bar, barB = p2Bar, histA = histA, histB = histB, bearish = bearish });
+                HighlightDivergenceSpan(p1Bar, p2Bar);
             }
         }
 
@@ -340,7 +372,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 if (m.barA > toV + 1 && m.barB > toV + 1) continue;
                 float xA = chartControl.GetXByBarIndex(ChartBars, m.barA), xB = chartControl.GetXByBarIndex(ChartBars, m.barB);
                 float yA = chartScale.GetYByValue(m.histA), yB = chartScale.GetYByValue(m.histB);
-                RenderTarget.DrawLine(new Vector2(xA, yA), new Vector2(xB, yB), m.bearish ? bearBr : bullBr, 2f);
+                RenderTarget.DrawLine(new Vector2(xA, yA), new Vector2(xB, yB), m.bearish ? bearBr : bullBr, HistLineWidth);
             }
 
             bearBr.Dispose(); bullBr.Dispose();
@@ -438,6 +470,26 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         public System.Windows.Media.Brush NegHistColor { get; set; }
         [Browsable(false)]
         public string NegHistColorSerialize { get { return Serialize.BrushToString(NegHistColor); } set { NegHistColor = Serialize.StringToBrush(value); } }
+
+        // 2026-10-29: bars inside a confirmed divergence's own P1Bar..P2Bar span get
+        // these instead of the normal Pos/NegHistColor above, so the span pops visually.
+        [XmlIgnore]
+        [Display(Name = "Strong positive hist color (divergence span)", GroupName = "2. Display Setting", Order = 6)]
+        public System.Windows.Media.Brush StrongPosHistColor { get; set; }
+        [Browsable(false)]
+        public string StrongPosHistColorSerialize { get { return Serialize.BrushToString(StrongPosHistColor); } set { StrongPosHistColor = Serialize.StringToBrush(value); } }
+
+        [XmlIgnore]
+        [Display(Name = "Strong negative hist color (divergence span)", GroupName = "2. Display Setting", Order = 7)]
+        public System.Windows.Media.Brush StrongNegHistColor { get; set; }
+        [Browsable(false)]
+        public string StrongNegHistColorSerialize { get { return Serialize.BrushToString(StrongNegHistColor); } set { StrongNegHistColor = Serialize.StringToBrush(value); } }
+
+        [NinjaScriptProperty]
+        [Range(0.5f, 10f)]
+        [Display(Name = "Divergence line thickness (histogram panel)", Description = "Width of the connecting line drawn on THIS panel (the Hist-to-Hist line). Does not affect the price-panel line's width.",
+                 GroupName = "2. Display Setting", Order = 8)]
+        public float HistLineWidth { get; set; }
         #endregion
     }
 }
