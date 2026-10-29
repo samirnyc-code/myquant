@@ -138,6 +138,22 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // advisory only, not a filter/gate on anything the scanner already does.
         private Series<double> _cvdDelta, _cvdHist;
 
+        // ── CVD divergence STRENGTH (2026-10-29) ─────────────────────────────
+        // Raw |cvd2-cvd1| is in volume-proxy units that aren't comparable across a
+        // quiet session vs. a high-volume RTH session. Normalize by StdDev(_cvdHist,
+        // CvdVolLookback) -- same ATR-normalization idea ScoreStructure already uses
+        // for price depth, applied to CVD -- giving a z-score: "how big is this CVD
+        // change relative to normal fluctuation right now." Then rank that z-score
+        // against a rolling population of past z-scores from confirmed divergences of
+        // the SAME kind (regular vs. hidden kept separate -- different shapes, not
+        // comparable populations) to get a percentile: "how strong is this one
+        // compared to the divergences we've actually seen recently." Rolling/capped
+        // (not all-time) so the population adapts as volatility regime shifts instead
+        // of staying anchored to whatever the market was doing at session start.
+        private List<double> _regularDivStrengths = new List<double>();
+        private List<double> _hiddenDivStrengths  = new List<double>();
+        private const int DivStrengthHistoryCap = 300;
+
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
@@ -207,11 +223,16 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 ShowHiddenCvdDivergenceLabel = false;   // 2026-10-29: user doesn't want "H.CVD" text by default
                 ShowHiddenCvdDivergenceLine = true;     // 2026-10-29: default true, matches the line shipping on
                 HiddenCvdBrush = Brushes.Orange;
+                CvdVolLookback = 100;   // 2026-10-29: StdDev window for the divergence-strength z-score
             }
             else if (State == State.Configure)
             {
                 _cvdDelta = new Series<double>(this);
-                _cvdHist  = new Series<double>(this);
+                // 2026-10-29: Infinite (not the 256-bar default) -- StdDev(_cvdHist,
+                // CvdVolLookback) indexes back CvdVolLookback bars for the strength
+                // z-score below, and CvdVolLookback's Range allows up to 500, same
+                // out-of-range crash class CVDDivergenceOscillator.cs already hit once.
+                _cvdHist  = new Series<double>(this, MaximumBarsLookBack.Infinite);
             }
             else if (State == State.DataLoaded)
             {
@@ -831,7 +852,31 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     // unchanged.
                     bool cvdHiddenOk = ShowHiddenCvdDivergence
                         && CvdHiddenAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price);
-                    if (FilterToDivergenceOnly && !CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price) && !cvdHiddenOk)
+
+                    // 2026-10-29: divergence strength -- computed once per confirmed
+                    // structure (same reasoning as cvdHiddenOk above: threaded through,
+                    // never recomputed in the draw calls). Percentile is ranked BEFORE the
+                    // value is recorded into history, so a divergence never ranks against
+                    // itself. Regular and hidden use separate histories -- different
+                    // shapes, not a fair population to pool together. A structure that is
+                    // neither (fails both CvdAgrees and the hidden check) gets no strength
+                    // reading at all -- divPct stays 50/neutral and isn't recorded anywhere,
+                    // since it isn't a divergence of either kind in the first place.
+                    bool isRegularAgree = CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price);
+                    double divZ = DivStrengthZ(d.P1Bar, d.P2Bar);
+                    double divPct = 50;
+                    if (isRegularAgree)
+                    {
+                        divPct = PercentileRank(_regularDivStrengths, divZ);
+                        RecordDivStrength(_regularDivStrengths, divZ);
+                    }
+                    else if (cvdHiddenOk)
+                    {
+                        divPct = PercentileRank(_hiddenDivStrengths, divZ);
+                        RecordDivStrength(_hiddenDivStrengths, divZ);
+                    }
+
+                    if (FilterToDivergenceOnly && !isRegularAgree && !cvdHiddenOk)
                     {
                         RemoveStructure(d.Tag);
                         drawnHistory.RemoveAll(r => r.Tag == d.Tag);
@@ -840,13 +885,13 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     }
 
                     DrawNeckline(d.Tag, d.IsTop, d.NeckBar, d.Neckline);   // extend to the bar that closed beyond
-                    if (ShowCvdDivergence) DrawCvdDivergenceBadge(d);
+                    if (ShowCvdDivergence) DrawCvdDivergenceBadge(d, isRegularAgree, divZ, divPct);
                     if (ShowCvdDivergenceLine) DrawCvdDivergenceLine(d);
                     // 2026-10-29: label split from detection — ShowHiddenCvdDivergence stays
                     // the master toggle (drives cvdHiddenOk, the peak-line recolor below, and
                     // the registry publish), ShowHiddenCvdDivergenceLabel (default OFF, user
                     // ask) controls ONLY the "H.CVD" text.
-                    if (ShowHiddenCvdDivergenceLabel) DrawCvdHiddenDivergenceBadge(d, cvdHiddenOk);
+                    if (ShowHiddenCvdDivergenceLabel) DrawCvdHiddenDivergenceBadge(d, cvdHiddenOk, divZ, divPct);
                     // Recolor the existing "_peaks" line (default black, drawn at formation
                     // time in DrawStructure) to HiddenCvdBrush when this structure is a hidden
                     // divergence — same tag, so Draw.Line overwrites it in place rather than
@@ -970,12 +1015,15 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
         // CVD-at-the-two-pivots check, labeled for every confirmed DT/DB (agree or not)
         // so the hit rate can be audited visually rather than filtered silently.
-        private void DrawCvdDivergenceBadge(DrawnStructure d)
+        // 2026-10-29: z/pct appended only when agrees -- a disagreeing structure isn't a
+        // divergence in the first place, so it was never ranked/recorded (see the
+        // isRegularAgree branch in SweepDrawn) and has no strength reading to show.
+        private void DrawCvdDivergenceBadge(DrawnStructure d, bool agrees, double z, double pct)
         {
             double cvd1 = _cvdHist[CurrentBar - d.P1Bar];
             double cvd2 = _cvdHist[CurrentBar - d.P2Bar];
-            bool agrees = CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price);
             string txt = (agrees ? "CVD✓ " : "CVD✗ ") + (cvd2 - cvd1 >= 0 ? "+" : "") + (cvd2 - cvd1).ToString("F0");
+            if (agrees) txt += "  z" + z.ToString("F1") + " P" + pct.ToString("F0");
             double y = d.IsTop ? High[0] + 10 * TickSize : Low[0] - 10 * TickSize;
             TrackDrawObj(Draw.Text(this, d.Tag + "_cvd", txt, 0, y, agrees ? CvdDivBrush : Brushes.Gray));
         }
@@ -1017,13 +1065,55 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             return priceCond && cvdCond;
         }
 
+        // ── Divergence strength: z-score + percentile ────────────────────────
+        // Magnitude alone (|cvd2-cvd1| in raw volume-proxy units) isn't comparable
+        // across a quiet session vs. a high-volume RTH session. StdDev(_cvdHist,
+        // CvdVolLookback) is "how much CVD normally swings around right now"; dividing
+        // the raw gap by that turns it into a z-score ("how many normal-sized swings
+        // is this gap"). CurrentBar/vol guards return 0 (not NaN/throw) during warmup
+        // or on a dead-flat CVD window -- callers treat 0 as "not yet meaningful",
+        // same spirit as ScoreStructure's own atr<=0 fallback a few hundred lines up.
+        private double DivStrengthZ(int p1Bar, int p2Bar)
+        {
+            if (CurrentBar < CvdVolLookback) return 0;
+            double vol = StdDev(_cvdHist, CvdVolLookback)[0];
+            if (vol <= 0) return 0;
+            double cvd1 = _cvdHist[CurrentBar - p1Bar];
+            double cvd2 = _cvdHist[CurrentBar - p2Bar];
+            return Math.Abs(cvd2 - cvd1) / vol;
+        }
+
+        // Percentile rank of `value` against a rolling population of past z-scores
+        // from confirmed divergences of the SAME kind (regular/hidden kept in separate
+        // lists by the caller -- different shapes, not a fair comparison pooled
+        // together). Empty history reads as 50 (neutral -- "no basis yet to call this
+        // strong or weak"), not 0 or 100, so the first divergence of a session doesn't
+        // get labeled as either extreme by default.
+        private double PercentileRank(List<double> history, double value)
+        {
+            if (history.Count == 0) return 50;
+            int below = 0;
+            foreach (double h in history) if (h <= value) below++;
+            return 100.0 * below / history.Count;
+        }
+
+        // Record AFTER computing the percentile above (so a value is never ranked
+        // against itself), capped so the population tracks recent regime rather than
+        // staying anchored to session-start volatility forever.
+        private void RecordDivStrength(List<double> history, double value)
+        {
+            history.Add(value);
+            if (history.Count > DivStrengthHistoryCap) history.RemoveAt(0);
+        }
+
         // Only drawn when it actually fires (same as CumulativeDelta.cs's hidden
         // divergence — not labeled "no" for every instance like the regular badge is).
-        private void DrawCvdHiddenDivergenceBadge(DrawnStructure d, bool hiddenAgrees)
+        private void DrawCvdHiddenDivergenceBadge(DrawnStructure d, bool hiddenAgrees, double z, double pct)
         {
             if (!hiddenAgrees) return;
+            string txt = "H.CVD  z" + z.ToString("F1") + " P" + pct.ToString("F0");
             double y = d.IsTop ? High[0] + 20 * TickSize : Low[0] - 20 * TickSize;
-            TrackDrawObj(Draw.Text(this, d.Tag + "_hcvd", "H.CVD", 0, y, HiddenCvdBrush));
+            TrackDrawObj(Draw.Text(this, d.Tag + "_hcvd", txt, 0, y, HiddenCvdBrush));
         }
 
         // Diagonal connecting line between the hidden-divergence's own two pivot PRICES —
@@ -1405,6 +1495,14 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         public Brush HiddenCvdBrush { get; set; }
         [Browsable(false)]
         public string HiddenCvdBrushSerialize { get { return Serialize.BrushToString(HiddenCvdBrush); } set { HiddenCvdBrush = Serialize.StringToBrush(value); } }
+
+        // 2026-10-29: StdDev window the divergence-strength z-score is normalized
+        // against -- "how big is this CVD change relative to normal fluctuation over
+        // the last N bars." Range capped at 500 (Series lookback bumped to Infinite in
+        // State.Configure to match, see _cvdHist's own comment there).
+        [NinjaScriptProperty, Range(10, 500)]
+        [Display(Name = "CVD volatility lookback (bars)", Description = "StdDev window used to normalize divergence magnitude into a z-score, and the population used for the percentile rank shown next to each CVD badge (z/P text).", Order = 15, GroupName = "6. CVD Divergence")]
+        public int CvdVolLookback { get; set; }
         #endregion
     }
 }
