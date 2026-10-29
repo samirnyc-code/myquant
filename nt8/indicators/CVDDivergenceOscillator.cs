@@ -287,6 +287,12 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 // ChartBars.Bars.GetBar used elsewhere in this repo).
                 int p1Bar = Bars.GetBar(p.P1Time);
                 int p2Bar = Bars.GetBar(p.P2Time);
+                // TEMP DIAGNOSTIC (see DtDbCvdPivotRegistry.cs) — logs every entry this
+                // reads, incl. ones rejected by the bounds check below, so a GetBar
+                // conversion failure specifically is visible instead of just "no line."
+                DtDbCvdPivotRegistry.Diag("CONSUME id=" + p.Id
+                    + " CurrentBar=" + CurrentBar + " p1Bar=" + p1Bar + " p2Bar=" + p2Bar
+                    + (p1Bar < 0 || p2Bar < 0 || p1Bar > CurrentBar || p2Bar > CurrentBar ? " REJECTED" : " DRAWING"));
                 if (p1Bar < 0 || p2Bar < 0 || p1Bar > CurrentBar || p2Bar > CurrentBar) continue;
 
                 bool bearish = p.IsTop;
