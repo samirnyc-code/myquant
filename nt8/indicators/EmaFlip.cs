@@ -16,8 +16,9 @@ using NinjaTrader.NinjaScript.DrawingTools;
 // Uses only price bars, the EMA and ATR (for scale-independent distances).
 //
 // RULE (CLAUDE.md): this .cs lives in nt8/ and stays committed. Recovered 2026-10-29 —
-// existed only in the NT8 Custom folder (last modified 2026-10-27), never committed. No
-// code changed in this recovery commit; next commit adds the DT/DB divergence gate.
+// existed only in the NT8 Custom folder (last modified 2026-10-27), never committed.
+// Stays the plain, zero-dependency version — the DT/DB divergence gate that was briefly
+// added here moved to its own file/class, EmaFlipV2.cs, at user's request.
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
@@ -73,9 +74,6 @@ namespace NinjaTrader.NinjaScript.Indicators
                 RangeExpansion    = 0.7;
                 RangeLookback     = 8;
                 ConfirmBars       = 2;
-
-                RequireDtDbDivergence   = true;
-                IncludeHiddenDivergence = true;
 
                 BullBrush         = Brushes.LimeGreen;
                 BearBrush         = Brushes.Red;
@@ -241,40 +239,8 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (ratio < RangeExpansion)
                 fails += "R" + ratio.ToString("0.00") + " ";
 
-            // 2026-10-29: user ask — only paint a flip box when its own starting bar (the
-            // swing extreme, "e" bars back) is also one of DtDbScannerV3's own two pivots
-            // for a CVD-confirmed DT/DB (regular divergence; optionally hidden divergence
-            // too via IncludeHiddenDivergence). Off by default — existing behavior
-            // unchanged unless explicitly turned on.
-            if (RequireDtDbDivergence && !ExtremeIsDtDbPivot(CurrentBar - e))
-                fails += "D ";
-
             fails = fails.Trim();
             return fails.Length == 0;
-        }
-
-        // Reads DtDbCvdPivotRegistry (same shared registry DtDbScannerV3.cs/
-        // CVDDivergenceOscillator.cs already use) for THIS instrument and checks whether
-        // extremeBar matches either pivot (P1 or P2) of any published entry. Every entry
-        // in the registry is already CVD-confirmed by construction — DtDbScannerV3 only
-        // ever publishes when its own CvdAgrees (regular) or CvdHiddenAgrees (hidden)
-        // fired — so no extra divergence check is needed here beyond the IsHidden filter.
-        // Full scan, not an incremental last-seen-id window like CVDDivergenceOscillator's
-        // per-bar poll: this only runs when TryDetect's other filters already hold (a rare
-        // candidate bar, not every bar), so the cost is negligible.
-        private bool ExtremeIsDtDbPivot(int extremeBar)
-        {
-            if (Instrument == null) return false;
-            System.Collections.Generic.List<DtDbCvdPivot> all =
-                DtDbCvdPivotRegistry.GetSince(Instrument.FullName, 0);
-            foreach (DtDbCvdPivot p in all)
-            {
-                if (p.IsHidden && !IncludeHiddenDivergence) continue;
-                int p1Bar = Bars.GetBar(p.P1Time);
-                int p2Bar = Bars.GetBar(p.P2Time);
-                if (p1Bar == extremeBar || p2Bar == extremeBar) return true;
-            }
-            return false;
         }
 
         private void StartFlip(int dir, int e)
@@ -383,18 +349,6 @@ namespace NinjaTrader.NinjaScript.Indicators
         [NinjaScriptProperty, Range(0, int.MaxValue)]
         [Display(Name = "Confirm bars (no cross back)", Description = "0 = signal immediately on the break bar", Order = 1, GroupName = "5. Confirmation")]
         public int ConfirmBars { get; set; }
-
-        // 2026-10-29: this property's mere presence requires DtDbCvdPivotRegistry.cs on
-        // the same Custom tree at compile time, same caveat as
-        // CVDDivergenceOscillator.cs's OnlyShowAtDtDb — functionally a no-op when OFF
-        // (the default) but the type reference exists regardless of toggle state.
-        [NinjaScriptProperty]
-        [Display(Name = "Require DT/DB divergence at extreme (requires DtDbScannerV3)", Description = "Only paint a flip box when its own starting bar (the swing extreme) is also one of DtDbScannerV3's confirmed, CVD-divergence pivots. Off by default.", Order = 1, GroupName = "5a. DT/DB Divergence Gate")]
-        public bool RequireDtDbDivergence { get; set; }
-
-        [NinjaScriptProperty]
-        [Display(Name = "Also allow hidden divergence", Description = "When the gate above is on, also accept a starting bar that's a hidden-CVD-divergence pivot (not just regular). Ignored when the gate above is off.", Order = 2, GroupName = "5a. DT/DB Divergence Gate")]
-        public bool IncludeHiddenDivergence { get; set; }
 
         [XmlIgnore]
         [Display(Name = "Bull color", Order = 1, GroupName = "6. Visuals")]
