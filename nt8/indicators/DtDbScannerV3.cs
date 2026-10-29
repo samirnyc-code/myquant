@@ -173,6 +173,8 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 DeleteInvalidated = true;  // true: remove a DT/DB's drawings when price invalidates it (new extreme beyond the peaks/troughs)
                 ShowPatternName   = false; // 'DT'/'DB' text next to each pattern
                 ShowRating        = false; // quality score number next to each pattern
+                ShowLegLines      = true;  // 2026-10-29: default true, unchanged behavior
+                ShowPeakLine      = true;  // 2026-10-29: default true, unchanged behavior
                 DtLegBrush        = Brushes.Transparent;  // peak -> valley -> peak legs of a DT (user turned these off live)
                 DbLegBrush        = Brushes.Transparent;  // trough -> peak -> trough legs of a DB (user turned these off live)
                 LegDashStyle      = DashStyleHelper.Solid;
@@ -202,6 +204,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 CvdDivLineDbBrush = Brushes.LimeGreen;    // matches CVDDivergenceOscillator.cs's BullColor default
                 ShowHiddenCvdDivergence = true;
                 ShowHiddenCvdDivergenceLabel = false;   // 2026-10-29: user doesn't want "H.CVD" text by default
+                ShowHiddenCvdDivergenceLine = true;     // 2026-10-29: default true, matches the line shipping on
                 HiddenCvdBrush = Brushes.Orange;
             }
             else if (State == State.Configure)
@@ -716,15 +719,27 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             int midAgo = CurrentBar - mid.Bar;
             int bAgo   = CurrentBar - b.Bar;
 
-            Brush leg = isTop ? DtLegBrush : DbLegBrush;
-            TrackDrawObj(Draw.Line(this, tag + "_l1", false, aAgo, a.Price, midAgo, mid.Price, leg, LegDashStyle, LegWidth));
-            TrackDrawObj(Draw.Line(this, tag + "_l2", false, midAgo, mid.Price, bAgo, b.Price, leg, LegDashStyle, LegWidth));
+            // 2026-10-29: user ask — toggle to hide these two legs (the diagonal lines
+            // down to the valley/peak and back up that visually form the DT/DB's zigzag
+            // shape). Detection/confirm/scoring untouched, pure display.
+            if (ShowLegLines)
+            {
+                Brush leg = isTop ? DtLegBrush : DbLegBrush;
+                TrackDrawObj(Draw.Line(this, tag + "_l1", false, aAgo, a.Price, midAgo, mid.Price, leg, LegDashStyle, LegWidth));
+                TrackDrawObj(Draw.Line(this, tag + "_l2", false, midAgo, mid.Price, bAgo, b.Price, leg, LegDashStyle, LegWidth));
+            }
             DrawNeckline(tag, isTop, mid.Bar, mid.Price);   // to the current bar; extended on the break (SweepDrawn)
             // joins the two tops/bottoms — perfectly horizontal at the MORE EXTREME of the
             // two prices (the higher top for a DT, the lower bottom for a DB), not sloped
             // between the two actual (possibly unequal) pivot prices.
-            double peakLevel = isTop ? Math.Max(a.Price, b.Price) : Math.Min(a.Price, b.Price);
-            TrackDrawObj(Draw.Line(this, tag + "_peaks", false, aAgo, peakLevel, bAgo, peakLevel, PeakLineBrush, PeakLineDashStyle, PeakLineWidth));
+            // 2026-10-29: user ask — toggle to hide this horizontal line entirely. Default
+            // true (unchanged behavior). When off, the hidden-divergence orange recolor
+            // (RecolorPeaksLine) is also skipped — nothing to recolor if it's not drawn.
+            if (ShowPeakLine)
+            {
+                double peakLevel = isTop ? Math.Max(a.Price, b.Price) : Math.Min(a.Price, b.Price);
+                TrackDrawObj(Draw.Line(this, tag + "_peaks", false, aAgo, peakLevel, bAgo, peakLevel, PeakLineBrush, PeakLineDashStyle, PeakLineWidth));
+            }
             if (ShowPatternName || ShowRating)
             {
                 string txt = ShowPatternName ? (isTop ? "DT" : "DB") : "";
@@ -832,8 +847,13 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     // divergence — same tag, so Draw.Line overwrites it in place rather than
                     // adding a second line. User ask 2026-10-29: wanted the DT/DB peak line
                     // itself to flag hidden divergence, not just the "H.CVD" text badge.
-                    if (cvdHiddenOk) RecolorPeaksLine(d, HiddenCvdBrush);
-                    if (cvdHiddenOk) DrawHiddenCvdDivergenceLine(d);
+                    if (cvdHiddenOk && ShowPeakLine) RecolorPeaksLine(d, HiddenCvdBrush);
+                    // 2026-10-29: separate toggle from ShowHiddenCvdDivergence (the master —
+                    // still drives the peak-line recolor above and the registry publish
+                    // below regardless of this) so the diagonal connecting line specifically
+                    // can be hidden without losing those other two effects. Mirrors
+                    // ShowCvdDivergenceLine's relationship to the regular-divergence line.
+                    if (cvdHiddenOk && ShowHiddenCvdDivergenceLine) DrawHiddenCvdDivergenceLine(d);
                     // Publish to the shared registry whenever CVD agrees — independent of
                     // every display toggle above, including FilterToDivergenceOnly, so
                     // CVDDivergenceOscillator.cs's "Only show at DT/DB" mode works off this
@@ -1222,6 +1242,14 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         [Display(Name = "Show rating", Description = "Show the quality score number next to each pattern.", Order = 19, GroupName = "3. Alerts")]
         public bool ShowRating { get; set; }
 
+        [NinjaScriptProperty]
+        [Display(Name = "Show leg lines", Description = "Draw the peak -> valley -> peak (or trough -> peak -> trough) zigzag legs. Off this doesn't hide anything currently visible for most users since DtLegBrush/DbLegBrush already default to Transparent live — this is an independent on/off separate from color.", Order = 0, GroupName = "5. Lines")]
+        public bool ShowLegLines { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Show peak line", Description = "Draw the horizontal line joining the two tops (DT) / two bottoms (DB). When off, the hidden-divergence orange recolor of this line is also skipped.", Order = 0, GroupName = "5. Lines")]
+        public bool ShowPeakLine { get; set; }
+
         [XmlIgnore]
         [Display(Name = "DT leg color", Description = "Color of the peak -> valley -> peak lines of a double top.", Order = 1, GroupName = "5. Lines")]
         public Brush DtLegBrush { get; set; }
@@ -1361,6 +1389,13 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         [NinjaScriptProperty]
         [Display(Name = "Show hidden CVD divergence label", Description = "Draws the 'H.CVD' text badge when hidden divergence fires. Off by default — the orange peak-line recolor already flags it visually without adding text.", Order = 13, GroupName = "6. CVD Divergence")]
         public bool ShowHiddenCvdDivergenceLabel { get; set; }
+
+        // 2026-10-29: independent of ShowHiddenCvdDivergence (still drives the peak-line
+        // recolor and registry publish regardless) — same relationship ShowCvdDivergenceLine
+        // has to the regular-divergence line below.
+        [NinjaScriptProperty]
+        [Display(Name = "Show hidden CVD divergence line", Description = "Draws the diagonal connecting line between the hidden-divergence's own two pivot prices. Off this doesn't affect the peak-line recolor or the registry publish.", Order = 13, GroupName = "6. CVD Divergence")]
+        public bool ShowHiddenCvdDivergenceLine { get; set; }
 
         [XmlIgnore]
         [Display(Name = "Hidden CVD divergence color", Order = 14, GroupName = "6. CVD Divergence")]
