@@ -1,5 +1,130 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-29 — **New CVD/DT-DB indicator work: real-L1 divergence indicator
+built, DT/DB scanner gained CVD-confirmation filtering + cross-indicator linkage to
+CVDDivergenceOscillator, six real bugs found+fixed along the way, defaults re-synced to
+what's actually saved live — ready to ship to Thomas. Long session, read in order.**
+
+**0. Context carried from 10-28 (ClaudeTrackerAddOn) is CLOSED, not part of this entry** —
+see the block below this one. This entry is entirely about the CVD/DT-DB indicator family.
+
+**1. User's verdict on `CVDDivergenceOscillator.cs`'s bar-OHLC-proxy delta: "garbage."**
+Asked for a real L1-tick-classified version, explicitly without touching any existing
+indicator. Built **`CVDRealDivergence.cs`** (new file) — same fractal-pivot divergence
+algorithm, but delta comes from live `OnMarketData` tick classification (today forward)
++ `data/bid_ask/bid_ask_vol_buckets.csv` bucket backfill (historical, same mechanism
+`CumulativeDelta.cs` already uses for its own candle reconstruction). Deliberately plain
+`NinjaTrader.NinjaScript.Indicators` namespace (not `.My`) to dodge the dual-copy deploy
+trap from 10-28. Fully standalone, zero companion files. `[myquant] 804fed3c`.
+Comparison study: `scripts/cvd_divergence_proxy_vs_real_study.py` — real method fires
+fewer signals (507 vs 706/30d) but skewed heavily bearish (413/94) and shows stronger
+favorable forward reaction; **not validated beyond one descriptive pass, the bearish
+skew specifically needs scrutiny before trusting it.**
+
+**2. User then said OHLC "is giving me better signals" combined with an EMA-flip+pullback
+entry** — a different, filtered test than the raw-signal study above; not contradictory,
+just not yet built. **Not built this session — flagged, not forgotten**, if picked up:
+needs precise rules for "flip box" (likely `RegimeTrackerBox.cs`) and the pullback
+definition before coding, don't guess.
+
+**3. `DtDbScannerV3.cs` gained THREE new CVD-related toggles, all additive, DT/DB
+detection/scoring/confirm logic completely untouched throughout:**
+   - `FilterToDivergenceOnly` — removes a confirmed DT/DB's drawings (not detection) when
+     its own existing CVD agree/disagree check (built 10-18, previously advisory-only)
+     disagrees. `[myquant] 56f2b963`.
+   - `ShowCvdDivergenceLine` + `ShowHiddenCvdDivergence` — an actual connecting line
+     (vs. the pre-existing text-only badge) and a hidden-divergence check (mirrors
+     `CumulativeDelta.cs`'s existing hidden-div definition onto DT/DB's own 2 pivots).
+     `[myquant] 903d85ec`. **Hidden-div bug found+fixed same day**: the original check
+     used a STRICT "2nd pivot lower/higher" comparison, but `TryDoubleTop`/`TryDoubleBottom`
+     only confirm when `peakDiff <= tol` in the first place (the two peaks are ALREADY
+     required to be close) — strict inequality against near-identical prices was a
+     near-empty set by construction. Loosened to `<=`/`>=`. Diagnostic logging added
+     (`data/_dtdb_hidden_div_diag.log`) to verify — **not yet confirmed fixed with real
+     data, check that log before trusting hidden-div output.**
+
+**4. Cross-indicator link: `CVDDivergenceOscillator.cs` gained `OnlyShowAtDtDb`** — when
+on, REPLACES its own fractal-pivot detection with DtDbScannerV3's confirmed pivots (only
+the ones DtDbScannerV3's own CVD check already agreed with). New shared file
+**`DtDbCvdPivotRegistry.cs`** (same pattern as `ClaudeTrackerChartRegistry.cs`) carries
+the link. `[myquant] 116b3598`. **This re-introduces a companion-file dependency**
+that 10-28's `CvdCumulativeMode` removal specifically eliminated — `CVDDivergenceOscillator.cs`
+will not compile at all without `DtDbCvdPivotRegistry.cs` present now, regardless of the
+toggle's state.
+
+**5. Five real bugs found+fixed getting the registry link working, in order discovered:**
+   1. Shared raw `CurrentBar` indices — only valid same-chart/same-bar-type; switched to
+      DateTime+instrument, each side converts via its own `Bars.GetBar`/`GetTime`.
+      `[myquant] 63310334`.
+   2. Historical-replay ordering race — NT8 replays each indicator's backlog
+      independently, no sync guarantee; added a one-time catch-up at `State.Realtime`.
+      `[myquant] 08048fbb`.
+   3. `histSeries`/`deltaSeries` 256-bar default lookback cap — crashed `OnBarUpdate`
+      indexing a pivot further back than that. Fixed with `MaximumBarsLookBack.Infinite`.
+      `[myquant] 5c66c1d1`.
+   4. Registry ring-buffer cap (200) evicting entries faster than a lagging consumer
+      could read them — ~2000 of 2289 published entries were already gone. Bumped to
+      20000. `[myquant] cee7de6d`.
+   5. Pivot-connector feature (next point) crashed OnBarUpdate on historical bars —
+      `ChartControl`/`ChartPanels` not reliably populated outside live rendering; full
+      null-chain guard + try/catch added. `[myquant] 0fbb1d29`.
+
+**6. New display features on `CVDDivergenceOscillator.cs`, all off by default:**
+   - Divergence span bars get a full-opacity "Strong" color variant (`StrongPosHistColor`/
+     `StrongNegHistColor`) instead of the normal semi-transparent one. `[myquant] 42ecbc45`.
+   - `HistLineWidth` — configurable thickness for the CVD-panel connecting line.
+   - `ShowPivotConnectors` — dotted line at each pivot. **Went through 2 real design
+     iterations**: v1 used `Draw.VerticalLine` (spans the WHOLE chart, confirmed real API
+     via a proven existing call in `RegimePhaseMachine.cs`) — user wanted it bounded to
+     just the two divergence lines instead, not full-chart. v2 (current): two halves
+     meeting exactly at the price/CVD panel divider — price-panel half via
+     `ChartPanels[0].Scales` → `GetValueByY` (found the real boundary pixel/value,
+     verified via reflection against `NinjaTrader.Gui.dll`), CVD-panel half via manual
+     SharpDX dotted-line to this panel's own y=0. `[myquant] f8034020`. **Hit a real
+     `Scales[0]` always-null bug** (the collection is both enum-keyed AND ordinally
+     indexed — whichever indexer `[0]` actually bound to wasn't where the live scale
+     sits) — fixed by scanning for the first non-null entry instead of trusting index 0.
+     `[myquant] 3df6ef52`. **Diagnostic logging still in place**
+     (`data/_cvd_pivot_connector_diag.log`) — user had NOT yet re-tested this exact fix
+     as of this handoff; check that log on the next session before assuming it's fully
+     working.
+
+**7. Ship-to-Thomas defaults sync (`[myquant] 9cda0755`) — the reason for all of this.**
+User wants Thomas to get `DtDbScannerV3.cs` + `CVDDivergenceOscillator.cs` "with MY
+CURRENT DEFAULTS AS I SAVED THEM IN THE PLATFORM." Read both saved NT8 "Save As Default"
+templates directly (`Documents\NinjaTrader 8\templates\Indicator\{name}\Default.xml`) and
+diffed every property against the committed `SetDefaults` source — found 16 real
+mismatches (4 in CVD, 12 in DtDb) where the source had drifted from what's actually
+configured live (notably: `FilterToDivergenceOnly`/`ShowCvdDivergenceLine`/
+`ShowHiddenCvdDivergence` were all OFF in source but ON live; several brush colors were
+turned fully transparent live but still colored in source). All 16 corrected to match the
+XML exactly — **this is now the real, current, ship-ready state.**
+
+**FILES THOMAS NEEDS** (confirmed dependency chain, not guessed):
+  - Just `CVDRealDivergence.cs`: standalone, nothing else.
+  - `CVDDivergenceOscillator.cs`: + `DtDbCvdPivotRegistry.cs` (2 files).
+  - `DtDbScannerV3.cs`: + `BidAskSharedEnums.cs` + `DtDbCvdPivotRegistry.cs` (3 files).
+  - All three: 5 files total (registry + shared-enums reused, not duplicated).
+User said "only interested in OHLC version atm" → send the 2-file set
+(`CVDDivergenceOscillator.cs` + `DtDbCvdPivotRegistry.cs`). **Not yet actually sent to
+Thomas as of this handoff** — packaging/sending itself wasn't done this session, only the
+file content was made correct and ready.
+
+**NEXT SESSION, in priority order:**
+1. Confirm `[myquant] 9cda0755` (defaults sync) was F5'd and actually reflects correctly
+   in the Properties panel — user had not yet confirmed as of this handoff.
+2. Check `data/_cvd_pivot_connector_diag.log` for the pivot-connector price-panel fix —
+   not yet re-tested after the `Scales[0]`-scan fix.
+3. Check `data/_dtdb_hidden_div_diag.log` for whether hidden divergence actually fires
+   now — not yet confirmed with real data.
+4. Once both diagnostics confirm clean, **remove the TEMP DIAGNOSTIC logging** from all
+   three spots (`DtDbCvdPivotRegistry.Diag`, `CVDDivergenceOscillator`'s `PPDiag`,
+   `DtDbScannerV3`'s hidden-div file log) — they were explicitly marked temporary.
+5. Actually send the 2 files to Thomas (`CVDDivergenceOscillator.cs` +
+   `DtDbCvdPivotRegistry.cs`), per his "OHLC version only, atm" request.
+
+---
+
 **Last Updated:** 2026-10-28 — **ClaudeTrackerAddOn: a real cross-thread data race
 corrupting INITIAL_STOP/ACTUAL_STOP, found + fixed on top of this same morning's other
 chat's work (chart-tag `OnEachTick` switch, incremental-Events.csv fix, InitialStop-window
