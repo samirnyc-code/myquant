@@ -1,9 +1,51 @@
 # Handoff — Current State
 **Status:** Living — update every session  
-**Last Updated:** 2026-10-29 — **New CVD/DT-DB indicator work: real-L1 divergence indicator
-built, DT/DB scanner gained CVD-confirmation filtering + cross-indicator linkage to
-CVDDivergenceOscillator, six real bugs found+fixed along the way, defaults re-synced to
-what's actually saved live — ready to ship to Thomas. Long session, read in order.**
+**Last Updated:** 2026-10-29 (session 2) — **Checked both diagnostic logs left by the prior
+same-day session; found the pivot-connector fix is confirmed working but the hidden-CVD-
+divergence fix was NOT actually fixed (real root cause was a different bug than the one
+"fixed" earlier that day). Root-caused and fixed, deployed, committed `[myquant] 438c053`.
+Not yet F5'd/re-tested — do that before trusting hidden-div output or shipping to Thomas.**
+
+**1. `data/_cvd_pivot_connector_diag.log` reviewed — CONFIRMED WORKING.** 298 `DRAWING`
+lines with real `boundaryPrice` values vs. 262 `SKIP: scale null` (all during historical-
+replay warmup before the chart scale initializes — expected). No other skip reasons. This
+diagnostic can be removed once Thomas-shipping is done (see priority list below).
+
+**2. `data/_dtdb_hidden_div_diag.log` reviewed — found STILL BROKEN, different bug than
+the one the handoff's prior entry (points 3/4) described as fixed.** Across all 1339
+logged evaluations, `cvdCond=True` fired **zero times** — not rare, structurally
+impossible. Root cause (`DtDbScannerV3.cs`): `FilterToDivergenceOnly` (live default
+`true`) deletes a confirmed structure outright unless `CvdAgrees` is true, BEFORE the
+hidden check ever runs — so only "regular-agreeing" structures ever reached
+`CvdHiddenAgrees`. But `CvdHiddenAgrees`'s `cvdCond` (`isTop ? cvd2>cvd1 : cvd2<cvd1`) is
+the **exact logical negation** of `CvdAgrees` (`isTop ? cvd2<cvd1 : cvd2>cvd1`) — an
+agreeing structure can never satisfy the hidden condition by construction. The earlier
+same-day strict-inequality fix (`<=`/`>=` on `priceCond`) was real and correct but not the
+actual blocker; this is a separate, independent bug in the same feature.
+
+**3. User's choice on how to resolve it (asked via AskUserQuestion, not guessed): let
+the hidden check rescue a structure from the `FilterToDivergenceOnly` delete.** Implemented
+by computing `cvdHiddenOk` BEFORE the filter gate and adding `&& !cvdHiddenOk` to the
+delete condition — a structure now survives if EITHER the regular OR the hidden check
+passes. `CvdHiddenAgrees` (and its diagnostic log write) still only runs once per
+confirmed structure (result threaded through, not recomputed in the draw call).
+`[myquant] 438c053`. Compile-checked clean, deployed to
+`Documents\NinjaTrader 8\bin\Custom\Indicators\My\DtDbScannerV3.cs`. **NOT YET F5'd —
+needs fresh `_dtdb_hidden_div_diag.log` data confirming `cvdCond=True` actually occurs
+now before trusting it or shipping to Thomas.**
+
+**NEXT SESSION, in priority order (supersedes the prior entry's list below):**
+1. Confirm `[myquant] 438c053` F5'd; check `_dtdb_hidden_div_diag.log` for fresh entries
+   with `cvdCond=True` / `HIDDEN FIRES` — if still zero, the fix didn't take, re-open.
+2. Confirm `[myquant] 9cda0755` (defaults sync, prior entry) was F5'd and Properties panel
+   reflects it — still unconfirmed as of this session too.
+3. Once both confirm clean, remove the 3 TEMP DIAGNOSTIC logging blocks
+   (`DtDbCvdPivotRegistry.Diag`, `CVDDivergenceOscillator`'s `PPDiag`, `DtDbScannerV3`'s
+   hidden-div file log) — all explicitly marked temporary.
+4. Ship `CVDDivergenceOscillator.cs` + `DtDbCvdPivotRegistry.cs` to Thomas (his "OHLC
+   version only, atm" request) — still not sent as of this session.
+
+---
 
 **0. Context carried from 10-28 (ClaudeTrackerAddOn) is CLOSED, not part of this entry** —
 see the block below this one. This entry is entirely about the CVD/DT-DB indicator family.
