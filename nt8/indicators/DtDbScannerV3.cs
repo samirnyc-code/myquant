@@ -93,6 +93,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             public int    FormBar;
             public int    NeckBar;          // bar of the valley/peak the neckline starts from
             public int    P1Bar, P2Bar;     // the two peak/trough pivot bars (CVD divergence check)
+            public double P1Price, P2Price; // same two pivots' prices (hidden-CVD-divergence check)
         }
         private readonly List<DrawnStructure> openDrawn = new List<DrawnStructure>();
 
@@ -193,6 +194,11 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 PullbackWatchBars = 30;
                 RetestToleranceTicks = 4;
                 FilterToDivergenceOnly = false;   // off by default — opt-in, existing behavior unchanged otherwise
+                ShowCvdDivergenceLine = false;
+                CvdDivLineDtBrush = Brushes.Firebrick;    // matches CVDDivergenceOscillator.cs's BearColor default
+                CvdDivLineDbBrush = Brushes.LimeGreen;    // matches CVDDivergenceOscillator.cs's BullColor default
+                ShowHiddenCvdDivergence = false;
+                HiddenCvdBrush = Brushes.Orange;
             }
             else if (State == State.Configure)
             {
@@ -747,7 +753,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 FormBar          = p.FormBar,
                 NeckBar          = neckBar,
                 P1Bar            = p.P1Bar,
-                P2Bar            = p.P2Bar
+                P2Bar            = p.P2Bar,
+                P1Price          = p.P1Price,
+                P2Price          = p.P2Price
             });
         }
 
@@ -795,6 +803,8 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
                     DrawNeckline(d.Tag, d.IsTop, d.NeckBar, d.Neckline);   // extend to the bar that closed beyond
                     if (ShowCvdDivergence) DrawCvdDivergenceBadge(d);
+                    if (ShowCvdDivergenceLine) DrawCvdDivergenceLine(d);
+                    if (ShowHiddenCvdDivergence) DrawCvdHiddenDivergenceBadge(d);
                     if (ShowPullbackCvd)
                         watchingRetest.Add(new WatchRetest
                         {
@@ -835,7 +845,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         private void RemoveStructure(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return;
-            string[] parts = { "_l1", "_l2", "_neck", "_peaks", "_txt", "_cvd", "_rt" };
+            string[] parts = { "_l1", "_l2", "_neck", "_peaks", "_txt", "_cvd", "_hcvd", "_cvdln", "_rt" };
             foreach (string s in parts)
                 RemoveDrawObject(tag + s);
         }
@@ -871,6 +881,58 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             string txt = (agrees ? "CVD✓ " : "CVD✗ ") + (cvd2 - cvd1 >= 0 ? "+" : "") + (cvd2 - cvd1).ToString("F0");
             double y = d.IsTop ? High[0] + 10 * TickSize : Low[0] - 10 * TickSize;
             TrackDrawObj(Draw.Text(this, d.Tag + "_cvd", txt, 0, y, agrees ? CvdDivBrush : Brushes.Gray));
+        }
+
+        // HIDDEN CVD divergence, on the SAME two DT/DB pivots the regular check above
+        // uses — independent, separate toggle, does not touch CvdAgrees or anything it
+        // feeds (FilterToDivergenceOnly stays tied to the regular check only).
+        //
+        // Mirrors CumulativeDelta.cs's existing ShowHiddenDivergence definition (price
+        // makes a SHALLOWER extreme, CVD makes a STRONGER one — continuation shape, the
+        // inverse pairing of regular divergence) onto DT/DB's own two pivots instead of
+        // an independently-tracked swing stream. One real difference from
+        // CumulativeDelta.cs's context: there, hidden divergence is checked on ordinary
+        // trend swings mid-trend. Here, P1/P2 are the two tops/bottoms of a REVERSAL
+        // pattern, not a continuation leg — so "hidden" firing here (2nd top LOWER than
+        // 1st + CVD stronger at that lower top, for a DT) is read as: price already
+        // failed to reach the first top, but order flow was building anyway — a
+        // tension against the DT's own bearish thesis, not a trend-continuation call
+        // the way it is in CumulativeDelta.cs. Label it as what it mechanically is
+        // (same hidden-divergence shape); the interpretation in a reversal-pattern
+        // context is for the user to judge, not asserted here.
+        private bool CvdHiddenAgrees(bool isTop, int p1Bar, int p2Bar, double p1Price, double p2Price)
+        {
+            double cvd1 = _cvdHist[CurrentBar - p1Bar];
+            double cvd2 = _cvdHist[CurrentBar - p2Bar];
+            return isTop
+                ? (p2Price < p1Price && cvd2 > cvd1)    // DT: lower 2nd top, CVD stronger anyway
+                : (p2Price > p1Price && cvd2 < cvd1);   // DB: higher 2nd bottom, CVD weaker anyway
+        }
+
+        // Only drawn when it actually fires (same as CumulativeDelta.cs's hidden
+        // divergence — not labeled "no" for every instance like the regular badge is).
+        private void DrawCvdHiddenDivergenceBadge(DrawnStructure d)
+        {
+            if (!CvdHiddenAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price)) return;
+            double y = d.IsTop ? High[0] + 20 * TickSize : Low[0] - 20 * TickSize;
+            TrackDrawObj(Draw.Text(this, d.Tag + "_hcvd", "H.CVD", 0, y, HiddenCvdBrush));
+        }
+
+        // The actual connecting LINE between the DT/DB's own two pivots — same visual
+        // CVDDivergenceOscillator.cs/CVDRealDivergence.cs draw for their own independent
+        // divergence pivots (Draw.Line, bull/bear colored), anchored here to the DT/DB's
+        // pivots instead. User's own distinction (2026-10-29): the existing text badge
+        // isn't the same thing as this line — wanted the line specifically, only at
+        // DT/DB spots, not the standalone CVD indicator's own unrelated pivots
+        // everywhere on the chart. Drawn only when CvdAgrees (regular) fires, same as
+        // CVDDivergenceOscillator.cs only ever draws its own line when its divergence
+        // condition holds — never a "disagrees" line.
+        private void DrawCvdDivergenceLine(DrawnStructure d)
+        {
+            if (!CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar)) return;
+            int baA = CurrentBar - d.P1Bar, baB = CurrentBar - d.P2Bar;
+            Brush color = d.IsTop ? CvdDivLineDtBrush : CvdDivLineDbBrush;
+            TrackDrawObj(Draw.Line(this, d.Tag + "_cvdln", false, baA, d.P1Price, baB, d.P2Price, color, DashStyleHelper.Solid, 2));
         }
 
         // watches a just-confirmed structure for the FIRST bar price pulls back to
@@ -1151,6 +1213,40 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         [NinjaScriptProperty]
         [Display(Name = "Only show CVD-confirmed DT/DB", Description = "When ON, a confirmed DT/DB whose bar-proxy CVD does NOT agree with the pattern's bias (same agree/disagree check as the CVD badge) has its drawings removed instead of kept — only divergence-confirmed patterns stay visible. Does not change detection/confirmation/scoring, and does not suppress alerts.", Order = 8, GroupName = "6. CVD Divergence")]
         public bool FilterToDivergenceOnly { get; set; }
+
+        // 2026-10-29: the actual connecting LINE between the DT/DB's own two pivots
+        // (same visual shape as CVDDivergenceOscillator.cs's own divergence line) — the
+        // existing CVD badge above is text-only, this is the line specifically asked for.
+        [NinjaScriptProperty]
+        [Display(Name = "Show CVD divergence line", Description = "Draws a connecting line between the DT/DB's own two peaks/troughs (like CVDDivergenceOscillator.cs's divergence line), only when CVD agrees with the pattern's bias — never drawn when it disagrees.", Order = 9, GroupName = "6. CVD Divergence")]
+        public bool ShowCvdDivergenceLine { get; set; }
+
+        [XmlIgnore]
+        [Display(Name = "CVD divergence line (DT) color", Order = 10, GroupName = "6. CVD Divergence")]
+        public Brush CvdDivLineDtBrush { get; set; }
+        [Browsable(false)]
+        public string CvdDivLineDtBrushSerialize { get { return Serialize.BrushToString(CvdDivLineDtBrush); } set { CvdDivLineDtBrush = Serialize.StringToBrush(value); } }
+
+        [XmlIgnore]
+        [Display(Name = "CVD divergence line (DB) color", Order = 11, GroupName = "6. CVD Divergence")]
+        public Brush CvdDivLineDbBrush { get; set; }
+        [Browsable(false)]
+        public string CvdDivLineDbBrushSerialize { get { return Serialize.BrushToString(CvdDivLineDbBrush); } set { CvdDivLineDbBrush = Serialize.StringToBrush(value); } }
+
+        // 2026-10-29: hidden CVD divergence at the SAME two DT/DB pivots — see
+        // CvdHiddenAgrees's own comment for the mechanical definition and the caveat
+        // about what "hidden" means in a reversal-pattern context specifically. Off by
+        // default, independent of every other CVD toggle above (incl. FilterToDivergenceOnly,
+        // which stays tied to the regular check only).
+        [NinjaScriptProperty]
+        [Display(Name = "Show hidden CVD divergence", Description = "At every confirmed DT/DB, also checks the INVERSE pairing (price makes a shallower 2nd peak/trough than the 1st, but CVD is stronger anyway) — the same 'hidden divergence' shape CumulativeDelta.cs already has, applied to the DT/DB's own two pivots. Only labeled when it actually fires. Independent of the regular CVD check and the line above.", Order = 12, GroupName = "6. CVD Divergence")]
+        public bool ShowHiddenCvdDivergence { get; set; }
+
+        [XmlIgnore]
+        [Display(Name = "Hidden CVD divergence color", Order = 13, GroupName = "6. CVD Divergence")]
+        public Brush HiddenCvdBrush { get; set; }
+        [Browsable(false)]
+        public string HiddenCvdBrushSerialize { get { return Serialize.BrushToString(HiddenCvdBrush); } set { HiddenCvdBrush = Serialize.StringToBrush(value); } }
         #endregion
     }
 }
