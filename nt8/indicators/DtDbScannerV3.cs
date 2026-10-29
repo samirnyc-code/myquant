@@ -175,6 +175,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 ShowRating        = false; // quality score number next to each pattern
                 ShowLegLines      = true;  // 2026-10-29: default true, unchanged behavior
                 ShowPeakLine      = true;  // 2026-10-29: default true, unchanged behavior
+                ShowNeckline      = true;  // 2026-10-29: default true, unchanged behavior
                 DtLegBrush        = Brushes.Transparent;  // peak -> valley -> peak legs of a DT (user turned these off live)
                 DbLegBrush        = Brushes.Transparent;  // trough -> peak -> trough legs of a DB (user turned these off live)
                 LegDashStyle      = DashStyleHelper.Solid;
@@ -751,8 +752,12 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
         // Neckline from the valley/peak bar to the CURRENT bar. Called when the pattern
         // forms, and again (same tag = same line, redrawn) on the bar that closes beyond it.
+        // 2026-10-29: user ask — toggle to hide it entirely. Gated here (not at each of the
+        // two call sites) so both the formation-time draw and the confirm-time extend are
+        // covered by one check.
         private void DrawNeckline(string tag, bool isTop, int neckBar, double price)
         {
+            if (!ShowNeckline) return;
             Brush c = isTop ? NecklineDtBrush : NecklineDbBrush;
             TrackDrawObj(Draw.Line(this, tag + "_neck", false, CurrentBar - neckBar, price, 0, price, c, NecklineDashStyle, NecklineWidth));
         }
@@ -1281,6 +1286,10 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         [Range(1, 20)]
         [Display(Name = "Peak line width", Description = "Width of the line joining the two tops/bottoms.", Order = 7, GroupName = "5. Lines")]
         public int PeakLineWidth { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Show neckline", Description = "Draw the neckline from the valley/peak to the current bar, extended to the break bar on confirm. Off by itself doesn't change detection/confirm/scoring.", Order = 9, GroupName = "5. Lines")]
+        public bool ShowNeckline { get; set; }
 
         [XmlIgnore]
         [Display(Name = "DT neckline color", Description = "Color of the double-top neckline.", Order = 10, GroupName = "5. Lines")]
