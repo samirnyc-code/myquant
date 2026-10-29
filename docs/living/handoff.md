@@ -1,5 +1,50 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-29 — **Scheduler popups, round 2: a second distinct root cause found
+and fixed after the 2026-10-28 fix didn't stop all of them.** User reported windows still
+popping up. Investigation (full forensic trail — process trees, live window enumeration via
+`EnumWindows`, isolated reproduction) found the 2026-10-28 fix (further below) was working
+correctly for all 10 tasks it covered, but missed a **second, structurally different popup
+source**: 14 more tasks use `pythonw.exe` (normally windowless) as `Execute`, but their
+`Arguments` launch venv's **console** `python.exe` (not `pythonw.exe`) as the actual payload via
+`run_at_ct.py` — Dashboard, Depth Rollover, EOD Report, Gameplan, Gateway Ensure, L1 Rollover,
+Levels Fetch, Marks Watch, NT8 Restart, Postmortem, Pre-Open Verify, Sim Daemon, Spot Feed, STMR
+Decision.
+
+**Root cause:** on this machine `.venv\Scripts\python.exe` is itself a launcher stub that
+internally re-execs into a system-Python312 "worker" process (already documented in memory
+`daemon-is-a-process-pair` — two processes, one daemon, never kill the pair thinking it's a dup).
+When that internal re-exec happens with **zero console anywhere in its ancestry** (`pythonw.exe`
+has none; `run_at_ct.py`'s own `subprocess.run` uses `creationflags=CREATE_NO_WINDOW` for its
+direct child, `scripts/run_at_ct.py:99`), Windows has nothing to inherit and must allocate a
+**brand-new console** for the worker — which Windows 11's default-terminal-app handoff displays
+as a visible Windows Terminal window. Caught red-handed live: Sim Daemon's self-relaunch pair
+(PID 2640→12332, both created 2026-10-29 16:15:08) showed up as a new tab titled
+`C:\Users\Admin\myquant\.venv\Scripts\python.exe` inside the *same* stale Windows Terminal window
+from the 2026-10-28 pre-fix Gateway Login run (PID 22552) — exactly matching the screenshot the
+user showed. Reproduced the exact failure in isolation, then confirmed the fix: wrapping the same
+chain in a hidden `cmd.exe` (real-but-hidden console from the top) makes the self-relaunch just
+inherit that console instead of needing a fresh one — verified via a live test (hidden cmd.exe →
+venv python.exe → self-relaunch → system Python312): **zero new windows**, vs the bare
+`pythonw.exe` path which pops every time.
+
+**Fix:** routed all 14 through the same `scripts/_sched/run_hidden.vbs` hidden-launcher mechanism
+as the 2026-10-28 fix (14 new `.bat` files in `scripts/_sched/`, extended
+`scripts/fix_cmd_window_popups.ps1`). Triggers untouched; confirmed `NextRunTime` unchanged.
+Noted but NOT touched: 7 of these 14 (Depth Rollover, Gameplan, Levels Fetch, NT8 Restart,
+Pre-Open Verify, Sim Daemon, STMR Decision) were **already disabled** before this session touched
+anything (pre-existing, documented in `schedule_options_tasks.ps1`'s own comments) — the live Sim
+Daemon process the user has running today was started by hand, independent of the (disabled)
+scheduled task, and was untouched by this fix (`Set-ScheduledTask -Action` only affects future
+launches, confirmed the running PID pair survived unchanged). Committed+pushed `a85727c6`.
+
+The stale pre-2026-10-28-fix Gateway Login window (PID 20496/22336/22552, hosting the live
+`java.exe` IB Gateway, PID 5728) is still open by user decision (see 2026-10-28 block further
+down) — left alone while the desk is live; will clear on Gateway's next full restart through the
+new launcher.
+
+---
+
 **Last Updated:** 2026-10-29 (session 3) — **Removed all Initial Balance (IB) logic from
 `PATsProfile.cs` (the Pat VP indicator)**, per user request: repeated attempts to fix IB on
 this indicator (RTH-anchor bug, per-session generalization — see prior entries below) never
