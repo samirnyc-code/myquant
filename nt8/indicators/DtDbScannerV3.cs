@@ -805,6 +805,12 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     if (ShowCvdDivergence) DrawCvdDivergenceBadge(d);
                     if (ShowCvdDivergenceLine) DrawCvdDivergenceLine(d);
                     if (ShowHiddenCvdDivergence) DrawCvdHiddenDivergenceBadge(d);
+                    // Publish to the shared registry whenever CVD agrees — independent of
+                    // every display toggle above, including FilterToDivergenceOnly, so
+                    // CVDDivergenceOscillator.cs's "Only show at DT/DB" mode works off this
+                    // scanner's actual confirms regardless of which of ITS OWN visuals are on.
+                    if (CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar))
+                        DtDbCvdPivotRegistry.Publish(d.IsTop, d.P1Bar, d.P1Price, d.P2Bar, d.P2Price);
                     if (ShowPullbackCvd)
                         watchingRetest.Add(new WatchRetest
                         {
@@ -893,20 +899,29 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // an independently-tracked swing stream. One real difference from
         // CumulativeDelta.cs's context: there, hidden divergence is checked on ordinary
         // trend swings mid-trend. Here, P1/P2 are the two tops/bottoms of a REVERSAL
-        // pattern, not a continuation leg — so "hidden" firing here (2nd top LOWER than
-        // 1st + CVD stronger at that lower top, for a DT) is read as: price already
-        // failed to reach the first top, but order flow was building anyway — a
-        // tension against the DT's own bearish thesis, not a trend-continuation call
+        // pattern, not a continuation leg — so "hidden" firing here (2nd top NOT higher
+        // than the 1st + CVD stronger anyway, for a DT) is read as: price already
+        // failed to clearly exceed the first top, but order flow was building anyway —
+        // a tension against the DT's own bearish thesis, not a trend-continuation call
         // the way it is in CumulativeDelta.cs. Label it as what it mechanically is
         // (same hidden-divergence shape); the interpretation in a reversal-pattern
         // context is for the user to judge, not asserted here.
+        //
+        // 2026-10-29 FIX: originally a STRICT p2Price < p1Price (DT) / > (DB) — fired
+        // zero times. Root cause: TryDoubleTop/TryDoubleBottom only confirm a pattern
+        // when peakDiff <= tol in the first place (the two peaks/troughs MUST already
+        // be close, often landing on the exact same tick — that's what makes it a
+        // recognized "double" pattern), so a strictly-lower 2nd top is a near-empty
+        // set by construction, not a rare-but-real condition. Loosened to <=/>= (2nd
+        // pivot not clearly BETTER than the 1st, including exactly equal) so the check
+        // actually has bars to fire on.
         private bool CvdHiddenAgrees(bool isTop, int p1Bar, int p2Bar, double p1Price, double p2Price)
         {
             double cvd1 = _cvdHist[CurrentBar - p1Bar];
             double cvd2 = _cvdHist[CurrentBar - p2Bar];
             return isTop
-                ? (p2Price < p1Price && cvd2 > cvd1)    // DT: lower 2nd top, CVD stronger anyway
-                : (p2Price > p1Price && cvd2 < cvd1);   // DB: higher 2nd bottom, CVD weaker anyway
+                ? (p2Price <= p1Price && cvd2 > cvd1)   // DT: 2nd top not higher, CVD stronger anyway
+                : (p2Price >= p1Price && cvd2 < cvd1);  // DB: 2nd bottom not lower, CVD weaker anyway
         }
 
         // Only drawn when it actually fires (same as CumulativeDelta.cs's hidden

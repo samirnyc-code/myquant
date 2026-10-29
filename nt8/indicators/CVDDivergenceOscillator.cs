@@ -86,6 +86,10 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         private struct DivMark { public int barA, barB; public double histA, histB; public bool bearish; }
         private List<DivMark> marks = new List<DivMark>();
 
+        // last DtDbCvdPivotRegistry.Id this instance has already drawn — only used when
+        // OnlyShowAtDtDb is on. See DtDbCvdPivotRegistry.cs for the sharing mechanism.
+        private int _lastSeenDtDbId;
+
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
@@ -151,6 +155,19 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             histSeries[0] = hist;
             Values[0][0] = hist;
             PlotBrushes[0][0] = hist >= 0 ? PosHistColor : NegHistColor;
+
+            // 2026-10-29: when ON, this REPLACES the fractal-pivot detection below
+            // entirely — divergence lines come only from DtDbScannerV3's own confirmed
+            // DT/DB pivots (via the shared registry), not this indicator's independent
+            // fractal detection. User's own framing: "only shows DBDT based on the
+            // current setting in the Scanner" — DtDbScannerV3 only publishes a pivot
+            // pair when ITS OWN CvdAgrees fires, so what shows here already reflects
+            // whatever the scanner currently confirms, not a separate re-derivation.
+            if (OnlyShowAtDtDb)
+            {
+                DrawFromDtDbRegistry();
+                return;
+            }
 
             int n = DivergenceFractalPeriods;
             if (CurrentBar < 2 * n) return;
@@ -231,6 +248,43 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             marks.Add(new DivMark { barA = barA, barB = barB, histA = histA, histB = histB, bearish = bearish });
         }
 
+        // Only called when OnlyShowAtDtDb is on. Reads every DtDbCvdPivotRegistry entry
+        // published since this instance last checked, draws the same price-panel line +
+        // label + Hist-pane mark as DrawDivergence above, but tagged separately
+        // ("cvdDtDbDiv..." vs "cvdFracDiv...") so the two draw paths can never collide —
+        // mutually exclusive at runtime (this replaces the fractal block entirely when
+        // on), but kept visually distinct on principle. bearish = IsTop (a confirmed DT
+        // the scanner's own CVD agreed with is the bearish case here, same convention
+        // as the fractal block's hLast/hPrev branch).
+        private void DrawFromDtDbRegistry()
+        {
+            List<DtDbCvdPivot> fresh = DtDbCvdPivotRegistry.GetSince(_lastSeenDtDbId);
+            foreach (DtDbCvdPivot p in fresh)
+            {
+                _lastSeenDtDbId = p.Id;
+                if (p.P1Bar < 0 || p.P2Bar < 0 || p.P1Bar > CurrentBar || p.P2Bar > CurrentBar) continue;
+
+                bool bearish = p.IsTop;
+                System.Windows.Media.Brush color = bearish ? BearColor : BullColor;
+                string tag = (bearish ? "cvdDtDbDivBear_" : "cvdDtDbDivBull_") + p.P1Bar + "_" + p.P2Bar;
+                int baA = CurrentBar - p.P1Bar, baB = CurrentBar - p.P2Bar;
+
+                Draw.Line(this, tag, false, baA, p.P1Price, baB, p.P2Price, color, DashStyleHelper.Solid, 2);
+                if (ShowLabels)
+                {
+                    double off = 8 * (TickSize > 0 ? TickSize : 0.25);
+                    Draw.Text(this, tag + "_txt", false, bearish ? "-RD" : "+RD", baB,
+                              bearish ? p.P2Price + off : p.P2Price - off, 0, color,
+                              new SimpleFont("Arial", DivLabelFontSize), System.Windows.TextAlignment.Center,
+                              Brushes.Transparent, Brushes.Transparent, 0);
+                }
+
+                double histA = p.P1Bar <= CurrentBar ? histSeries[CurrentBar - p.P1Bar] : 0.0;
+                double histB = p.P2Bar <= CurrentBar ? histSeries[CurrentBar - p.P2Bar] : 0.0;
+                marks.Add(new DivMark { barA = p.P1Bar, barB = p.P2Bar, histA = histA, histB = histB, bearish = bearish });
+            }
+        }
+
         protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
         {
             base.OnRender(chartControl, chartScale);
@@ -284,16 +338,31 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                  GroupName = "1. Logic Setting", Order = 2)]
         public bool UseEmaMode { get; set; }
 
+        // 2026-10-29: when ON, replaces this indicator's own independent fractal-pivot
+        // divergence detection with DtDbScannerV3's confirmed DT/DB pivots (shared via
+        // DtDbCvdPivotRegistry.cs — requires DtDbScannerV3.cs running on the SAME chart,
+        // publishing, which only happens when ITS OWN bar-proxy CVD agrees with the
+        // pattern's bias). Off by default — this file stays standalone/fractal-only
+        // unless explicitly turned on. NOTE: turning this on re-introduces a companion-
+        // file dependency (DtDbCvdPivotRegistry.cs, and functionally DtDbScannerV3.cs)
+        // that CvdCumulativeMode's removal on 2026-10-28 specifically eliminated — if
+        // Thomas only needs the standalone fractal-divergence view, he does NOT need
+        // either extra file; this toggle is the one feature that needs them.
+        [NinjaScriptProperty]
+        [Display(Name = "Only show at DT/DB (requires DtDbScannerV3)", Description = "Replaces this indicator's own fractal-pivot divergence detection with DtDbScannerV3's confirmed DT/DB pivots (only the ones where DtDbScannerV3's own CVD check agrees). Requires DtDbScannerV3 + DtDbCvdPivotRegistry.cs on the same chart.",
+                 GroupName = "1. Logic Setting", Order = 3)]
+        public bool OnlyShowAtDtDb { get; set; }
+
         [NinjaScriptProperty]
         [Range(2, 500)]
         [Display(Name = "Trend EMA Period", Description = "EMA of Close used as the trend filter a fractal pivot must agree with (Pine: hardcoded 50)",
-                 GroupName = "1. Logic Setting", Order = 3)]
+                 GroupName = "1. Logic Setting", Order = 4)]
         public int TrendEmaPeriod { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 500)]
         [Display(Name = "Max Pivot Gap (bars)", Description = "Two fractal pivots further apart than this are never compared for divergence (Pine: hardcoded 30)",
-                 GroupName = "1. Logic Setting", Order = 4)]
+                 GroupName = "1. Logic Setting", Order = 5)]
         public int MaxPivotGapBars { get; set; }
 
         [NinjaScriptProperty]
