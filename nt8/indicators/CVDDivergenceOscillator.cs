@@ -138,6 +138,23 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 deltaSeries = new Series<double>(this);
                 histSeries = new Series<double>(this);
             }
+            else if (State == State.Realtime)
+            {
+                // One-time catch-up, only relevant when OnlyShowAtDtDb is on. NT8 replays
+                // each indicator's OWN historical backlog separately — there's no
+                // guarantee DtDbScannerV3's historical pass (and its registry Publish
+                // calls) finishes before THIS indicator's own per-bar OnBarUpdate polling
+                // in DrawFromDtDbRegistry already ran past those same bars, so anything
+                // published "too late" from this instance's point of view would otherwise
+                // never get drawn. State.Realtime fires once, exactly when the WHOLE
+                // chart (every indicator on it) has finished historical replay and is
+                // about to go live — the first point where DtDbScannerV3 is guaranteed to
+                // have already published everything it's going to for the historical
+                // window, regardless of per-indicator processing order. Re-polling here
+                // catches anything missed; already-drawn tags are untouched (Draw.Line
+                // with the same tag just no-ops/overwrites, not a duplicate).
+                if (OnlyShowAtDtDb) DrawFromDtDbRegistry();
+            }
         }
 
         protected override void OnBarUpdate()
