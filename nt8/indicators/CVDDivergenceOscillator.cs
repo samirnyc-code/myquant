@@ -135,8 +135,17 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             }
             else if (State == State.Configure)
             {
-                deltaSeries = new Series<double>(this);
-                histSeries = new Series<double>(this);
+                // 2026-10-29 FIX: new Series<double>(this) alone defaults to a 256-bar
+                // lookback window. DrawFromDtDbRegistry indexes histSeries[CurrentBar -
+                // p1Bar], and a DT/DB pivot from the registry can easily be MUCH further
+                // back than 256 bars (confirmed live: "Error on calling OnBarUpdate...
+                // accessing an index that is out-of-range" on a historical bar) —
+                // explicit Infinite lookback so any registry-published pivot, however
+                // old, can still be read. Harmless for the original fractal-pivot path
+                // too (that one only ever looks back 2*DivergenceFractalPeriods, well
+                // under 256 — this just removes the cap, doesn't change behavior there).
+                deltaSeries = new Series<double>(this, MaximumBarsLookBack.Infinite);
+                histSeries = new Series<double>(this, MaximumBarsLookBack.Infinite);
             }
             else if (State == State.Realtime)
             {
