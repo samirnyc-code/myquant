@@ -258,16 +258,24 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // as the fractal block's hLast/hPrev branch).
         private void DrawFromDtDbRegistry()
         {
-            List<DtDbCvdPivot> fresh = DtDbCvdPivotRegistry.GetSince(_lastSeenDtDbId);
+            if (Instrument == null) return;
+            List<DtDbCvdPivot> fresh = DtDbCvdPivotRegistry.GetSince(Instrument.FullName, _lastSeenDtDbId);
             foreach (DtDbCvdPivot p in fresh)
             {
                 _lastSeenDtDbId = p.Id;
-                if (p.P1Bar < 0 || p.P2Bar < 0 || p.P1Bar > CurrentBar || p.P2Bar > CurrentBar) continue;
+
+                // Published by TIME, not bar index — DtDbScannerV3 may be on a different
+                // chart/bar-type than this instance. Bars.GetBar converts the timestamp to
+                // THIS series' own bar index (standard NT8 Bars API, same direction as
+                // ChartBars.Bars.GetBar used elsewhere in this repo).
+                int p1Bar = Bars.GetBar(p.P1Time);
+                int p2Bar = Bars.GetBar(p.P2Time);
+                if (p1Bar < 0 || p2Bar < 0 || p1Bar > CurrentBar || p2Bar > CurrentBar) continue;
 
                 bool bearish = p.IsTop;
                 System.Windows.Media.Brush color = bearish ? BearColor : BullColor;
-                string tag = (bearish ? "cvdDtDbDivBear_" : "cvdDtDbDivBull_") + p.P1Bar + "_" + p.P2Bar;
-                int baA = CurrentBar - p.P1Bar, baB = CurrentBar - p.P2Bar;
+                string tag = (bearish ? "cvdDtDbDivBear_" : "cvdDtDbDivBull_") + p1Bar + "_" + p2Bar;
+                int baA = CurrentBar - p1Bar, baB = CurrentBar - p2Bar;
 
                 Draw.Line(this, tag, false, baA, p.P1Price, baB, p.P2Price, color, DashStyleHelper.Solid, 2);
                 if (ShowLabels)
@@ -279,9 +287,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                               Brushes.Transparent, Brushes.Transparent, 0);
                 }
 
-                double histA = p.P1Bar <= CurrentBar ? histSeries[CurrentBar - p.P1Bar] : 0.0;
-                double histB = p.P2Bar <= CurrentBar ? histSeries[CurrentBar - p.P2Bar] : 0.0;
-                marks.Add(new DivMark { barA = p.P1Bar, barB = p.P2Bar, histA = histA, histB = histB, bearish = bearish });
+                double histA = histSeries[CurrentBar - p1Bar];
+                double histB = histSeries[CurrentBar - p2Bar];
+                marks.Add(new DivMark { barA = p1Bar, barB = p2Bar, histA = histA, histB = histB, bearish = bearish });
             }
         }
 

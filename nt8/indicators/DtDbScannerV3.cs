@@ -809,8 +809,14 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     // every display toggle above, including FilterToDivergenceOnly, so
                     // CVDDivergenceOscillator.cs's "Only show at DT/DB" mode works off this
                     // scanner's actual confirms regardless of which of ITS OWN visuals are on.
+                    // Published by TIME (Bars.GetTime), not bar index — a raw index is only
+                    // meaningful on THIS chart's own bar series; the consumer may be on a
+                    // different bar type/chart entirely (confirmed broken live 2026-10-29:
+                    // a 2000-tick chart's CVDDivergenceOscillator drew nothing reading this
+                    // scanner's 1000-tick bar indices).
                     if (CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar))
-                        DtDbCvdPivotRegistry.Publish(d.IsTop, d.P1Bar, d.P1Price, d.P2Bar, d.P2Price);
+                        DtDbCvdPivotRegistry.Publish(Instrument.FullName, d.IsTop,
+                            Bars.GetTime(d.P1Bar), d.P1Price, Bars.GetTime(d.P2Bar), d.P2Price);
                     if (ShowPullbackCvd)
                         watchingRetest.Add(new WatchRetest
                         {
