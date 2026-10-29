@@ -326,19 +326,36 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // chain isn't ready yet, the connector for that specific pivot is silently
         // skipped (the main divergence line/label/histogram-highlight still draw fine —
         // none of those touch ChartControl) rather than crashing the whole indicator.
+        // TEMP DIAGNOSTIC 2026-10-29: price-panel half still not appearing even after the
+        // crash fix (CVD-panel half confirmed working live). Switched Print (can't be
+        // read remotely — goes to NT8's Output tab only) to a file log, same proven
+        // approach as the registry diagnostics earlier today, so the exact failure point
+        // is visible instead of guessed a third time. Remove once root-caused.
+        private static void PPDiag(string msg)
+        {
+            try { System.IO.File.AppendAllText(@"C:\Users\Admin\myquant\data\_cvd_pivot_connector_diag.log",
+                DateTime.Now.ToString("HH:mm:ss.fff") + "  " + msg + "\r\n"); }
+            catch { }
+        }
+
         private void DrawPivotConnectorPricePanel(string tag, int barsAgo, double priceValue, System.Windows.Media.Brush color)
         {
             try
             {
-                if (ChartControl == null || ChartControl.ChartPanels == null || ChartControl.ChartPanels.Count == 0) return;
+                if (ChartControl == null) { PPDiag(tag + " SKIP: ChartControl null"); return; }
+                if (ChartControl.ChartPanels == null) { PPDiag(tag + " SKIP: ChartPanels null"); return; }
+                if (ChartControl.ChartPanels.Count == 0) { PPDiag(tag + " SKIP: ChartPanels empty"); return; }
                 NinjaTrader.Gui.Chart.ChartPanel pricePanel = ChartControl.ChartPanels[0];
-                if (pricePanel == null || pricePanel.Scales == null || pricePanel.Scales.Count == 0) return;
+                if (pricePanel == null) { PPDiag(tag + " SKIP: pricePanel null"); return; }
+                if (pricePanel.Scales == null || pricePanel.Scales.Count == 0) { PPDiag(tag + " SKIP: Scales null/empty"); return; }
                 NinjaTrader.Gui.Chart.ChartScale scale = pricePanel.Scales[0];
-                if (scale == null) return;
+                if (scale == null) { PPDiag(tag + " SKIP: scale null"); return; }
                 double boundaryPrice = scale.GetValueByY(pricePanel.Y + pricePanel.H);
+                PPDiag(tag + " DRAWING barsAgo=" + barsAgo + " priceValue=" + priceValue
+                    + " pricePanel.Y=" + pricePanel.Y + " pricePanel.H=" + pricePanel.H + " boundaryPrice=" + boundaryPrice);
                 Draw.Line(this, tag, false, barsAgo, priceValue, barsAgo, boundaryPrice, color, DashStyleHelper.Dot, PivotConnectorWidth);
             }
-            catch (Exception ex) { Print(Name + ": pivot connector skipped for " + tag + ": " + ex.Message); }
+            catch (Exception ex) { PPDiag(tag + " EXCEPTION: " + ex.Message); }
         }
 
         // 2026-10-29: re-colors every bar from barA to barB (inclusive) to the "Strong"
