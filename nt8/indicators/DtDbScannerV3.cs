@@ -928,8 +928,17 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // size parameter at all — which is exactly the point: price/bar-space sizing
         // (ticks/bars) scales with zoom and bar width, so "small" at one zoom level became
         // huge at another. This stays visually small and constant regardless of zoom.
+        //
+        // 2026-10-29 FIX: user set DtDotBrush/DbDotBrush to Transparent and still saw a
+        // grey outline — NT8's native Dot tool renders its own outline stroke independent
+        // of the fill brush passed here (no public overload exposes an outline color), so
+        // a "Transparent" fill alone can't make it disappear. Skip the Draw.Dot call
+        // entirely when the brush is fully transparent (Alpha 0) instead of relying on the
+        // tool to render invisibly.
         private DrawingTool DrawConfirmDot(string tag, bool isTop, double anchorY, Brush brush)
         {
+            SolidColorBrush scb = brush as SolidColorBrush;
+            if (scb != null && scb.Color.A == 0) return null;
             return Draw.Dot(this, tag, false, 0, anchorY, brush);
         }
 
