@@ -192,6 +192,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 ShowPullbackCvd   = true;
                 PullbackWatchBars = 30;
                 RetestToleranceTicks = 4;
+                FilterToDivergenceOnly = false;   // off by default — opt-in, existing behavior unchanged otherwise
             }
             else if (State == State.Configure)
             {
@@ -566,7 +567,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     FireAlert("DTconf_" + pendingTop.FormBar, Priority.High,
                         Label() + " DT CONFIRMED  score " + pendingTop.Score.ToString("F0")
                         + "  neckline " + pendingTop.Neckline.ToString(), Brushes.Red);
-                    if (ShowDrawings)
+                    // alert above fires unconditionally regardless of the filter (same as
+                    // score never gating it) — only the confirm-dot VISUAL is gated.
+                    if (ShowDrawings && (!FilterToDivergenceOnly || CvdAgrees(true, pendingTop.P1Bar, pendingTop.P2Bar)))
                     {
                         string triTag = "DTconfTri_" + pendingTop.FormBar;
                         TrackDrawObj(DrawConfirmDot(triTag, true, High[0] + 4 * TickSize, DtDotBrush));
@@ -588,7 +591,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     FireAlert("DBconf_" + pendingBottom.FormBar, Priority.High,
                         Label() + " DB CONFIRMED  score " + pendingBottom.Score.ToString("F0")
                         + "  neckline " + pendingBottom.Neckline.ToString(), Brushes.Lime);
-                    if (ShowDrawings)
+                    // alert above fires unconditionally regardless of the filter (same as
+                    // score never gating it) — only the confirm-dot VISUAL is gated.
+                    if (ShowDrawings && (!FilterToDivergenceOnly || CvdAgrees(false, pendingBottom.P1Bar, pendingBottom.P2Bar)))
                     {
                         string triTag = "DBconfTri_" + pendingBottom.FormBar;
                         TrackDrawObj(DrawConfirmDot(triTag, false, Low[0] - 4 * TickSize, DbDotBrush));
@@ -775,6 +780,19 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 }
                 else if (confirmed)
                 {
+                    // Pure display filter, applied right at confirm — detection/scoring/
+                    // confirm itself already happened above (BrokeNeckline), unchanged.
+                    // A structure that fails this just loses its drawings, same cleanup
+                    // RemoveStructure already does for an invalidated one; it still
+                    // confirmed as far as the rest of the indicator (incl. alerts) knows.
+                    if (FilterToDivergenceOnly && !CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar))
+                    {
+                        RemoveStructure(d.Tag);
+                        drawnHistory.RemoveAll(r => r.Tag == d.Tag);
+                        openDrawn.RemoveAt(i);
+                        continue;
+                    }
+
                     DrawNeckline(d.Tag, d.IsTop, d.NeckBar, d.Neckline);   // extend to the bar that closed beyond
                     if (ShowCvdDivergence) DrawCvdDivergenceBadge(d);
                     if (ShowPullbackCvd)
@@ -831,13 +849,25 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             return Draw.Dot(this, tag, false, 0, anchorY, brush);
         }
 
+        // CVD-at-the-two-pivots agree/disagree check. Shared by the badge (labels every
+        // confirmed DT/DB, agree or not), FilterToDivergenceOnly in SweepDrawn (removes
+        // the drawn lines/neckline/badge for ones that disagree), and the confirm-dot
+        // gate in ManagePending below (same filter, applied to the OTHER place a
+        // confirmed structure draws something) — one calculation, three call sites.
+        private bool CvdAgrees(bool isTop, int p1Bar, int p2Bar)
+        {
+            double cvd1 = _cvdHist[CurrentBar - p1Bar];
+            double cvd2 = _cvdHist[CurrentBar - p2Bar];
+            return isTop ? cvd2 < cvd1 : cvd2 > cvd1;
+        }
+
         // CVD-at-the-two-pivots check, labeled for every confirmed DT/DB (agree or not)
         // so the hit rate can be audited visually rather than filtered silently.
         private void DrawCvdDivergenceBadge(DrawnStructure d)
         {
             double cvd1 = _cvdHist[CurrentBar - d.P1Bar];
             double cvd2 = _cvdHist[CurrentBar - d.P2Bar];
-            bool agrees = d.IsTop ? cvd2 < cvd1 : cvd2 > cvd1;
+            bool agrees = CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar);
             string txt = (agrees ? "CVD✓ " : "CVD✗ ") + (cvd2 - cvd1 >= 0 ? "+" : "") + (cvd2 - cvd1).ToString("F0");
             double y = d.IsTop ? High[0] + 10 * TickSize : Low[0] - 10 * TickSize;
             TrackDrawObj(Draw.Text(this, d.Tag + "_cvd", txt, 0, y, agrees ? CvdDivBrush : Brushes.Gray));
@@ -1113,6 +1143,14 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         [NinjaScriptProperty, Range(0, int.MaxValue)]
         [Display(Name = "Retest tolerance (ticks)", Description = "How close price must come back to the neckline (without fully reclaiming it) to count as a retest.", Order = 7, GroupName = "6. CVD Divergence")]
         public int RetestToleranceTicks { get; set; }
+
+        // 2026-10-29: DT/DB detection/confirm/scoring is UNCHANGED by this — it's a pure
+        // display filter applied only at the moment a structure confirms (SweepDrawn), on
+        // top of the existing CVD-agree check DrawCvdDivergenceBadge already computes.
+        // Off by default so nothing changes unless explicitly turned on.
+        [NinjaScriptProperty]
+        [Display(Name = "Only show CVD-confirmed DT/DB", Description = "When ON, a confirmed DT/DB whose bar-proxy CVD does NOT agree with the pattern's bias (same agree/disagree check as the CVD badge) has its drawings removed instead of kept — only divergence-confirmed patterns stay visible. Does not change detection/confirmation/scoring, and does not suppress alerts.", Order = 8, GroupName = "6. CVD Divergence")]
+        public bool FilterToDivergenceOnly { get; set; }
         #endregion
     }
 }
