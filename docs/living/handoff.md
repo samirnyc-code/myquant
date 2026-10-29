@@ -1,5 +1,19 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-29 (session 3) — **Removed all Initial Balance (IB) logic from
+`PATsProfile.cs` (the Pat VP indicator)**, per user request: repeated attempts to fix IB on
+this indicator (RTH-anchor bug, per-session generalization — see prior entries below) never
+landed right, so the whole feature is gone rather than fixed again. Removed `IbMinutes`,
+`RthStartHHMM`, `ShowIB`, `IbColor` (+serializer) properties, `ibh`/`ibl` fields,
+`ComputeIB`/`ComputeIBFor` methods, and all IB line/label rendering (today + per-session
+historical). `[myquant] 52bc0e9b`. Compile-checked clean (only pre-existing unrelated
+duplicate-symbol errors elsewhere in the nt8 folder — SessionSRLevelsV9/V7,
+ClaudeTracker/ClaudeTrackerV2/TradeLifecycle — nothing in this file). Deployed to
+`Documents\NinjaTrader 8\bin\Custom\Indicators\PATsProfile.cs`. **NOT YET F5'd — user needs
+to recompile in NT8 while flat before this takes effect.**
+
+---
+
 **Last Updated:** 2026-10-29 (session 2) — **Checked both diagnostic logs left by the prior
 same-day session; found the pivot-connector fix is confirmed working but the hidden-CVD-
 divergence fix was NOT actually fixed (real root cause was a different bug than the one
