@@ -36,6 +36,7 @@ namespace NinjaTrader.NinjaScript
         public bool IsTop;
         public DateTime P1Time, P2Time;
         public double P1Price, P2Price;
+        public bool IsHidden;       // 2026-10-29: hidden-CVD-divergence pivot, not a regular-agree one
     }
 
     public static class DtDbCvdPivotRegistry
@@ -66,8 +67,13 @@ namespace NinjaTrader.NinjaScript
             catch { /* diagnostic only, never let logging break the real feature */ }
         }
 
+        // 2026-10-29: isHidden param added so a hidden-CVD-divergence pivot (separate
+        // condition from the regular CvdAgrees check that feeds the default publishes)
+        // can be told apart on the consumer side — CVDDivergenceOscillator draws it in a
+        // distinct color, not bull/bear. Default false keeps every existing call site
+        // (regular-agree publishes) unchanged.
         public static void Publish(string instrumentFullName, bool isTop,
-            DateTime p1Time, double p1Price, DateTime p2Time, double p2Price)
+            DateTime p1Time, double p1Price, DateTime p2Time, double p2Price, bool isHidden = false)
         {
             lock (Lock)
             {
@@ -75,10 +81,12 @@ namespace NinjaTrader.NinjaScript
                 Recent.Add(new DtDbCvdPivot
                 {
                     Id = id, InstrumentFullName = instrumentFullName, IsTop = isTop,
-                    P1Time = p1Time, P1Price = p1Price, P2Time = p2Time, P2Price = p2Price
+                    P1Time = p1Time, P1Price = p1Price, P2Time = p2Time, P2Price = p2Price,
+                    IsHidden = isHidden
                 });
                 if (Recent.Count > MaxKept) Recent.RemoveAt(0);
                 Diag("PUBLISH id=" + id + " instr=\"" + instrumentFullName + "\" isTop=" + isTop
+                    + " isHidden=" + isHidden
                     + " p1=" + p1Time.ToString("MM-dd HH:mm:ss") + "@" + p1Price
                     + " p2=" + p2Time.ToString("MM-dd HH:mm:ss") + "@" + p2Price
                     + " totalKept=" + Recent.Count);

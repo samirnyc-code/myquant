@@ -201,6 +201,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 CvdDivLineDtBrush = Brushes.Firebrick;    // matches CVDDivergenceOscillator.cs's BearColor default
                 CvdDivLineDbBrush = Brushes.LimeGreen;    // matches CVDDivergenceOscillator.cs's BullColor default
                 ShowHiddenCvdDivergence = true;
+                ShowHiddenCvdDivergenceLabel = false;   // 2026-10-29: user doesn't want "H.CVD" text by default
                 HiddenCvdBrush = Brushes.Orange;
             }
             else if (State == State.Configure)
@@ -821,13 +822,18 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     DrawNeckline(d.Tag, d.IsTop, d.NeckBar, d.Neckline);   // extend to the bar that closed beyond
                     if (ShowCvdDivergence) DrawCvdDivergenceBadge(d);
                     if (ShowCvdDivergenceLine) DrawCvdDivergenceLine(d);
-                    if (ShowHiddenCvdDivergence) DrawCvdHiddenDivergenceBadge(d, cvdHiddenOk);
+                    // 2026-10-29: label split from detection — ShowHiddenCvdDivergence stays
+                    // the master toggle (drives cvdHiddenOk, the peak-line recolor below, and
+                    // the registry publish), ShowHiddenCvdDivergenceLabel (default OFF, user
+                    // ask) controls ONLY the "H.CVD" text.
+                    if (ShowHiddenCvdDivergenceLabel) DrawCvdHiddenDivergenceBadge(d, cvdHiddenOk);
                     // Recolor the existing "_peaks" line (default black, drawn at formation
                     // time in DrawStructure) to HiddenCvdBrush when this structure is a hidden
                     // divergence — same tag, so Draw.Line overwrites it in place rather than
                     // adding a second line. User ask 2026-10-29: wanted the DT/DB peak line
                     // itself to flag hidden divergence, not just the "H.CVD" text badge.
                     if (cvdHiddenOk) RecolorPeaksLine(d, HiddenCvdBrush);
+                    if (cvdHiddenOk) DrawHiddenCvdDivergenceLine(d);
                     // Publish to the shared registry whenever CVD agrees — independent of
                     // every display toggle above, including FilterToDivergenceOnly, so
                     // CVDDivergenceOscillator.cs's "Only show at DT/DB" mode works off this
@@ -840,6 +846,14 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     if (CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar))
                         DtDbCvdPivotRegistry.Publish(Instrument.FullName, d.IsTop,
                             Bars.GetTime(d.P1Bar), d.P1Price, Bars.GetTime(d.P2Bar), d.P2Price);
+                    // 2026-10-29: separate publish for hidden pivots (isHidden:true) so
+                    // CVDDivergenceOscillator can draw them in their own color in its
+                    // histogram panel — independent of the regular-agree publish above, a
+                    // structure can publish as hidden, regular-agree, both, or neither.
+                    if (cvdHiddenOk)
+                        DtDbCvdPivotRegistry.Publish(Instrument.FullName, d.IsTop,
+                            Bars.GetTime(d.P1Bar), d.P1Price, Bars.GetTime(d.P2Bar), d.P2Price,
+                            isHidden: true);
                     if (ShowPullbackCvd)
                         watchingRetest.Add(new WatchRetest
                         {
@@ -880,7 +894,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         private void RemoveStructure(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return;
-            string[] parts = { "_l1", "_l2", "_neck", "_peaks", "_txt", "_cvd", "_hcvd", "_cvdln", "_rt" };
+            string[] parts = { "_l1", "_l2", "_neck", "_peaks", "_txt", "_cvd", "_hcvd", "_cvdln", "_hcvdln", "_rt" };
             foreach (string s in parts)
                 RemoveDrawObject(tag + s);
         }
@@ -977,6 +991,19 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             if (!hiddenAgrees) return;
             double y = d.IsTop ? High[0] + 20 * TickSize : Low[0] - 20 * TickSize;
             TrackDrawObj(Draw.Text(this, d.Tag + "_hcvd", "H.CVD", 0, y, HiddenCvdBrush));
+        }
+
+        // Diagonal connecting line between the hidden-divergence's own two pivot PRICES —
+        // same shape as DrawCvdDivergenceLine (the regular-agree equivalent) but always
+        // HiddenCvdBrush-colored. Caller passes the already-computed cvdHiddenOk result
+        // (not recomputed here) so CvdHiddenAgrees's diagnostic log write only happens
+        // once per structure, same reasoning as DrawCvdHiddenDivergenceBadge. User ask
+        // 2026-10-29: wanted the actual pivot-to-pivot line in orange too, not just the
+        // horizontal peak line.
+        private void DrawHiddenCvdDivergenceLine(DrawnStructure d)
+        {
+            int baA = CurrentBar - d.P1Bar, baB = CurrentBar - d.P2Bar;
+            TrackDrawObj(Draw.Line(this, d.Tag + "_hcvdln", false, baA, d.P1Price, baB, d.P2Price, HiddenCvdBrush, DashStyleHelper.Solid, 2));
         }
 
         // Overwrites DrawStructure's "_peaks" line (same tag -> Draw.Line replaces it in
@@ -1308,14 +1335,21 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // 2026-10-29: hidden CVD divergence at the SAME two DT/DB pivots — see
         // CvdHiddenAgrees's own comment for the mechanical definition and the caveat
         // about what "hidden" means in a reversal-pattern context specifically. Off by
-        // default, independent of every other CVD toggle above (incl. FilterToDivergenceOnly,
-        // which stays tied to the regular check only).
+        // default, independent of every other CVD toggle above. This is now the MASTER
+        // toggle (also gates the FilterToDivergenceOnly rescue, the orange peak-line
+        // recolor, and the hidden registry publish) — ShowHiddenCvdDivergenceLabel below
+        // controls only the "H.CVD" text, split out 2026-10-29 at user's request (didn't
+        // want the text label on by default while still wanting the other three effects).
         [NinjaScriptProperty]
-        [Display(Name = "Show hidden CVD divergence", Description = "At every confirmed DT/DB, also checks the INVERSE pairing (price makes a shallower 2nd peak/trough than the 1st, but CVD is stronger anyway) — the same 'hidden divergence' shape CumulativeDelta.cs already has, applied to the DT/DB's own two pivots. Only labeled when it actually fires. Independent of the regular CVD check and the line above.", Order = 12, GroupName = "6. CVD Divergence")]
+        [Display(Name = "Show hidden CVD divergence", Description = "At every confirmed DT/DB, also checks the INVERSE pairing (price makes a shallower 2nd peak/trough than the 1st, but CVD is stronger anyway) — the same 'hidden divergence' shape CumulativeDelta.cs already has, applied to the DT/DB's own two pivots. Drives the peak-line recolor, the FilterToDivergenceOnly rescue, and the registry publish; does NOT by itself draw the 'H.CVD' text (see the label toggle below).", Order = 12, GroupName = "6. CVD Divergence")]
         public bool ShowHiddenCvdDivergence { get; set; }
 
+        [NinjaScriptProperty]
+        [Display(Name = "Show hidden CVD divergence label", Description = "Draws the 'H.CVD' text badge when hidden divergence fires. Off by default — the orange peak-line recolor already flags it visually without adding text.", Order = 13, GroupName = "6. CVD Divergence")]
+        public bool ShowHiddenCvdDivergenceLabel { get; set; }
+
         [XmlIgnore]
-        [Display(Name = "Hidden CVD divergence color", Order = 13, GroupName = "6. CVD Divergence")]
+        [Display(Name = "Hidden CVD divergence color", Order = 14, GroupName = "6. CVD Divergence")]
         public Brush HiddenCvdBrush { get; set; }
         [Browsable(false)]
         public string HiddenCvdBrushSerialize { get { return Serialize.BrushToString(HiddenCvdBrush); } set { HiddenCvdBrush = Serialize.StringToBrush(value); } }
