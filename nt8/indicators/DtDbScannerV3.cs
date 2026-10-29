@@ -1014,22 +1014,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             double cvd2 = _cvdHist[CurrentBar - p2Bar];
             bool priceCond = isTop ? (p2Price <= p1Price) : (p2Price >= p1Price);
             bool cvdCond = isTop ? (cvd2 > cvd1) : (cvd2 < cvd1);
-            bool result = priceCond && cvdCond;
-            // TEMP DIAGNOSTIC 2026-10-29 — user reports zero hidden divergences even after
-            // the strict-inequality fix; logs every evaluation (one per confirmed DT/DB,
-            // low volume, no throttling needed) with BOTH sub-conditions broken out, so
-            // it's visible whether price never qualifies, CVD never qualifies, or both —
-            // instead of just "still zero." Remove once root-caused.
-            try
-            {
-                System.IO.File.AppendAllText(@"C:\Users\Admin\myquant\data\_dtdb_hidden_div_diag.log",
-                    DateTime.Now.ToString("HH:mm:ss.fff") + "  isTop=" + isTop
-                    + " p1=" + p1Price + " p2=" + p2Price + " priceCond=" + priceCond
-                    + " cvd1=" + cvd1.ToString("F1") + " cvd2=" + cvd2.ToString("F1") + " cvdCond=" + cvdCond
-                    + " -> " + (result ? "HIDDEN FIRES" : "no") + "\r\n");
-            }
-            catch { }
-            return result;
+            return priceCond && cvdCond;
         }
 
         // Only drawn when it actually fires (same as CumulativeDelta.cs's hidden

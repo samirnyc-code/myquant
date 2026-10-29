@@ -25,7 +25,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 
 namespace NinjaTrader.NinjaScript
 {
@@ -54,19 +53,6 @@ namespace NinjaTrader.NinjaScript
         private static readonly List<DtDbCvdPivot> Recent = new List<DtDbCvdPivot>();
         private static int nextId = 1;
 
-        // 2026-10-29 TEMP DIAGNOSTIC: user reports zero lines drawn across two already-
-        // applied fixes (cross-chart bar index, historical-replay ordering) — rather than
-        // guess a third cause, log every Publish AND every GetSince call (incl. zero-result
-        // ones) to a plain file so the actual failure point can be read directly instead of
-        // inferred. Remove once root-caused. Append-only, tiny, no lock contention risk
-        // (separate try/catch, never blocks the real Lock above).
-        private const string DiagPath = @"C:\Users\Admin\myquant\data\_dtdb_cvd_registry_diag.log";
-        public static void Diag(string msg)
-        {
-            try { File.AppendAllText(DiagPath, DateTime.Now.ToString("HH:mm:ss.fff") + "  " + msg + "\r\n"); }
-            catch { /* diagnostic only, never let logging break the real feature */ }
-        }
-
         // 2026-10-29: isHidden param added so a hidden-CVD-divergence pivot (separate
         // condition from the regular CvdAgrees check that feeds the default publishes)
         // can be told apart on the consumer side — CVDDivergenceOscillator draws it in a
@@ -85,22 +71,12 @@ namespace NinjaTrader.NinjaScript
                     IsHidden = isHidden
                 });
                 if (Recent.Count > MaxKept) Recent.RemoveAt(0);
-                Diag("PUBLISH id=" + id + " instr=\"" + instrumentFullName + "\" isTop=" + isTop
-                    + " isHidden=" + isHidden
-                    + " p1=" + p1Time.ToString("MM-dd HH:mm:ss") + "@" + p1Price
-                    + " p2=" + p2Time.ToString("MM-dd HH:mm:ss") + "@" + p2Price
-                    + " totalKept=" + Recent.Count);
             }
         }
 
         // Returns every published pivot for instrumentFullName with Id > sinceId (i.e.
         // new since the caller's last read), oldest first. Callers track their own
         // last-seen Id.
-        // GetSince is called every bar when OnlyShowAtDtDb is on — only log the FIRST ever
-        // call (proves the consumer side is wired up at all) and any call that actually
-        // matches something (the interesting case), not the routine zero-match majority,
-        // or this file would grow unbounded on a tick chart.
-        private static bool loggedFirstGetSince;
         public static List<DtDbCvdPivot> GetSince(string instrumentFullName, int sinceId)
         {
             lock (Lock)
@@ -108,12 +84,6 @@ namespace NinjaTrader.NinjaScript
                 List<DtDbCvdPivot> result = new List<DtDbCvdPivot>();
                 foreach (DtDbCvdPivot p in Recent)
                     if (p.Id > sinceId && p.InstrumentFullName == instrumentFullName) result.Add(p);
-                if (!loggedFirstGetSince || result.Count > 0)
-                {
-                    loggedFirstGetSince = true;
-                    Diag("GETSINCE instr=\"" + instrumentFullName + "\" sinceId=" + sinceId
-                        + " totalInRegistry=" + Recent.Count + " matched=" + result.Count);
-                }
                 return result;
             }
         }

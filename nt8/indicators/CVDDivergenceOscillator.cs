@@ -328,28 +328,16 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // chain isn't ready yet, the connector for that specific pivot is silently
         // skipped (the main divergence line/label/histogram-highlight still draw fine —
         // none of those touch ChartControl) rather than crashing the whole indicator.
-        // TEMP DIAGNOSTIC 2026-10-29: price-panel half still not appearing even after the
-        // crash fix (CVD-panel half confirmed working live). Switched Print (can't be
-        // read remotely — goes to NT8's Output tab only) to a file log, same proven
-        // approach as the registry diagnostics earlier today, so the exact failure point
-        // is visible instead of guessed a third time. Remove once root-caused.
-        private static void PPDiag(string msg)
-        {
-            try { System.IO.File.AppendAllText(@"C:\Users\Admin\myquant\data\_cvd_pivot_connector_diag.log",
-                DateTime.Now.ToString("HH:mm:ss.fff") + "  " + msg + "\r\n"); }
-            catch { }
-        }
-
         private void DrawPivotConnectorPricePanel(string tag, int barsAgo, double priceValue, System.Windows.Media.Brush color)
         {
             try
             {
-                if (ChartControl == null) { PPDiag(tag + " SKIP: ChartControl null"); return; }
-                if (ChartControl.ChartPanels == null) { PPDiag(tag + " SKIP: ChartPanels null"); return; }
-                if (ChartControl.ChartPanels.Count == 0) { PPDiag(tag + " SKIP: ChartPanels empty"); return; }
+                if (ChartControl == null) return;
+                if (ChartControl.ChartPanels == null) return;
+                if (ChartControl.ChartPanels.Count == 0) return;
                 NinjaTrader.Gui.Chart.ChartPanel pricePanel = ChartControl.ChartPanels[0];
-                if (pricePanel == null) { PPDiag(tag + " SKIP: pricePanel null"); return; }
-                if (pricePanel.Scales == null || pricePanel.Scales.Count == 0) { PPDiag(tag + " SKIP: Scales null/empty"); return; }
+                if (pricePanel == null) return;
+                if (pricePanel.Scales == null || pricePanel.Scales.Count == 0) return;
                 // FIX: Scales[0] came back null every time — ChartScaleCollection is BOTH
                 // enum-keyed (ScaleJustification) AND a plain ordinal Collection<T>, and
                 // whichever indexer the compiler actually bound to, the real scale isn't
@@ -357,13 +345,11 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 // trusting a hard-coded index.
                 NinjaTrader.Gui.Chart.ChartScale scale = null;
                 foreach (NinjaTrader.Gui.Chart.ChartScale s in pricePanel.Scales) { if (s != null) { scale = s; break; } }
-                if (scale == null) { PPDiag(tag + " SKIP: no non-null scale found in " + pricePanel.Scales.Count + " entries"); return; }
+                if (scale == null) return;
                 double boundaryPrice = scale.GetValueByY(pricePanel.Y + pricePanel.H);
-                PPDiag(tag + " DRAWING barsAgo=" + barsAgo + " priceValue=" + priceValue
-                    + " pricePanel.Y=" + pricePanel.Y + " pricePanel.H=" + pricePanel.H + " boundaryPrice=" + boundaryPrice);
                 Draw.Line(this, tag, false, barsAgo, priceValue, barsAgo, boundaryPrice, color, DashStyleHelper.Dot, PivotConnectorWidth);
             }
-            catch (Exception ex) { PPDiag(tag + " EXCEPTION: " + ex.Message); }
+            catch { }
         }
 
         // 2026-10-29: re-colors every bar from barA to barB (inclusive) to the "Strong"
@@ -393,24 +379,32 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         private void DrawFromDtDbRegistry()
         {
             if (Instrument == null) return;
+            // 2026-10-29 FIX: was advancing _lastSeenDtDbId for EVERY entry read, including
+            // ones the bounds check below rejects for not being resolvable YET on this bar
+            // (p1Bar/p2Bar still ahead of CurrentBar — this indicator's own historical
+            // replay hasn't reached that point yet, common right after an F5 when
+            // DtDbScannerV3's registry backlog is already far ahead). Marking those "seen"
+            // meant they were skipped PERMANENTLY — GetSince never returns an id once
+            // _lastSeenDtDbId has passed it, so a pivot rejected this way would never draw,
+            // ever. Confirmed live: diag log showed bursts of 600-900 CONSUME calls in a
+            // single second at CurrentBar=0 right after compiling, all REJECTED, all
+            // silently lost. Fix: stop (not skip) at the first unresolvable entry and leave
+            // _lastSeenDtDbId where it was — GetSince returns the exact same id next bar,
+            // and it resolves correctly once CurrentBar actually reaches it. Entries are
+            // returned in ascending Id (~ascending confirm time), so one unresolvable entry
+            // means later ones in the same batch are very likely unresolvable too; stopping
+            // early also kills the per-F5 performance burst instead of just slowing it.
             List<DtDbCvdPivot> fresh = DtDbCvdPivotRegistry.GetSince(Instrument.FullName, _lastSeenDtDbId);
             foreach (DtDbCvdPivot p in fresh)
             {
-                _lastSeenDtDbId = p.Id;
-
                 // Published by TIME, not bar index — DtDbScannerV3 may be on a different
                 // chart/bar-type than this instance. Bars.GetBar converts the timestamp to
                 // THIS series' own bar index (standard NT8 Bars API, same direction as
                 // ChartBars.Bars.GetBar used elsewhere in this repo).
                 int p1Bar = Bars.GetBar(p.P1Time);
                 int p2Bar = Bars.GetBar(p.P2Time);
-                // TEMP DIAGNOSTIC (see DtDbCvdPivotRegistry.cs) — logs every entry this
-                // reads, incl. ones rejected by the bounds check below, so a GetBar
-                // conversion failure specifically is visible instead of just "no line."
-                DtDbCvdPivotRegistry.Diag("CONSUME id=" + p.Id
-                    + " CurrentBar=" + CurrentBar + " p1Bar=" + p1Bar + " p2Bar=" + p2Bar
-                    + (p1Bar < 0 || p2Bar < 0 || p1Bar > CurrentBar || p2Bar > CurrentBar ? " REJECTED" : " DRAWING"));
-                if (p1Bar < 0 || p2Bar < 0 || p1Bar > CurrentBar || p2Bar > CurrentBar) continue;
+                if (p1Bar < 0 || p2Bar < 0 || p1Bar > CurrentBar || p2Bar > CurrentBar) break;
+                _lastSeenDtDbId = p.Id;
 
                 bool bearish = p.IsTop;
                 // 2026-10-29: hidden-divergence pivots (IsHidden, DtDbScannerV3's separate
