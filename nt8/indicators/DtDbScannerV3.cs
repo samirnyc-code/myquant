@@ -822,6 +822,12 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     if (ShowCvdDivergence) DrawCvdDivergenceBadge(d);
                     if (ShowCvdDivergenceLine) DrawCvdDivergenceLine(d);
                     if (ShowHiddenCvdDivergence) DrawCvdHiddenDivergenceBadge(d, cvdHiddenOk);
+                    // Recolor the existing "_peaks" line (default black, drawn at formation
+                    // time in DrawStructure) to HiddenCvdBrush when this structure is a hidden
+                    // divergence — same tag, so Draw.Line overwrites it in place rather than
+                    // adding a second line. User ask 2026-10-29: wanted the DT/DB peak line
+                    // itself to flag hidden divergence, not just the "H.CVD" text badge.
+                    if (cvdHiddenOk) RecolorPeaksLine(d, HiddenCvdBrush);
                     // Publish to the shared registry whenever CVD agrees — independent of
                     // every display toggle above, including FilterToDivergenceOnly, so
                     // CVDDivergenceOscillator.cs's "Only show at DT/DB" mode works off this
@@ -971,6 +977,17 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             if (!hiddenAgrees) return;
             double y = d.IsTop ? High[0] + 20 * TickSize : Low[0] - 20 * TickSize;
             TrackDrawObj(Draw.Text(this, d.Tag + "_hcvd", "H.CVD", 0, y, HiddenCvdBrush));
+        }
+
+        // Overwrites DrawStructure's "_peaks" line (same tag -> Draw.Line replaces it in
+        // place) in the given color. Recomputed at CURRENT bar, not the bar the line was
+        // originally drawn at — aAgo/bAgo shift every bar until confirm, same as every
+        // other re-anchored draw call in this file.
+        private void RecolorPeaksLine(DrawnStructure d, Brush color)
+        {
+            double peakLevel = d.IsTop ? Math.Max(d.P1Price, d.P2Price) : Math.Min(d.P1Price, d.P2Price);
+            int aAgo = CurrentBar - d.P1Bar, bAgo = CurrentBar - d.P2Bar;
+            TrackDrawObj(Draw.Line(this, d.Tag + "_peaks", false, aAgo, peakLevel, bAgo, peakLevel, color, PeakLineDashStyle, PeakLineWidth));
         }
 
         // The actual connecting LINE between the DT/DB's own two pivots — same visual
