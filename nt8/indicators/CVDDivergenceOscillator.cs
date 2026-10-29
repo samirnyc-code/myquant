@@ -83,7 +83,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         private double lLastPrice = double.NaN, lPrevPrice = double.NaN;
         private double lLastHist = double.NaN, lPrevHist = double.NaN;
 
-        private struct DivMark { public int barA, barB; public double histA, histB; public bool bearish; }
+        private struct DivMark { public int barA, barB; public double histA, histB; public bool bearish; public bool isHidden; }
         private List<DivMark> marks = new List<DivMark>();
 
         // last DtDbCvdPivotRegistry.Id this instance has already drawn — only used when
@@ -113,6 +113,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 DivLabelFontSize = 10;
                 BullColor = Brushes.Green;   // 2026-10-29: matches user's saved live default (#FF008000) — was LimeGreen
                 BearColor = Brushes.Red;     // 2026-10-29: matches user's saved live default (#FFFF0000) — was Firebrick
+                HiddenCvdLineBrush = Brushes.Orange;   // 2026-10-29: DtDbScannerV3's hidden-div pivots, drawn via the registry
                 // .Freeze() both -- 2026-10-19: these were the ONLY two brushes in this file
                 // built from a custom ARGB color instead of a pre-frozen named Brushes.X
                 // constant (BullColor/BearColor etc. all use Brushes.X, already frozen/thread-
@@ -412,12 +413,17 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 if (p1Bar < 0 || p2Bar < 0 || p1Bar > CurrentBar || p2Bar > CurrentBar) continue;
 
                 bool bearish = p.IsTop;
-                System.Windows.Media.Brush color = bearish ? BearColor : BullColor;
-                string tag = (bearish ? "cvdDtDbDivBear_" : "cvdDtDbDivBull_") + p1Bar + "_" + p2Bar;
+                // 2026-10-29: hidden-divergence pivots (IsHidden, DtDbScannerV3's separate
+                // publish) get their own color and tag prefix, never bull/bear, and never a
+                // "+RD"/"-RD" label (no label at all — user explicitly didn't want one by
+                // default for hidden divergence; unlike the regular path this isn't even
+                // gated by ShowLabels, just omitted).
+                System.Windows.Media.Brush color = p.IsHidden ? HiddenCvdLineBrush : (bearish ? BearColor : BullColor);
+                string tag = (p.IsHidden ? "cvdDtDbHidden_" : (bearish ? "cvdDtDbDivBear_" : "cvdDtDbDivBull_")) + p1Bar + "_" + p2Bar;
                 int baA = CurrentBar - p1Bar, baB = CurrentBar - p2Bar;
 
                 Draw.Line(this, tag, false, baA, p.P1Price, baB, p.P2Price, color, DashStyleHelper.Solid, 2);
-                if (ShowLabels)
+                if (ShowLabels && !p.IsHidden)
                 {
                     double off = 8 * (TickSize > 0 ? TickSize : 0.25);
                     Draw.Text(this, tag + "_txt", false, bearish ? "-RD" : "+RD", baB,
@@ -428,7 +434,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
                 double histA = histSeries[CurrentBar - p1Bar];
                 double histB = histSeries[CurrentBar - p2Bar];
-                marks.Add(new DivMark { barA = p1Bar, barB = p2Bar, histA = histA, histB = histB, bearish = bearish });
+                marks.Add(new DivMark { barA = p1Bar, barB = p2Bar, histA = histA, histB = histB, bearish = bearish, isHidden = p.IsHidden });
                 HighlightDivergenceSpan(p1Bar, p2Bar);
                 if (ShowPivotConnectors)
                 {
@@ -446,6 +452,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             int fromV = ChartBars.FromIndex, toV = ChartBars.ToIndex;
             var bearBr = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, ToColor4(BearColor));
             var bullBr = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, ToColor4(BullColor));
+            var hiddenBr = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, ToColor4(HiddenCvdLineBrush));
 
             foreach (DivMark m in marks)
             {
@@ -453,7 +460,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 if (m.barA > toV + 1 && m.barB > toV + 1) continue;
                 float xA = chartControl.GetXByBarIndex(ChartBars, m.barA), xB = chartControl.GetXByBarIndex(ChartBars, m.barB);
                 float yA = chartScale.GetYByValue(m.histA), yB = chartScale.GetYByValue(m.histB);
-                SharpDX.Direct2D1.Brush br = m.bearish ? bearBr : bullBr;
+                SharpDX.Direct2D1.Brush br = m.isHidden ? hiddenBr : (m.bearish ? bearBr : bullBr);
                 RenderTarget.DrawLine(new Vector2(xA, yA), new Vector2(xB, yB), br, HistLineWidth);
 
                 // CVD-panel half of each pivot connector — reaches THIS panel's own top
@@ -469,7 +476,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 }
             }
 
-            bearBr.Dispose(); bullBr.Dispose();
+            bearBr.Dispose(); bullBr.Dispose(); hiddenBr.Dispose();
         }
 
         // Dependency-free dashing (no Direct2D1 StrokeStyle/Factory needed) — same
@@ -617,6 +624,17 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         [Range(1, 10)]
         [Display(Name = "Pivot connector thickness", GroupName = "2. Display Setting", Order = 10)]
         public int PivotConnectorWidth { get; set; }
+
+        // 2026-10-29: color for pivots read from DtDbCvdPivotRegistry with IsHidden=true
+        // (DtDbScannerV3's hidden-CVD-divergence check) — drawn in both panels like a
+        // regular DT/DB pivot line, but never bull/bear colored and never labeled (no
+        // "+RD"/"-RD" equivalent), matching the user's "no label by default" preference
+        // from the price-panel hidden-div work in DtDbScannerV3.cs.
+        [XmlIgnore]
+        [Display(Name = "Hidden-divergence line color (from DT/DB registry)", GroupName = "2. Display Setting", Order = 11)]
+        public System.Windows.Media.Brush HiddenCvdLineBrush { get; set; }
+        [Browsable(false)]
+        public string HiddenCvdLineBrushSerialize { get { return Serialize.BrushToString(HiddenCvdLineBrush); } set { HiddenCvdLineBrush = Serialize.StringToBrush(value); } }
         #endregion
     }
 }
