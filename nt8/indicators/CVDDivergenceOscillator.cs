@@ -312,13 +312,33 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         // indicator's own panel is directly adjacent to the price panel (true here — no
         // other sub-panel sandwiched between them); if that ever changes, this would reach
         // toward the wrong boundary.
+        // 2026-10-29 FIX: crashed OnBarUpdate live ("Object reference not set to an
+        // instance of an object", confirmed from NT8's own error dialog) on historical
+        // bars. Root cause: ChartControl (and everything under it — ChartPanels, etc.)
+        // is NOT reliably populated during State.Historical processing, only once the
+        // indicator is actually attached to a live/rendering chart — OnRender is safe
+        // because it only ever fires when a real chart exists to render on; this method
+        // is called from OnBarUpdate (via DrawDivergence/DrawFromDtDbRegistry), which
+        // also runs during historical replay, before that's guaranteed true. The
+        // ChartControl==null check alone wasn't enough — ChartPanels itself can be null
+        // (not just empty) in that window, and `.Count` on a null collection throws the
+        // exact error seen. Wrapped the whole body in try/catch: if anything in this
+        // chain isn't ready yet, the connector for that specific pivot is silently
+        // skipped (the main divergence line/label/histogram-highlight still draw fine —
+        // none of those touch ChartControl) rather than crashing the whole indicator.
         private void DrawPivotConnectorPricePanel(string tag, int barsAgo, double priceValue, System.Windows.Media.Brush color)
         {
-            if (ChartControl == null || ChartControl.ChartPanels.Count == 0) return;
-            NinjaTrader.Gui.Chart.ChartPanel pricePanel = ChartControl.ChartPanels[0];
-            if (pricePanel.Scales.Count == 0) return;
-            double boundaryPrice = pricePanel.Scales[0].GetValueByY(pricePanel.Y + pricePanel.H);
-            Draw.Line(this, tag, false, barsAgo, priceValue, barsAgo, boundaryPrice, color, DashStyleHelper.Dot, PivotConnectorWidth);
+            try
+            {
+                if (ChartControl == null || ChartControl.ChartPanels == null || ChartControl.ChartPanels.Count == 0) return;
+                NinjaTrader.Gui.Chart.ChartPanel pricePanel = ChartControl.ChartPanels[0];
+                if (pricePanel == null || pricePanel.Scales == null || pricePanel.Scales.Count == 0) return;
+                NinjaTrader.Gui.Chart.ChartScale scale = pricePanel.Scales[0];
+                if (scale == null) return;
+                double boundaryPrice = scale.GetValueByY(pricePanel.Y + pricePanel.H);
+                Draw.Line(this, tag, false, barsAgo, priceValue, barsAgo, boundaryPrice, color, DashStyleHelper.Dot, PivotConnectorWidth);
+            }
+            catch (Exception ex) { Print(Name + ": pivot connector skipped for " + tag + ": " + ex.Message); }
         }
 
         // 2026-10-29: re-colors every bar from barA to barB (inclusive) to the "Strong"
