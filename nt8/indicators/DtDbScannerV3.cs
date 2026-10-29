@@ -173,9 +173,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 DeleteInvalidated = true;  // true: remove a DT/DB's drawings when price invalidates it (new extreme beyond the peaks/troughs)
                 ShowPatternName   = false; // 'DT'/'DB' text next to each pattern
                 ShowRating        = false; // quality score number next to each pattern
-                ShowLegLines      = true;  // 2026-10-29: default true, unchanged behavior
-                ShowPeakLine      = true;  // 2026-10-29: default true, unchanged behavior
-                ShowNeckline      = true;  // 2026-10-29: default true, unchanged behavior
+                ShowLegLines      = false; // 2026-10-29: re-synced to saved live template — user turned off live
+                ShowPeakLine      = false; // 2026-10-29: re-synced to saved live template — user turned off live
+                ShowNeckline      = false; // 2026-10-29: re-synced to saved live template — user turned off live
                 DtLegBrush        = Brushes.Transparent;  // peak -> valley -> peak legs of a DT (user turned these off live)
                 DbLegBrush        = Brushes.Transparent;  // trough -> peak -> trough legs of a DB (user turned these off live)
                 LegDashStyle      = DashStyleHelper.Solid;

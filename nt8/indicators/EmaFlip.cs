@@ -54,28 +54,33 @@ namespace NinjaTrader.NinjaScript.Indicators
                 PaintPriceMarkers        = false;
                 IsSuspendedWhileInactive = true;
 
+                // --- defaults = user's settings, synced 2026-10-29 from the saved live
+                // template (Documents\NinjaTrader 8\templates\Indicator\EmaFlip\Default.xml)
+                // — this indicator was tuned live well before this session started
+                // (recovered file, previously uncommitted), so these replace placeholder
+                // values, not re-sync drift from a prior commit. ---
                 EmaPeriod         = 20;
-                AtrPeriod         = 14;
-                MaxBarsToCross    = 8;
-                SwingLookback     = 20;
-                MinStretchAtr     = 1.5;
+                AtrPeriod         = 8;
+                MaxBarsToCross    = 15;
+                SwingLookback     = 8;
+                MinStretchAtr     = 1;
                 StretchBars       = 10;
-                StretchPct        = 70;
-                RequireEmaSlope   = true;
+                StretchPct        = 50;
+                RequireEmaSlope   = false;
                 SlopeBars         = 3;
                 BreakCloseAtr     = 0.2;
-                RequireBodyBeyond = false;
-                RangeExpansion    = 1.2;
-                RangeLookback     = 10;
+                RequireBodyBeyond = true;
+                RangeExpansion    = 0.7;
+                RangeLookback     = 8;
                 ConfirmBars       = 2;
 
-                RequireDtDbDivergence  = false;   // 2026-10-29: off by default, existing behavior unchanged
-                IncludeHiddenDivergence = false;
+                RequireDtDbDivergence   = true;
+                IncludeHiddenDivergence = true;
 
                 BullBrush         = Brushes.LimeGreen;
                 BearBrush         = Brushes.Red;
                 PendingOpacity    = 15;
-                ConfirmedOpacity  = 35;
+                ConfirmedOpacity  = 25;
                 ShowDiagnostics   = false;
                 DiagBrush         = Brushes.Black;
 

@@ -109,7 +109,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 TrendEmaPeriod = 50;
                 MaxPivotGapBars = 30;
 
-                ShowLabels = true;
+                ShowLabels = false;   // 2026-10-29: re-synced to saved live template — user turned off live
                 DivLabelFontSize = 10;
                 BullColor = Brushes.Green;   // 2026-10-29: matches user's saved live default (#FF008000) — was LimeGreen
                 BearColor = Brushes.Red;     // 2026-10-29: matches user's saved live default (#FFFF0000) — was Firebrick
@@ -146,7 +146,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
                 HistLineWidth = 2f;
                 OnlyShowAtDtDb = true;        // 2026-10-29: matches user's saved live default — was implicitly false (never set)
-                ShowPivotConnectors = true;   // 2026-10-29: matches user's saved live default — was false
+                ShowPivotConnectors = false;  // 2026-10-29: re-synced to saved live template — user turned off live
                 PivotConnectorWidth = 1;
 
                 AddPlot(new Stroke(Brushes.Gray, 2), PlotStyle.Bar, "CVD Hist");
