@@ -40,7 +40,15 @@ namespace NinjaTrader.NinjaScript
 
     public static class DtDbCvdPivotRegistry
     {
-        private const int MaxKept = 200;   // ring buffer — old entries age out, readers only care about recent ones
+        // 2026-10-29 FIX: was 200. Confirmed via diagnostic log a 200-cap evicts entries
+        // faster than a consumer whose own historical replay finishes later (or slower)
+        // than the publisher's can ever read them — DtDbScannerV3 published 2,289+
+        // entries during its historical catch-up alone, so ~2,000 were being silently
+        // evicted before CVDDivergenceOscillator's one-time State.Realtime catch-up (or
+        // its ongoing per-bar poll) ever got to them. 20000 comfortably covers a full
+        // historical replay's worth of confirmed DT/DB structures with headroom; this is
+        // a plain List<struct>, not expensive to hold at this size.
+        private const int MaxKept = 20000;
         private static readonly object Lock = new object();
         private static readonly List<DtDbCvdPivot> Recent = new List<DtDbCvdPivot>();
         private static int nextId = 1;
