@@ -348,8 +348,14 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 NinjaTrader.Gui.Chart.ChartPanel pricePanel = ChartControl.ChartPanels[0];
                 if (pricePanel == null) { PPDiag(tag + " SKIP: pricePanel null"); return; }
                 if (pricePanel.Scales == null || pricePanel.Scales.Count == 0) { PPDiag(tag + " SKIP: Scales null/empty"); return; }
-                NinjaTrader.Gui.Chart.ChartScale scale = pricePanel.Scales[0];
-                if (scale == null) { PPDiag(tag + " SKIP: scale null"); return; }
+                // FIX: Scales[0] came back null every time — ChartScaleCollection is BOTH
+                // enum-keyed (ScaleJustification) AND a plain ordinal Collection<T>, and
+                // whichever indexer the compiler actually bound to, the real scale isn't
+                // reliably at slot 0. Scan for the first non-null entry instead of
+                // trusting a hard-coded index.
+                NinjaTrader.Gui.Chart.ChartScale scale = null;
+                foreach (NinjaTrader.Gui.Chart.ChartScale s in pricePanel.Scales) { if (s != null) { scale = s; break; } }
+                if (scale == null) { PPDiag(tag + " SKIP: no non-null scale found in " + pricePanel.Scales.Count + " entries"); return; }
                 double boundaryPrice = scale.GetValueByY(pricePanel.Y + pricePanel.H);
                 PPDiag(tag + " DRAWING barsAgo=" + barsAgo + " priceValue=" + priceValue
                     + " pricePanel.Y=" + pricePanel.Y + " pricePanel.H=" + pricePanel.H + " boundaryPrice=" + boundaryPrice);
