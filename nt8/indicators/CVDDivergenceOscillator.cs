@@ -445,7 +445,19 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 // actually detected, not a local re-derivation.
                 double histA = p.Cvd1;
                 double histB = p.Cvd2;
-                marks.Add(new DivMark { barA = p1Bar, barB = p2Bar, histA = histA, histB = histB, bearish = bearish, isHidden = p.IsHidden });
+                // 2026-10-29 FIX: user reported TWO lines per divergence in the CVD panel
+                // specifically, price panel unaffected. Root cause: the price-panel Draw.Line
+                // call above self-heals if this entry is ever processed more than once (same
+                // tag -> NT8 overwrites, not a second object), but `marks` is a plain List with
+                // no such protection -- a double-process (e.g. the State.Realtime catch-up call
+                // and the ongoing per-bar poll both touching an entry near that boundary) adds
+                // two DivMarks, and OnRender draws both. Dedup on the identity that actually
+                // defines "the same divergence" (bar range + direction + hidden flag) so a
+                // repeat process is a no-op here too, matching the price panel's behavior.
+                bool alreadyMarked = marks.Exists(m => m.barA == p1Bar && m.barB == p2Bar
+                    && m.bearish == bearish && m.isHidden == p.IsHidden);
+                if (!alreadyMarked)
+                    marks.Add(new DivMark { barA = p1Bar, barB = p2Bar, histA = histA, histB = histB, bearish = bearish, isHidden = p.IsHidden });
                 HighlightDivergenceSpan(p1Bar, p2Bar);
                 if (ShowPivotConnectors)
                 {
