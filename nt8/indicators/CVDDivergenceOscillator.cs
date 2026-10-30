@@ -435,8 +435,16 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                               Brushes.Transparent, Brushes.Transparent, 0);
                 }
 
-                double histA = histSeries[CurrentBar - p1Bar];
-                double histB = histSeries[CurrentBar - p2Bar];
+                // 2026-10-29 FIX: was histSeries[CurrentBar-p1Bar]/[...-p2Bar] -- this
+                // instance's OWN independently-computed hist, which can silently disagree
+                // with the cvd1/cvd2 DtDbScannerV3 actually gated on (different CvdPeriod/
+                // CvdMode settings, or a GetTime->GetBar round-trip landing on a neighboring
+                // bar on a tick chart). Confirmed live: a drawn "divergence" line where price
+                // and CVD both sloped the SAME direction, on the SAME chart as the publisher.
+                // Use the published values directly so the line always reflects what was
+                // actually detected, not a local re-derivation.
+                double histA = p.Cvd1;
+                double histB = p.Cvd2;
                 marks.Add(new DivMark { barA = p1Bar, barB = p2Bar, histA = histA, histB = histB, bearish = bearish, isHidden = p.IsHidden });
                 HighlightDivergenceSpan(p1Bar, p2Bar);
                 if (ShowPivotConnectors)

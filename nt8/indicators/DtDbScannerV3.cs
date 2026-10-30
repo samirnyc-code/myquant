@@ -914,9 +914,17 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     // different bar type/chart entirely (confirmed broken live 2026-10-29:
                     // a 2000-tick chart's CVDDivergenceOscillator drew nothing reading this
                     // scanner's 1000-tick bar indices).
-                    if (CvdAgrees(d.IsTop, d.P1Bar, d.P2Bar, d.P1Price, d.P2Price))
+                    // 2026-10-29 FIX: now publishes the ACTUAL cvd1/cvd2 this gate itself used
+                    // (same values DivStrengthZ/isRegularAgree above already pulled from
+                    // _cvdHist) instead of only price -- see DtDbCvdPivot's own comment for
+                    // why: the consumer was independently re-deriving hist values from its
+                    // own series, which can silently disagree with what was actually gated.
+                    double pubCvd1 = _cvdHist[CurrentBar - d.P1Bar];
+                    double pubCvd2 = _cvdHist[CurrentBar - d.P2Bar];
+                    if (isRegularAgree)
                         DtDbCvdPivotRegistry.Publish(Instrument.FullName, d.IsTop,
-                            Bars.GetTime(d.P1Bar), d.P1Price, Bars.GetTime(d.P2Bar), d.P2Price);
+                            Bars.GetTime(d.P1Bar), d.P1Price, Bars.GetTime(d.P2Bar), d.P2Price,
+                            pubCvd1, pubCvd2);
                     // 2026-10-29: separate publish for hidden pivots (isHidden:true) so
                     // CVDDivergenceOscillator can draw them in their own color in its
                     // histogram panel — independent of the regular-agree publish above, a
@@ -924,7 +932,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                     if (cvdHiddenOk)
                         DtDbCvdPivotRegistry.Publish(Instrument.FullName, d.IsTop,
                             Bars.GetTime(d.P1Bar), d.P1Price, Bars.GetTime(d.P2Bar), d.P2Price,
-                            isHidden: true);
+                            pubCvd1, pubCvd2, isHidden: true);
                     if (ShowPullbackCvd)
                         watchingRetest.Add(new WatchRetest
                         {

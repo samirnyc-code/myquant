@@ -1,8 +1,8 @@
 // DtDbCvdPivotRegistry.cs — shared in-process lookup: DtDbScannerV3 publishes the two
-// pivot TIMES/prices of every confirmed DT/DB where its own bar-proxy CVD agrees with
-// the pattern's bias; CVDDivergenceOscillator.cs reads this (when its new "Only show
-// at DT/DB" toggle is on) to draw its divergence line ONLY at those pivots instead of
-// its own independently-detected fractal pivots. Same pattern as
+// pivot TIMES/PRICES/CVD VALUES of every confirmed DT/DB where its own bar-proxy CVD
+// agrees with the pattern's bias; CVDDivergenceOscillator.cs reads this (when its new
+// "Only show at DT/DB" toggle is on) to draw its divergence line ONLY at those pivots
+// instead of its own independently-detected fractal pivots. Same pattern as
 // ClaudeTrackerChartRegistry.cs (nt8/indicators/ClaudeTrackerChartRegistry.cs) — a
 // plain static class in the NinjaTrader.NinjaScript namespace (parent of
 // .Indicators), so both files can reference it without a using statement pointing at
@@ -36,6 +36,23 @@ namespace NinjaTrader.NinjaScript
         public DateTime P1Time, P2Time;
         public double P1Price, P2Price;
         public bool IsHidden;       // 2026-10-29: hidden-CVD-divergence pivot, not a regular-agree one
+
+        // 2026-10-29: the ACTUAL cvd1/cvd2 DtDbScannerV3 used to decide this was a
+        // divergence (CvdAgrees/CvdHiddenAgrees) -- not just price. Without this, a
+        // consumer drawing its own CVD-panel line had to independently re-derive hist
+        // values from its own histSeries (own CvdPeriod/CvdMode, own bar lookup via
+        // Bars.GetBar(P1Time)/(P2Time)), which can silently disagree with what the
+        // publisher actually gated on -- different settings, or a GetTime->GetBar
+        // round-trip landing on a neighboring bar (real risk on a tick chart, where
+        // several bars can share near-identical timestamps). Confirmed live 2026-10-29:
+        // user saw a drawn "divergence" line where BOTH the price line and the
+        // CVD-panel line sloped the SAME direction -- not a divergence shape at all --
+        // on the SAME chart as the publisher (ruling out the cross-chart/bar-type case
+        // this registry was originally built for). Publishing the gated values directly
+        // removes the independent-recompute step entirely, so the drawn line always
+        // reflects what was actually detected, regardless of chart/bar-type/setting
+        // differences on the consumer side.
+        public double Cvd1, Cvd2;
     }
 
     public static class DtDbCvdPivotRegistry
@@ -59,7 +76,8 @@ namespace NinjaTrader.NinjaScript
         // distinct color, not bull/bear. Default false keeps every existing call site
         // (regular-agree publishes) unchanged.
         public static void Publish(string instrumentFullName, bool isTop,
-            DateTime p1Time, double p1Price, DateTime p2Time, double p2Price, bool isHidden = false)
+            DateTime p1Time, double p1Price, DateTime p2Time, double p2Price,
+            double cvd1, double cvd2, bool isHidden = false)
         {
             lock (Lock)
             {
@@ -68,7 +86,7 @@ namespace NinjaTrader.NinjaScript
                 {
                     Id = id, InstrumentFullName = instrumentFullName, IsTop = isTop,
                     P1Time = p1Time, P1Price = p1Price, P2Time = p2Time, P2Price = p2Price,
-                    IsHidden = isHidden
+                    Cvd1 = cvd1, Cvd2 = cvd2, IsHidden = isHidden
                 });
                 if (Recent.Count > MaxKept) Recent.RemoveAt(0);
             }
