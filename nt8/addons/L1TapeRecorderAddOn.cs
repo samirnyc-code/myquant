@@ -66,6 +66,13 @@ namespace NinjaTrader.NinjaScript.AddOns
         private readonly object fileLock = new object();
         private long linesSinceFlush, tapeRows, quoteRows;
 
+        // 2026-10-30 FIX: OnMarketData calls EnsureFile on EVERY tick/quote. When the
+        // file was locked by something else, a failed open left writer==null, so every
+        // single subsequent tick retried the open and logged a fresh ERROR -- tick-rate
+        // disk I/O + exception handling + NT8 Log-window spam, visibly slowing the chart.
+        private DateTime lastOpenFailAt = DateTime.MinValue;
+        private const double OpenRetryCooldownSecs = 5;
+
         // last-seen top-of-book so a Bid/Ask row is only written when it actually CHANGES
         // (MarketData.Update can re-fire the same top; dedup keeps the file honest + small).
         private double lastBidP = double.NaN, lastAskP = double.NaN;
@@ -294,6 +301,7 @@ namespace NinjaTrader.NinjaScript.AddOns
           lock (fileLock)
           {
             if (TradeDate(t) == curFileDate && writer != null) return;
+            if (writer == null && (Core.Globals.Now - lastOpenFailAt).TotalSeconds < OpenRetryCooldownSecs) return;
             CloseFile();
             try
             {
@@ -307,7 +315,7 @@ namespace NinjaTrader.NinjaScript.AddOns
                 curFileDate = td;
                 Log("L1TapeRecorderAddOn -> " + path, LogLevel.Information);
             }
-            catch (Exception e) { Log("L1TapeRecorderAddOn open failed: " + e.Message, LogLevel.Error); }
+            catch (Exception e) { lastOpenFailAt = Core.Globals.Now; Log("L1TapeRecorderAddOn open failed: " + e.Message, LogLevel.Error); }
           }
         }
 
