@@ -75,12 +75,31 @@ namespace NinjaTrader.NinjaScript
         // can be told apart on the consumer side — CVDDivergenceOscillator draws it in a
         // distinct color, not bull/bear. Default false keeps every existing call site
         // (regular-agree publishes) unchanged.
+        // 2026-10-30 FIX: Recent is static -- it only resets on a true assembly recompile,
+        // never when an indicator is just removed and re-added to a chart. DtDbScannerV3
+        // replays its ENTIRE historical detection on every re-add (same as any indicator),
+        // and re-publishes every divergence it re-detects -- with no dedup, the same
+        // real-world pivot pair gets a brand new Id and a second (third, fourth...) entry
+        // every time, growing forever across a session with repeated re-adds/recompiles.
+        // The consumer-side dedup in CVDDivergenceOscillator.cs (on barA/barB/bearish/
+        // isHidden) only catches duplicates within ONE of its own instance's marks list --
+        // it can't un-bloat the registry itself, and a fresh consumer instance replaying
+        // this now-duplicated backlog still draws every copy. Fix at the source instead:
+        // an entry identical on (instrument, isTop, isHidden, P1Time, P2Time) is the same
+        // real-world divergence no matter how many times it's been re-detected -- skip
+        // publishing it again.
         public static void Publish(string instrumentFullName, bool isTop,
             DateTime p1Time, double p1Price, DateTime p2Time, double p2Price,
             double cvd1, double cvd2, bool isHidden = false)
         {
             lock (Lock)
             {
+                foreach (DtDbCvdPivot existing in Recent)
+                {
+                    if (existing.InstrumentFullName == instrumentFullName && existing.IsTop == isTop
+                        && existing.IsHidden == isHidden && existing.P1Time == p1Time && existing.P2Time == p2Time)
+                        return;
+                }
                 int id = nextId++;
                 Recent.Add(new DtDbCvdPivot
                 {
