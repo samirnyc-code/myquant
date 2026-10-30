@@ -1472,12 +1472,9 @@ private void DebugPrint(string message)
 #endregion
     }
 
-    internal static class ApproxExtensions
-    {
-        public static int ApproxCompare(this double a, double b, double eps = 1e-10)
-        {
-            if (Math.Abs(a - b) <= eps) return 0;
-            return a < b ? -1 : 1;
-        }
-    }
+    // 2026-10-30: ApproxExtensions used to be redeclared here too -- removed. Canonical copy
+    // lives in TradeLifecycle.cs (same NinjaTrader.NinjaScript.Strategies namespace, so this
+    // file's own ApproxCompare() calls still resolve fine). Three copies across ClaudeTracker,
+    // ClaudeTrackerV2, and TradeLifecycle were failing the ENTIRE Custom\ compile (CS0101),
+    // blocking every other fix in the whole tree from taking effect, not just this file.
 }

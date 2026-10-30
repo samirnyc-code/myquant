@@ -100,6 +100,21 @@ namespace NinjaTrader.NinjaScript.AddOns
         private bool releaseHold;                         // true while a command-release is in effect
         private ConnectionStatus lastPriceStatus = ConnectionStatus.Disconnected;
 
+        // 2026-10-30 FIX: root cause of the "file used by another process" error storm --
+        // confirmed live via Windows Restart Manager that NinjaTrader.exe ITSELF held the
+        // lock, meaning more than one live instance of this AddOn existed in the same
+        // process (repeated same-session recompiles -- some of which were silently failing
+        // on unrelated duplicate-symbol errors elsewhere in Custom\ -- can leave a zombie
+        // instance's Connection hook/subscription/writer still alive when a new instance
+        // spins up). Static ownership token: only the FIRST instance to claim it does
+        // ANYTHING (hook Connection, subscribe, touch the file); every other instance,
+        // however many pile up, stays fully inert. Static fields reset on every real
+        // recompile (fresh assembly load), so the first instance after any compile always
+        // claims it correctly.
+        private static readonly object OwnerLock = new object();
+        private static bool ownerClaimed;
+        private bool isOwner;
+
         // ================================================================ lifecycle
         protected override void OnStateChange()
         {
@@ -107,6 +122,15 @@ namespace NinjaTrader.NinjaScript.AddOns
             {
                 Name        = "L1TapeRecorderAddOn";
                 Description = "Auto-records ES L1 tape + best bid/ask to CSV on NT startup. No enable step (AddOn). Never trades.";
+                lock (OwnerLock)
+                {
+                    if (!ownerClaimed) { ownerClaimed = true; isOwner = true; }
+                }
+                if (!isOwner)
+                {
+                    Log("L1TapeRecorderAddOn: duplicate instance detected -- staying inert (another instance already owns the file/subscription)", LogLevel.Warning);
+                    return;
+                }
                 if (!hooked)
                 {
                     Connection.ConnectionStatusUpdate += OnConnectionStatusUpdate;
@@ -120,6 +144,8 @@ namespace NinjaTrader.NinjaScript.AddOns
             }
             else if (State == State.Terminated)
             {
+                if (!isOwner) return;   // never claimed ownership -- nothing to tear down
+                lock (OwnerLock) { ownerClaimed = false; }   // let the next instance (real recompile) claim it
                 if (hooked) { Connection.ConnectionStatusUpdate -= OnConnectionStatusUpdate; hooked = false; }
                 if (releaseTimer != null) { try { releaseTimer.Stop(); releaseTimer.Dispose(); } catch { } releaseTimer = null; }
                 if (haltTimer != null) { try { haltTimer.Stop(); haltTimer.Dispose(); } catch { } haltTimer = null; }

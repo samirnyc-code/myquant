@@ -60,15 +60,11 @@ using SharpDX.Direct2D1;
 using SharpDX.DirectWrite;
 #endregion
 
-namespace NinjaTrader.NinjaScript
-{
-	// Defined in the PARENT namespace (NinjaTrader.NinjaScript), NOT in .Indicators — same
-	// reason as ETHSessionDefinition in ETHLevelsExporter.cs: NT8 regenerates the wrapper
-	// code in the sibling .MarketAnalyzerColumns and .Strategies namespaces on every
-	// compile using the unqualified enum name, so the enum must live where all three
-	// child namespaces can see it by walking up to this common parent.
-	public enum LevelLineStyle { Solid, Dash, Dot, DashDot }
-}
+// 2026-10-30: LevelLineStyle used to be redeclared here too -- removed. SessionSRLevelsV9.cs
+// is the canonical owner (same NinjaTrader.NinjaScript parent namespace, already required to
+// stay present for SessionSRLevelsV10.cs's sake per nt8/README.md) and this duplicate
+// definition was failing the ENTIRE Custom\ compile (CS0101), blocking every other fix in the
+// whole tree from taking effect, not just this file.
 
 namespace NinjaTrader.NinjaScript.Indicators
 {

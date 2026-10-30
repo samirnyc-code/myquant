@@ -1827,12 +1827,8 @@ if (name.StartsWith("TARGET"))
         #endregion
     }
 
-    internal static class ApproxExtensions
-    {
-        public static int ApproxCompare(this double a, double b, double eps = 1e-10)
-        {
-            if (Math.Abs(a - b) <= eps) return 0;
-            return a < b ? -1 : 1;
-        }
-    }
+    // 2026-10-30: removed the duplicate ApproxExtensions/ApproxCompare that used to be here --
+    // canonical copy lives in TradeLifecycle.cs (same namespace). This Strategy is retired
+    // (ClaudeTrackerAddOn is the only one in use going forward) but the file still has to
+    // compile cleanly since it's part of the same Custom\ assembly as everything else.
 }
