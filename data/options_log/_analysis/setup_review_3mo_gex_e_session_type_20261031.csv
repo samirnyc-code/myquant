@@ -1,0 +1,41 @@
+strategy_id,e_session_type,n,total_pnl,expectancy
+eodfly_c,MIXED,13,22.78,1.75
+eodfly_c,RANGE BOUND,19,-596.64,-31.4
+eodfly_c,TREND (moderate),20,765.8,38.29
+eodfly_c,TREND (strong),6,1454.14,242.36
+eodfly_p,MIXED,13,155.44,11.96
+eodfly_p,RANGE BOUND,19,-2636.94,-138.79
+eodfly_p,TREND (moderate),20,2247.36,112.37
+eodfly_p,TREND (strong),6,-598.68,-99.78
+eodic_c,MIXED,7,320.48,45.78
+eodic_c,RANGE BOUND,12,679.18,56.6
+eodic_c,TREND (moderate),13,577.04,44.39
+eodic_c,TREND (strong),5,-517.6,-103.52
+eodic_p,MIXED,12,1209.44,100.79
+eodic_p,RANGE BOUND,17,804.46,47.32
+eodic_p,TREND (moderate),17,1638.8,96.4
+eodic_p,TREND (strong),4,-4597.82,-1149.46
+gx_bcs,MIXED,10,1232.92,123.29
+gx_bcs,RANGE BOUND,17,2593.54,152.56
+gx_bcs,TREND (moderate),13,-3448.14,-265.24
+gx_bcs,TREND (strong),6,757.4,126.23
+gx_bps,MIXED,11,468.48,42.59
+gx_bps,RANGE BOUND,14,154.14,11.01
+gx_bps,TREND (moderate),15,897.74,59.85
+gx_bps,TREND (strong),5,-1665.42,-333.08
+openfly_c,MIXED,14,1088.7,77.76
+openfly_c,RANGE BOUND,19,913.06,48.06
+openfly_c,TREND (moderate),20,453.4,22.67
+openfly_c,TREND (strong),6,3134.14,522.36
+openfly_p,MIXED,14,1198.78,85.63
+openfly_p,RANGE BOUND,19,-1597.64,-84.09
+openfly_p,TREND (moderate),20,4246.58,212.33
+openfly_p,TREND (strong),6,-2610.64,-435.11
+openic_c,MIXED,10,170.3,17.03
+openic_c,RANGE BOUND,11,146.78,13.34
+openic_c,TREND (moderate),7,154.02,22.0
+openic_c,TREND (strong),4,52.62,13.16
+openic_p,MIXED,13,272.92,20.99
+openic_p,RANGE BOUND,17,584.46,34.38
+openic_p,TREND (moderate),19,698.46,36.76
+openic_p,TREND (strong),6,-1047.16,-174.53

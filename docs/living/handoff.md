@@ -1,5 +1,26 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-31 — **Started a preliminary 3-month options-setup
+review (observational only, NO rule/menu changes) — full writeup:
+`docs/living/setup_review_3mo_20261031.md`.** User directive: decisions wait
+until 3 more months of data, or end of year, whichever is later; this run is
+the first pass of ongoing monitoring, re-run `scripts/setup_review_3mo_20261031.py`
+at the next check-in. Headline findings (all against the deduped, dedup-fire-bug-
+corrected book, 2026-08-06→10-30, 499 trades/59 days): (1) `eodic_p` has the
+worst raw expectancy but is NOT consistently bad — 2 of 3 months were positive,
+one bad October (concentrated further in specific days) drives the total
+negative, and removing its single worst day flips it positive; (2) `eodfly_p`
+and `gx_bps` are the only two setups that clear a pre-registered "negative in
+≥2 of 3 months, not single-day-driven" bar — genuine watch-list items; (3) the
+put side loses to the call side of the SAME condor/fly in all 5 symmetric
+pairs, every time — reads as a market-direction effect over this window, not a
+flaw unique to any one put-side setup; (4) joined the daily GEX briefing
+(`data/gexlog/gexlog_daily.csv`) in — cleanest cut found is "TREND (strong)"
+session days being bad for every put-seller, but n=4-6 per strategy there, not
+confirmed, flagged as hypothesis only. No action taken on any of this.
+
+---
+
 **Last Updated:** 2026-10-30 — **Options desk duplicate-fire incident, root-caused
 and reconstructed (full writeup: `docs/living/duplicate_fire_incident_20261030.md`).**
 8 of 10 armed setups fired 3x (one 2x, one clean) — 27 trades logged for an

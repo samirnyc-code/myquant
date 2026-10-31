@@ -1,0 +1,6 @@
+pair,eodic_p_total,eodic_p_n,eodic_c_total,eodic_c_n,gap,eodfly_p_total,eodfly_p_n,eodfly_c_total,eodfly_c_n,openic_p_total,openic_p_n,openic_c_total,openic_c_n,openfly_p_total,openfly_p_n,openfly_c_total,openfly_c_n,gx_bps_total,gx_bps_n,gx_bcs_total,gx_bcs_n
+eodic_p vs eodic_c,-945.12,50.0,1059.1,37.0,-2004.22,,,,,,,,,,,,,,,,
+eodfly_p vs eodfly_c,,,,,-2478.9,-832.82,58.0,1646.08,58.0,,,,,,,,,,,,
+openic_p vs openic_c,,,,,-15.04,,,,,508.68,55.0,523.72,32.0,,,,,,,,
+openfly_p vs openfly_c,,,,,-4352.22,,,,,,,,,1237.08,59.0,5589.3,59.0,,,,
+gx_bps vs gx_bcs,,,,,-1280.78,,,,,,,,,,,,,-145.06,45.0,1135.72,46.0
