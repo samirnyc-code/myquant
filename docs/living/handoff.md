@@ -21,6 +21,18 @@ incident doc, waiting on user direction on which to implement. Reconstruction is
 re-runnable: `scripts/reconstruct_duplicate_fire_20261030.py`, data in
 `data/options_log/_analysis/duplicate_fire_20261030.csv`.
 
+**Follow-up same session — Analytics tab reconciled against the bug (user asked
+to double-check, correctly):** replicated `options_dashboard.py`'s own
+statAll()/buildDaily() JS in Python over the full 541-trade history
+(`scripts/analytics_tab_reconcile_20261030.py`). Result: **Max Drawdown tile is
+UNCHANGED by this bug** (-$6,847.64, set on 2026-10-22, unrelated day) — 10-30's
+own day-level DD (-$6,183.38 actual vs -$2,861.66 baseline) never beats that
+trough either way. What the bug DOES skew on the Analytics tab: Total P&L
+(+$6,048.56 shown vs +$9,370.28 corrected), win rate (64.5% vs 65.3%), profit
+factor (1.093 vs 1.157), expectancy ($11.18 vs $17.88/trade), avg ROI (-2.08% vs
+-1.03%). Full table in the incident doc's new "Analytics tab reconciliation"
+section.
+
 ---
 
 **Last Updated:** 2026-10-29 — **Scheduler popups, round 2: a second distinct root cause found

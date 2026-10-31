@@ -73,6 +73,35 @@ at 11:48:49 CT. Result: the live P&L dashboard was blind for the back half of th
 day. Root cause of *why* `options_mark.py` itself kept dying is not found — no
 dedicated log captures its own stdout/exception.
 
+## Analytics tab reconciliation (user asked to double-check against the dashboard's own numbers)
+
+Replicated `options_dashboard.py`'s exact client-side algorithm in Python
+(`scripts/analytics_tab_reconcile_20261030.py`) over the FULL trade history (541
+rows, 2026-08-04 → 2026-10-30), once as-is and once with the 17 duplicate-fire
+rows removed:
+
+| Tile | As shown now (actual) | Corrected (baseline) | Delta |
+|---|---|---|---|
+| Total P&L | +$6,048.56 | +$9,370.28 | **-$3,321.72** |
+| Win rate | 64.5% | 65.3% | -0.8pt |
+| Profit factor | 1.093 | 1.157 | -0.064 |
+| Expectancy/trade | $11.18 | $17.88 | -$6.70 |
+| Avg ROI | -2.08% | -1.03% | -1.05pt |
+| **Max drawdown** | **-$6,847.64** | **-$6,847.64** | **$0.00 — unchanged** |
+
+**The Max Drawdown tile is NOT affected by this bug.** It's a day-level
+close-to-close equity curve across the whole account (`buildDaily()`,
+`options_dashboard.py:1581-1599`), and the worst trough is **2026-10-22**
+(cum $5,384.30 off a $12,231.94 peak), unrelated to this incident. 10-30's own
+day-level drawdown is -$6,183.38 actual vs -$2,861.66 baseline — worse than
+usual, but neither version beats 10-22's trough, so the tile reads the same
+either way. The bug inflates **Total P&L / win rate / PF / expectancy / avg
+ROI**, not Max DD.
+
+Daily equity curves (actual + baseline) saved for inspection:
+`data/options_log/_analysis/daily_equity_curve_actual_20261030.csv`,
+`data/options_log/_analysis/daily_equity_curve_baseline_20261030.csv`.
+
 ## Open items (not yet acted on — flagging before touching live desk infra)
 
 1. **Daemon dedup is purely in-process** (`gameplan_*.json`'s `fired` flag,
