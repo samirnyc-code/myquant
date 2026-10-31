@@ -102,6 +102,32 @@ Daily equity curves (actual + baseline) saved for inspection:
 `data/options_log/_analysis/daily_equity_curve_actual_20261030.csv`,
 `data/options_log/_analysis/daily_equity_curve_baseline_20261030.csv`.
 
+## Intraday drawdown, baseline (non-duplicate) trades only (user asked specifically for this — the account-wide Analytics DD tile above is a different, day-level number)
+
+Built from REAL marks (`data/options_sim/marks.csv`) for just the 10 baseline
+trade_ids, summed into a book-level intraday equity curve
+(`scripts/intraday_dd_baseline_20261030.py`):
+
+- **Real-marks window: 09:32:34 → 11:48:49 CT.** Max observed intraday drawdown
+  in this window: **-$1,670.00 at 10:24:06 CT** (book unrealized -$1,605 off a
+  +$65 peak).
+- **Gap: `options_mark.py` died ~11:35 CT (restart cap hit) — no real mark exists
+  from 11:48:49 CT to the 16:00 CT close.** Bridged with an intrinsic-value
+  estimate from the underlying spot tape (`data/options_sim/underlying_20261030.csv`),
+  calibrated to the real marks at the gap boundary (offset +$1,080.57, continuity
+  checked: -$1,394 estimated vs -$1,405 real at the seam — good).
+- **Estimated worst point, full day: -$3,029.43 at 13:53:17 CT** (spot 7529.30).
+  This is an ESTIMATE, not a real mark, and the calibration offset is a
+  **constant** pulled from the morning — since extrinsic value decays toward the
+  close, applying the morning's extrinsic cushion to the afternoon almost
+  certainly OVERSTATES remaining time value, meaning this -$3,029 floor is
+  itself probably optimistic; **the true afternoon trough was likely somewhat
+  deeper**, not shallower.
+- Actual EOD realized result for these 10 trades: -$2,507.60 — meaning price
+  recovered some from the ~13:53 trough into the close.
+- Full curves: `data/options_log/_analysis/intraday_curve_baseline_20261030.csv`
+  (real marks) + `..._extended_20261030.csv` (post-gap estimate).
+
 ## Open items (not yet acted on — flagging before touching live desk infra)
 
 1. **Daemon dedup is purely in-process** (`gameplan_*.json`'s `fired` flag,
