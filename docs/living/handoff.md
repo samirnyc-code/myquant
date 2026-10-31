@@ -1,5 +1,57 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-31 (session, options desk deep-dive) — **End-of-session
+synthesis: what actually got fixed vs. what was only learned today.** Full
+trail in `docs/living/duplicate_fire_incident_20261030.md`,
+`setup_review_3mo_20261031.md`, `gexlog_guidance_recalc_20261031.md`.
+
+**Fixed (live code, already committed, changes real behavior going forward):**
+1. Cross-process dedup guard in `options_trigger_daemon.py` — the actual fix
+   for the 10-30 duplicate-fire incident (also found on 10-23, same bug).
+2. `dedupe_duplicate_fires()` filter wired into the dashboard/Analytics/
+   shadow-stop pipeline — corrects all historical totals for both known
+   duplicate-fire days without altering the raw audit trail.
+3. `shadow_stop_monitor.py` trough clamped to the final booked result as a
+   hard floor — a marks-pipeline gap can no longer produce a DD shallower
+   than the actual result (mathematically impossible, user caught it live).
+4. `gate()`'s stand-down message split: "broken" (genuine breach, spot
+   through the strike) vs. new "no_premium" (still OTM, just no bid —
+   what ALL 35 historical "wall already blown through" events actually
+   were, 2026-11-01 forensics). Diagnostic text only, no decision changes.
+
+**Learned (no code/rule change — informs judgment, not acted on per the
+explicit "no menu changes until 3 more months / EOY" directive):**
+- Preliminary 3-month setup review: `eodfly_p` and `gx_bps` are the only
+  setups clearing a real "negative ≥2 of 3 months, not single-day-driven"
+  bar. `eodic_p` looks worst on paper but is 1-bad-month-driven, not
+  consistent. Put side loses to call side in all 5 symmetric pairs — a
+  market-direction effect this window, not a flaw unique to any setup.
+- GexLog's own Go/Caution/Wait signal, taken as a blanket sit-out filter,
+  would have cost over half the 3-month profit — it's calibrated for
+  undefined-risk premium selling, not our max-loss-capped verticals. Don't
+  use it as-is.
+- Root cause of the thin/zero call-side credit on `eodic_c`/`openic_c`
+  (chronically under-active, ~55-63% fire rate vs ~85-93% for the put side):
+  **volatility skew** — OTM calls run out of premium at a point-distance OTM
+  puts don't. Explains both the stand-down pattern and the earlier
+  put-beats-call asymmetry as two faces of the same underlying mechanism.
+- Gap-size-vs-EM cleanly predicts EM-breach risk (95.5% hold under 15%-of-EM
+  gap, 50% under >50%) but didn't show a clean P&L correlation in simple
+  aggregate testing — real but not yet actionable.
+
+**Candidate idea surfaced, NOT designed or deployed — same deferral applies
+to adding as to removing:** a delta/skew-matched condor (strike both sides
+to equal probability/delta rather than equal point-distance from center)
+would likely reduce the call side's chronic under-activity and thin credit,
+since it would place the call strike closer to spot than the put strike by
+construction — correcting for the skew this session's forensics found,
+rather than fighting it. Worth designing and backtesting before the EOY
+review; **not going live now** — adding a setup is as much a menu change as
+removing one, and the user was explicit that nothing changes before 3 more
+months of data or end of year.
+
+---
+
 **Last Updated:** 2026-10-31 (session 2) — **Dashboard "scheduled tasks failing" tile
 investigated and the real bug behind it fixed, `[myquant] d6a0904f`.** The tile's "5
 failing: Chain Recorder, Marks Watch, Shadow Stop Monitor, Spot Feed" was stale — a
