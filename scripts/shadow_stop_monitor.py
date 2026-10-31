@@ -160,6 +160,17 @@ def row_for(day, final):
             stop_fill = round(below_s.iloc[0])
     # P&L (actual): booked when final/available, else the live marks end (today).
     cur = booked if (final and booked is not None) else (round(marks_end) if marks_end is not None else booked)
+    # MATH FLOOR (2026-10-30 incident, caught by the user): DD at any point =
+    # equity - running peak, and peak only ever rises -- so DD at the day's
+    # FINAL point can never be less negative than (final result - peak). If
+    # marks died before the close (this day's gap: options_mark.py dead from
+    # ~11:35 CT to the 16:00 close), the marks-only `trough` above only covers
+    # the observed window and can end up LESS negative than the real booked
+    # result, which is impossible for a complete curve. Clamp it: trough can
+    # never be shallower than the final result once the day is final.
+    if final and cur is not None and trough != "" and cur < trough:
+        trough = cur
+        trough_ct = "gap (marks died early; real low may be deeper)"
     help_txt = ""
     if final:
         if stop_ct:
