@@ -102,40 +102,71 @@ Daily equity curves (actual + baseline) saved for inspection:
 `data/options_log/_analysis/daily_equity_curve_actual_20261030.csv`,
 `data/options_log/_analysis/daily_equity_curve_baseline_20261030.csv`.
 
-## Intraday drawdown, baseline (non-duplicate) trades only (user asked specifically for this — the account-wide Analytics DD tile above is a different, day-level number)
+## Intraday drawdown — CORRECT TRADES ONLY, authoritative methodology
 
-Built from REAL marks (`data/options_sim/marks.csv`) for just the 10 baseline
-trade_ids, summed into a book-level intraday equity curve
-(`scripts/intraday_dd_baseline_20261030.py`):
+**This section supersedes an earlier pass in this doc that used an ad hoc
+reconstruction method and gave a slightly different number (-$1,670). That
+version is wrong to cite — use this one.** The desk already has a dedicated
+intraday-DD tracker, `shadow_stop_monitor.py` (feeds the Analytics tab's
+shadow-stop panel, column "intraday DD"), with its own `portfolio_curve()`
+function: pivot `marks.csv` by trade_id, forward-fill gaps, **fillna(0) before
+the first mark**, sum across trade_ids, trough = `curve.min()`. The CURRENT
+logged row for 2026-10-30 (`data/options_sim/shadow_stop_log.csv`) uses that
+exact method but counts all **27** trades (every duplicate copy):
 
-- **Real-marks window: 09:32:34 → 11:48:49 CT.** Max observed intraday drawdown
-  in this window: **-$1,670.00 at 10:24:06 CT** (book unrealized -$1,605 off a
-  +$65 peak).
-- **Gap: `options_mark.py` died ~11:35 CT (restart cap hit) — no real mark exists
-  from 11:48:49 CT to the 16:00 CT close.** Bridged with an intrinsic-value
-  estimate from the underlying spot tape (`data/options_sim/underlying_20261030.csv`),
-  calibrated to the real marks at the gap boundary (offset +$1,080.57, continuity
-  checked: -$1,394 estimated vs -$1,405 real at the seam — good).
-- **Estimated worst point, full day: -$3,029.43 at 13:53:17 CT** (spot 7529.30).
-  This is an ESTIMATE, not a real mark, and the calibration offset is a
-  **constant** pulled from the morning — since extrinsic value decays toward the
-  close, applying the morning's extrinsic cushion to the afternoon almost
-  certainly OVERSTATES remaining time value, meaning this -$3,029 floor is
-  itself probably optimistic; **the true afternoon trough was likely somewhat
-  deeper**, not shallower.
-- Actual EOD realized result for these 10 trades: -$2,507.60 — meaning price
-  recovered some from the ~13:53 trough into the close.
-- Full curves: `data/options_log/_analysis/intraday_curve_baseline_20261030.csv`
-  (real marks) + `..._extended_20261030.csv` (post-gap estimate).
+    2026-10-30,27,-3590,10:24,True,10:12,-2015,True,10:24,-3590,-3010,HURT,...
 
-## Open items (not yet acted on — flagging before touching live desk infra)
+`scripts/shadow_stop_baseline_20261030.py` reuses that SAME function verbatim,
+filtered to only the 10 trades that were supposed to execute under the
+gameplan's rules:
 
-1. **Daemon dedup is purely in-process** (`gameplan_*.json`'s `fired` flag,
-   written by whichever instance is currently running) — there is no
-   cross-process or trade-log-level guard stopping a second instance from
-   re-firing a strategy_id that's already in `trades.parquet` for the day.
-   Candidate fix: before firing, check `trades.parquet` for an existing
-   entry with the same `strategy_id` + today's date.
+| | Current (bug-inflated, n=27) | Correct trades only (n=10) |
+|---|---|---|
+| Trough | -$3,590.00 | **-$1,605.00** |
+| Trough time | 10:24 CT | 10:24:06 CT (same market moment) |
+| Crossed WARN (-$2,000) | YES @ 10:12 | no |
+| Crossed STOP (-$3,000) | YES @ 10:24 | no |
+
+**Same marks-pipeline gap as the rest of this incident applies here too:**
+`options_mark.py` died ~11:35 CT, so this trough is only provable through
+11:48:49 CT — a floor, not a full-session guarantee.
+
+**Which 10 trades are "correct"** — the gameplan's 10 setups, each
+`time_at not_before 08:30`, taken once: 9 of 10 filled clean and on-time
+(`entry_note='ok'`, 08:31–08:39 CT). **`gx_bcs` did not** — its only fill
+anywhere in the log is tagged `late fill +29min`. The bug didn't just create
+duplicates; it also meant gx_bcs never got a clean on-time fill at all. Its
+degraded fill is included in the -$2,507.60 baseline P&L below because there is
+no clean alternative to substitute — flagged, not silently treated as normal.
+
+Final P&L, correct trades only: **-$2,507.60** (unchanged from the earlier
+pass — same 10 rows, this was never in question, only the intraday-DD figure
+was wrong before).
+
+## Fix implemented (2026-10-31, same session as the reconstruction)
+
+**Cross-process dedup guard added to `scripts/options_trigger_daemon.py`** —
+`already_executed_today(setup, date)` + a check at the top of `fire()`, before
+any quote or order. It re-reads `trades.parquet` (the one piece of state every
+daemon instance shares, unlike the in-memory/per-process `gameplan_*.json`
+`fired` flag) and refuses to fire if a row with the same `strategy_id` +
+today's date + `source=='auto_trigger'` already exists — regardless of how
+many processes are racing, regardless of why one hung or restarted. This makes
+the SYMPTOM (a second real order going out) structurally impossible, independent
+of whatever causes a restart in the future. Stands down loudly: tags the
+trigger `stood_down_dup`, points its `trade_id` at the existing one, sends a
+notify() ping. Unit-tested against today's real data (`already_executed_today
+('eodic_p','20261030')` correctly returns the existing trade_id; a made-up
+setup correctly returns `None`). This script runs directly from the repo (no
+separate Custom-folder deploy step like NT8 indicators) — the fix takes effect
+automatically the next time the daemon launches. The desk is closed for the
+weekend and no trigger-daemon process is currently running, so there is no
+live process to restart; it picks up clean on the next scheduled run
+(`NextRunTime` 2026-11-02 14:29 machine / 08:29 CT per Task Scheduler).
+
+## Open items NOT fixed (still flagging before touching more live desk infra)
+
+1. ~~Daemon dedup is purely in-process~~ — **FIXED above.**
 2. **The watchdog can issue a second restart while a prior restart's daemon is
    still alive** (the 2 overlapping pairs at 08:40) — kill-then-relaunch isn't
    verified atomic across the launcher/worker process-pair. Candidate fix: wait

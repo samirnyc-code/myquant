@@ -717,6 +717,35 @@ def snapshot_chart(tid, when):
 
 # ---------- firing ----------
 
+def already_executed_today(setup, date):
+    """Cross-process dedup guard (S-2026-10-30 incident): the in-memory 'fired'
+    flag on a gameplan trigger only protects against a SECOND fire from the SAME
+    process. It does nothing when a watchdog restart spins up a fresh daemon
+    instance with its own freshly-loaded plan (exactly what happened 2026-10-30:
+    3 restarts during the 08:31-08:39 entry burst each re-fired every trigger
+    they still saw as unfired on disk -> 8/10 setups filled 2-3x, cost ~$3.3k
+    beyond a single-run baseline). trades.parquet is the one piece of state every
+    instance shares, so it's the only reliable place to check "has this already
+    actually happened today" before a SECOND real order goes out. Returns the
+    existing trade_id if found, else None."""
+    try:
+        df = tlog.load()
+    except Exception as e:
+        print(f"  ! already_executed_today check failed ({e}) — firing anyway, cannot verify")
+        return None
+    if not len(df):
+        return None
+    same_day = df["entry_dt"].astype(str).str[:10] == date_to_iso(date)
+    same_setup = df["strategy_id"] == setup
+    same_source = df.get("source", "") == "auto_trigger"
+    hit = df[same_day & same_setup & same_source]
+    return hit.iloc[0]["trade_id"] if len(hit) else None
+
+
+def date_to_iso(date_yyyymmdd):
+    return f"{date_yyyymmdd[:4]}-{date_yyyymmdd[4:6]}-{date_yyyymmdd[6:]}"
+
+
 def fire(ib, trig, spot, plan, reason, dry):
     exp = plan["date"]
     legs = build_legs(trig["structure"], spot)
@@ -724,6 +753,18 @@ def fire(ib, trig, spot, plan, reason, dry):
     if dry:
         print(f"  [DRY] WOULD FIRE {trig['id']} ({label}) — {reason} — legs {legs}")
         trig["fired"], trig["status"] = True, "dry-fired"
+        return
+    # 0. CROSS-PROCESS DEDUP — before anything else touches the account. See
+    # already_executed_today()'s docstring for why this exists.
+    existing_tid = already_executed_today(trig["setup"], plan["date"])
+    if existing_tid:
+        why = f"strategy '{trig['setup']}' already executed today as {existing_tid} (cross-process dedup)"
+        print(f"  STAND DOWN {trig['id']} [dup]: {why} — no order placed")
+        trig["status"] = "stood_down_dup"
+        trig["fired"], trig["skip_reason"] = True, why
+        trig["trade_id"] = existing_tid
+        notify(f"STOOD DOWN · {trig['setup']} [dup]",
+               f"{label}: would have re-fired — {existing_tid} already exists for today. Blocked.")
         return
     # 1. QUOTE — no order exists yet, so every gate below is free to say no.
     use_combo = COMBO_ORDERS and trig["structure"].get("kind") == "vertical"

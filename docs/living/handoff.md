@@ -16,10 +16,33 @@ on top of a day the market move was already losing. Separate, later incident
 same day: `options_mark.py` died 5x between 10:54-11:35 CT, hit its restart cap,
 and stayed dead the rest of the session — dashboard/live P&L blind from 11:48 CT
 onward, root cause of the marks-watcher deaths themselves not found (no captured
-stdout). **Nothing has been fixed yet** — 5 candidate fixes listed in the
-incident doc, waiting on user direction on which to implement. Reconstruction is
+stdout). **FIX IMPLEMENTED (same session):** cross-process dedup guard added to
+`options_trigger_daemon.py`'s `fire()` — re-checks `trades.parquet` (shared
+across every process, unlike the in-memory `gameplan_*.json` `fired` flag)
+for an existing `strategy_id`+today's-date+`auto_trigger` row before any quote
+or order; stands down loudly if found. This makes a second real duplicate
+order structurally impossible regardless of how many daemon instances race or
+why one hangs/restarts. Runs from the repo directly (no Custom-folder deploy
+step) — takes effect automatically on the next scheduled run (no process
+running right now to restart). 4 secondary candidate fixes (watchdog
+restart-before-confirmed-death race, hang-threshold tuning for entry bursts,
+`options_mark.py` exception logging, harder restart-cap-hit alerting) remain
+NOT implemented, still listed in the incident doc. Reconstruction is
 re-runnable: `scripts/reconstruct_duplicate_fire_20261030.py`, data in
 `data/options_log/_analysis/duplicate_fire_20261030.csv`.
+
+**Correction to this entry (same session, user caught it):** the original
+"intraday DD" figure cited below/in the incident doc (-$1,670, from an ad hoc
+reconstruction script) was WRONG methodology — the desk already has a
+dedicated intraday-DD tracker (`shadow_stop_monitor.py`, feeds the Analytics
+tab's shadow-stop panel) and that's the number that matters. Recomputed with
+its EXACT method (`scripts/shadow_stop_baseline_20261030.py`), filtered to the
+10 correct trades: **trough -$1,605.00 at 10:24:06 CT**, vs the current
+bug-inflated log row (`shadow_stop_log.csv`, n=27) showing trough -$3,590.00 at
+10:24. Also found: **`gx_bcs` never got a clean on-time fill at all** (only
+fill in the log is tagged "late fill +29min") — the bug didn't just duplicate
+trades, it also starved at least one legitimate setup of its correct execution
+window. Final P&L for the correct 10 trades is unchanged: -$2,507.60.
 
 **Follow-up same session — Analytics tab reconciled against the bug (user asked
 to double-check, correctly):** replicated `options_dashboard.py`'s own
