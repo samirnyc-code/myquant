@@ -1,5 +1,34 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-31 (session 2) — **Dashboard "scheduled tasks failing" tile
+investigated and the real bug behind it fixed, `[myquant] d6a0904f`.** The tile's "5
+failing: Chain Recorder, Marks Watch, Shadow Stop Monitor, Spot Feed" was stale — a
+live Task Scheduler query found only 2 actually failing (Chain Recorder, Spot Feed;
+Marks Watch/Shadow Stop Monitor had already re-run clean). Both showed Last Result
+`0x40010004` (DBG_TERMINATE_PROCESS) on their 10/30 run despite their own payload
+logging a clean self-exit (`live.json` "closed" at 15:20:18 CT; chain heartbeat "clean
+stop 15:05 CT") — cause not pinned down (Task Scheduler's own Operational event log is
+disabled on this machine and enabling it needs admin rights this session doesn't have;
+asked user, still pending). Added wrapper-level exit-code/timing logging
+(`run_at_ct.py`, `spot_feed.bat`) so the next occurrence is diagnosable.
+
+**Separately found and FIXED a real bug**: Chain Recorder loses ~5min/83.8% coverage
+most mornings (08:25-08:30 CT restart storm, same pattern 10/29 and 10/30). Root
+cause: `chain_recorder_supervisor.py` judged a freshly-launched child by the raw age
+of `chain_heartbeat.json`, a single file overwritten in place — so it was reading
+**yesterday's** leftover heartbeat as proof the brand-new child was hung, within one
+15s poll of launch, before the child's `connect_with_retry()` (up to 300s to connect
+if IB Gateway is still finishing login at the open, writes zero heartbeats meanwhile)
+ever had a chance to succeed. Each kill reset the connect loop, repeating every
+~15-20s until a connect happened to win the race (10/30: finally succeeded 08:30:24,
+first real snap 08:30:37). Fixed: supervisor now tracks the child's own launch
+timestamp and treats any heartbeat older than that as "not beating yet" instead of
+"stale". Not yet observed live through a real morning open — next trading day (Monday
+11/2) is the first real test; check `chain_supervisor.log` then for restart-storm
+absence and `chain_completeness_YYYYMMDD.json` for coverage back near 100%.
+
+---
+
 **Last Updated:** 2026-10-31 — **Started a preliminary 3-month options-setup
 review (observational only, NO rule/menu changes) — full writeup:
 `docs/living/setup_review_3mo_20261031.md`.** User directive: decisions wait
