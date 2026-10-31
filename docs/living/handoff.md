@@ -1,5 +1,28 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+**Last Updated:** 2026-10-30 — **Options desk duplicate-fire incident, root-caused
+and reconstructed (full writeup: `docs/living/duplicate_fire_incident_20261030.md`).**
+8 of 10 armed setups fired 3x (one 2x, one clean) — 27 trades logged for an
+intended 10. Root cause: the trigger daemon's heartbeat went stale 3x during the
+08:31-08:39 CT entry burst (`desk_watchdog.py`'s hang detector, likely the same
+sequential-leg-quoting-in-`manage_open()` false-positive already documented for
+the 14:45 EOD burst on 2026-09-17, just not previously seen on the open side).
+Each hang triggered a real kill+restart via the scheduled task, and each restart
+landed inside `run_at_ct.py`'s on-time window so it genuinely relaunched the
+daemon, which re-fired every trigger it still saw as unfired on disk. Paper
+account only (`DUQ159823`). **Financial reconstruction:** actual day P&L
+-$5,829.32 vs a -$2,507.60 single-run baseline — the bug cost ~**-$3,321.72**
+on top of a day the market move was already losing. Separate, later incident
+same day: `options_mark.py` died 5x between 10:54-11:35 CT, hit its restart cap,
+and stayed dead the rest of the session — dashboard/live P&L blind from 11:48 CT
+onward, root cause of the marks-watcher deaths themselves not found (no captured
+stdout). **Nothing has been fixed yet** — 5 candidate fixes listed in the
+incident doc, waiting on user direction on which to implement. Reconstruction is
+re-runnable: `scripts/reconstruct_duplicate_fire_20261030.py`, data in
+`data/options_log/_analysis/duplicate_fire_20261030.csv`.
+
+---
+
 **Last Updated:** 2026-10-29 — **Scheduler popups, round 2: a second distinct root cause found
 and fixed after the 2026-10-28 fix didn't stop all of them.** User reported windows still
 popping up. Investigation (full forensic trail — process trees, live window enumeration via
