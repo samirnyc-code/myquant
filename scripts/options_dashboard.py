@@ -114,7 +114,7 @@ def _shown(trades):
         return trades
     ed = pd.to_datetime(trades.entry_dt, errors="coerce").dt.strftime("%Y-%m-%d")
     t = trades[~ed.isin(EXCLUDE_DAYS)].copy()
-    return tlog.dedupe_mirrors(t)
+    return tlog.dedupe_duplicate_fires(tlog.dedupe_mirrors(t))
 
 
 _PZ_CACHE = {}

@@ -68,6 +68,41 @@ def dedupe_mirrors(df):
     return df[~dupe].drop(columns=["_key"])
 
 
+def dedupe_duplicate_fires(df):
+    """Drop re-fired copies of the same auto_trigger setup on the same day.
+
+    2026-10-30 incident: a watchdog restart of options_trigger_daemon.py during
+    a hang couldn't see what a prior (possibly still-alive) instance had already
+    fired, and re-fired every trigger it still saw as unfired -> 2-3 real orders
+    for the same strategy_id on one day. The daemon itself is now fixed
+    (cross-process dedup via trades.parquet, see fire() in
+    options_trigger_daemon.py) so this should not recur, but the historical book
+    already has it on at least 2026-10-23 and 2026-10-30 (checked when this was
+    added — both show the identical fingerprint: several `auto_trigger` setups
+    with >1 row on the same entry day). For any DISPLAY/analytics view, keep only
+    the EARLIEST entry for a given (entry day, strategy_id, auto_trigger) — the
+    daemon always fires a legitimate trigger's one-and-only intended copy first;
+    every later copy on the same day is the restart artifact, confirmed against
+    the gameplan's own `time_at not_before` rule (the earliest fire is the one
+    nearest the rule's intended time; later ones are strictly further from it).
+    Non-destructive: only filters, never writes — the raw duplicate rows stay in
+    trades.parquet as the incident's audit trail.
+    """
+    if df is None or not len(df) or "source" not in df.columns:
+        return df
+    is_auto = df["source"] == "auto_trigger"
+    ed = pd.to_datetime(df["entry_dt"], errors="coerce")
+    key = list(zip(df["strategy_id"].astype(str), ed.dt.strftime("%Y-%m-%d")))
+    tmp = df.assign(_key=key, _entry_dt=ed)
+    # rank ONLY among auto_trigger rows sharing the same (strategy_id, day) —
+    # a manual/other-source row with the same strategy_id that day is untouched
+    # and doesn't affect which auto_trigger copy counts as "first".
+    auto_rank = tmp.loc[is_auto].groupby("_key")["_entry_dt"].rank(method="first")
+    dupe = pd.Series(False, index=df.index)
+    dupe.loc[auto_rank.index] = auto_rank > 1
+    return df[~dupe]
+
+
 def _save(df):
     LOG.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(LOG, index=False)

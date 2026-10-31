@@ -62,13 +62,33 @@ def _now_ct():
     return dt.datetime.now(CT)
 
 
+def _excluded_duplicate_fire_ids():
+    """trade_ids dropped by options_trade_log.dedupe_duplicate_fires() — the
+    re-fired copies from the 2026-10-30-type incident. portfolio_curve() reads
+    marks.csv directly (independent of trades.parquet), so it needs this list
+    explicitly to exclude the same rows _booked_by_day()/the dashboard already
+    exclude via dedupe_duplicate_fires. Not cached: trades.parquet is small and
+    this only runs once per row_for() call."""
+    import options_trade_log as tlog
+    df = tlog.load()
+    if df is None or not len(df):
+        return set()
+    clean = tlog.dedupe_duplicate_fires(df)
+    return set(df["trade_id"]) - set(clean["trade_id"])
+
+
 def portfolio_curve(day):
-    """Intraday portfolio P&L series for `day` from marks (STMR excluded).
-    A closed trade's last mark carries forward = its realized value."""
+    """Intraday portfolio P&L series for `day` from marks (STMR excluded, and
+    any 2026-10-30-type duplicate-fire copies excluded — see
+    _excluded_duplicate_fire_ids()). A closed trade's last mark carries forward
+    = its realized value."""
     if not MARKS.exists():
         return None
     m = pd.read_csv(MARKS)
     m = m[~m["trade_id"].astype(str).str.contains("stmr", case=False)]
+    excluded = _excluded_duplicate_fire_ids()
+    if excluded:
+        m = m[~m["trade_id"].isin(excluded)]
     m["ts"] = pd.to_datetime(m["ts_et"], errors="coerce")
     m = m.dropna(subset=["ts"])
     m = m[m["ts"].dt.strftime("%Y-%m-%d") == day]
@@ -96,7 +116,7 @@ def _booked_by_day():
             from options_dashboard import EXCLUDE_DAYS
         except Exception:
             EXCLUDE_DAYS = {"2026-08-04", "2026-08-05"}
-        df = tlog.dedupe_mirrors(tlog.load())
+        df = tlog.dedupe_duplicate_fires(tlog.dedupe_mirrors(tlog.load()))
         df = df[df["pnl"].notna()].copy()
         en = df["entry_dt"].astype(str).str[:10]
         df = df[~en.isin(EXCLUDE_DAYS)].copy()             # match _shown()
