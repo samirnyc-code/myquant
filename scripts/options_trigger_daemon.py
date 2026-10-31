@@ -441,8 +441,29 @@ def gate(trig, est_net, spot, plan):
     width = st.get("width", 25)
 
     # --- structurally broken (pre-existing checks, kept) ---
+    # 2026-11-01 forensics: every "broken" (est_net<=0) event in the live book's
+    # first 3 months was actually the short strike sitting 65-220pt OTM with no
+    # bid left (overwhelmingly calls -- vol skew: OTM calls run out of premium
+    # at a distance OTM puts don't), NOT a real breach. "wall already blown
+    # through" asserted a breach unconditionally and was wrong every time it
+    # fired. Split the message on whether the short strike is ACTUALLY ITM/ATM
+    # right now (spot through it) vs still OTM with just no premium left --
+    # same stand-down decision either way, the text now says what's true.
     if setup in CREDIT_SETUPS and est_net <= 0:
-        return False, "broken", f"zero/negative credit ({est_net:.2f}) — wall already blown through"
+        short = short_strike(trig)
+        right = st.get("right")
+        breached = short is not None and (
+            (right == "C" and spot >= short) or (right == "P" and spot <= short))
+        if breached:
+            return False, "broken", (
+                f"zero/negative credit ({est_net:.2f}) — short {short:.0f} already "
+                f"breached (spot {spot:.1f})")
+        if short is not None:
+            dist = (short - spot) if right == "C" else (spot - short)
+            return False, "no_premium", (
+                f"zero/negative credit ({est_net:.2f}) — short {short:.0f} is still "
+                f"{dist:.0f}pt OTM, just no bid left today (not a breach)")
+        return False, "broken", f"zero/negative credit ({est_net:.2f}) — no strike to check against"
     if setup == "fly_gw_0dte" and (-est_net) > 0.60 * width:
         return False, "broken", f"debit {-est_net:.2f} >60% of wing — no convexity edge"
 
