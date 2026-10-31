@@ -103,3 +103,40 @@ the obvious follow-up rather than a finding.
 
 Data: `data/options_log/_analysis/gexlog_brief_days_full_20261031.csv`,
 `gexlog_gap_em_merged_20261031.csv`, `gexlog_signal_recalc_by_*_20261031.csv`.
+
+## Follow-up (2026-11-01) — does EOD- vs Open-anchoring matter for the condor specifically?
+
+User's inference: since EOD strikes are set from the PRIOR close (before any
+gap is known) and Open strikes are set from TODAY's open (after the gap),
+EOD should be more exposed to gap risk. Tested directly on `eodic`/`openic`
+(the two EM-strike condors — `scripts/gap_direction_ic_test_20261101.py`),
+splitting by gap direction and put/call side.
+
+**Confirmed, but the clean story is wrong — it's not "gap size," it's
+variance/tail risk, concentrated in a handful of specific days:**
+
+- Put side on gap-DOWN days (n=23): `eod_put` total -$376 (avg -$16) vs
+  `open_put` total +$848 (avg +$39). Looks like confirmation — but sorting
+  the big-down-gap days individually shows `eod_put` is **wildly bimodal**:
+  solidly positive ($117–$417) on 9 of 12 days, and catastrophic on exactly
+  3 — **2026-10-30 (-$1,703), 2026-10-14 (-$987), 2026-10-22 (-$767)** — the
+  same 3 days that already showed up as shared worst-days across the whole
+  put-selling family in the earlier setup review. `open_put` stayed small
+  and positive on those same 3 days (+$97, +$27, +$17). This isn't "bigger
+  gap = worse EOD," it's "EOD has fat tails, Open is capped" — and the tail
+  risk is 3 specific trend days, not a gap-size gradient.
+- Call side on gap-UP days: the mirror-image test does **not** confirm the
+  same mechanism — `eod_call` average (+$38) actually beat `open_call`
+  (+$19) on big up-gaps, the opposite of the put-side pattern. One outlier
+  (2026-10-02, eod_call -$582) drags the average down; excluding it,
+  `eod_call` is uniformly strong on every other big-up-gap day. Small n
+  (11 days in that bucket) — not confirmed either way, flagged as a puzzle.
+
+**Honest conclusion:** `open`-anchored strikes do look more consistent/
+capped across this sample (lower variance on both sides), and `eod`-anchored
+strikes do carry more tail risk — but it shows up as 3-4 specific bad days,
+not a smooth relationship with gap size. Don't read this as "open-anchoring
+is proven structurally superior" — it's "open-anchoring missed the same 3
+bad trend days that hurt everything else in this book," which is consistent
+with, not independent evidence for, the gap-exposure theory. Needs more data
+(more big-gap days) before trusting the mechanism itself.
