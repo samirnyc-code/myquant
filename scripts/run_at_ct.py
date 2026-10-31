@@ -96,7 +96,16 @@ def main() -> None:
     # CREATE_NO_WINDOW: the wrapped child must NOT pop a console. Without this, every
     # run_at_ct-wrapped scheduled task flashed a python.exe window when it launched its
     # real command (2026-07-21 - user watching consoles strobe every few minutes).
-    sys.exit(subprocess.run(rest, creationflags=0x08000000).returncode)
+    t0 = dt.datetime.now()
+    code = subprocess.run(rest, creationflags=0x08000000).returncode
+    # 2026-10-31: Chain Recorder/Spot Feed showed a forced-terminate Task Scheduler
+    # result on a day their own payload logged a clean exit. This line pins down whether
+    # THIS process (run_at_ct.py, i.e. everything up to and including the wrapped
+    # command) actually returned on its own, or whether a parent of this process is the
+    # one still hanging after the wrapped command exits.
+    print(f"run_at_ct: child exited code {code} after {(dt.datetime.now() - t0).total_seconds():.0f}s "
+          f"— run_at_ct.py returning now")
+    sys.exit(code)
 
 
 if __name__ == "__main__":

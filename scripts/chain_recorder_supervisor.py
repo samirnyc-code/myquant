@@ -133,7 +133,7 @@ def main():
     log(f"supervisor up — keeping recorder alive until {a.stop} CT, cadence {a.secs}s")
 
     child = launch(a.secs, a.pct, a.stop)
-    last_beat_seen = time.time()
+    child_launch_ts = time.time()
     delayed_since = None
 
     while now_ct().time() < stop_t:
@@ -146,20 +146,25 @@ def main():
             page("🔧 0DTE recorder died — auto-relaunching (supervised)", "chain_relaunch")
             time.sleep(RELAUNCH_BACKOFF)
             child = launch(a.secs, a.pct, a.stop)
-            last_beat_seen = time.time()
+            child_launch_ts = time.time()
             continue
-        # 2) child alive — is it actually beating?
+        # 2) child alive — is it actually beating? A heartbeat file that predates THIS
+        # child's launch is a leftover from a prior run/day, not evidence this child is
+        # hung (2026-10-30/31: this used to be judged by the file's raw age, so a child
+        # still inside the up-to-300s IB connect retry at the open — which writes no
+        # heartbeat at all until connected — got killed within one POLL_S of launch
+        # because yesterday's heartbeat was hours old; repeated every ~15-20s and never
+        # let a connect attempt finish, costing ~5min/83.8% coverage on 10/30).
         hb = read_heartbeat()
-        if hb is None:
-            # no heartbeat file yet; give it one STALL window from launch before acting
-            if time.time() - last_beat_seen > STALL_S:
+        fresh = hb is not None and hb.get("ts_epoch", 0) >= child_launch_ts
+        if not fresh:
+            # no heartbeat from THIS child yet; give it one STALL window from launch
+            if time.time() - child_launch_ts > STALL_S:
                 log("no heartbeat since launch — killing & relaunching")
                 page("🔧 0DTE recorder not beating — restarting (supervised)", "chain_relaunch")
                 _kill(child); time.sleep(RELAUNCH_BACKOFF)
-                child = launch(a.secs, a.pct, a.stop); last_beat_seen = time.time()
+                child = launch(a.secs, a.pct, a.stop); child_launch_ts = time.time()
             continue
-        if hb["age"] <= STALL_S:
-            last_beat_seen = time.time()
         # 3) alive & beating — classify the state
         state = hb.get("state")
         if hb["age"] > STALL_S:
@@ -167,7 +172,7 @@ def main():
             log(f"heartbeat STALE ({hb['age']:.0f}s, state={state}) — process hung, restarting")
             page("🔧 0DTE recorder hung (no beat) — restarting (supervised)", "chain_relaunch")
             _kill(child); time.sleep(RELAUNCH_BACKOFF)
-            child = launch(a.secs, a.pct, a.stop); last_beat_seen = time.time()
+            child = launch(a.secs, a.pct, a.stop); child_launch_ts = time.time()
             delayed_since = None
         elif state == "feed_delayed":
             # FEED problem, not a process problem — relaunching won't help. Page, don't churn.
