@@ -102,46 +102,56 @@ Daily equity curves (actual + baseline) saved for inspection:
 `data/options_log/_analysis/daily_equity_curve_actual_20261030.csv`,
 `data/options_log/_analysis/daily_equity_curve_baseline_20261030.csv`.
 
-## Intraday drawdown — CORRECT TRADES ONLY, authoritative methodology
+## Intraday drawdown — CORRECT TRADES ONLY
 
-**This section supersedes an earlier pass in this doc that used an ad hoc
-reconstruction method and gave a slightly different number (-$1,670). That
-version is wrong to cite — use this one.** The desk already has a dedicated
-intraday-DD tracker, `shadow_stop_monitor.py` (feeds the Analytics tab's
-shadow-stop panel, column "intraday DD"), with its own `portfolio_curve()`
-function: pivot `marks.csv` by trade_id, forward-fill gaps, **fillna(0) before
-the first mark**, sum across trade_ids, trough = `curve.min()`. The CURRENT
-logged row for 2026-10-30 (`data/options_sim/shadow_stop_log.csv`) uses that
-exact method but counts all **27** trades (every duplicate copy):
+**Correction (caught by the user — the prior version of this section was
+internally inconsistent):** the desk's dedicated intraday-DD tracker
+(`shadow_stop_monitor.py`'s `portfolio_curve()`, feeds the Analytics tab's
+shadow-stop panel) gives a trough of **-$1,605.00 at 10:24:06 CT** for the 10
+correct trades — but that number is **only valid through 11:48:49 CT**, because
+`options_mark.py` died at ~11:35 CT (restart cap hit) and never produced
+another real mark before the 16:00 CT close. It is mathematically impossible
+for -$1,605 to be the real day's max drawdown: DD at any point = equity − the
+running peak (peak only rises, never falls), so DD at the FINAL point must be
+at least as negative as (final result − peak). Peak that morning was ~**+$65**
+and the final realized result for the 10 correct trades was **-$2,507.60** —
+so the true max DD must be **at least -$2,572.60**, full stop, regardless of
+what happened in the unmarked gap. **-$1,605 is only the floor of the OBSERVED
+window, not the day's true worst point** — it should never have been presented
+without that qualifier.
 
-    2026-10-30,27,-3590,10:24,True,10:12,-2015,True,10:24,-3590,-3010,HURT,...
+Bridging the gap with an intrinsic-value estimate from the underlying spot tape
+(`data/options_sim/underlying_20261030.csv`), calibrated to the real marks at
+the 11:48:49 CT seam (continuity checked: -$1,394 estimated vs -$1,405 real —
+good fit), gives a directional (not exact) worst point of **~-$3,029.43 at
+13:53:17 CT** (spot 7529.30), with the book then recovering into the close to
+the real -$2,507.60. This estimate's calibration offset is a constant pulled
+from the morning's extrinsic value, which decays toward the close — so even
+-$3,029 is probably slightly optimistic; the true trough was likely at or a bit
+beyond that.
 
-`scripts/shadow_stop_baseline_20261030.py` reuses that SAME function verbatim,
-filtered to only the 10 trades that were supposed to execute under the
-gameplan's rules:
+**Bottom line for the 10 correct trades:**
+- Hard lower bound (mathematically certain): **≥ -$2,572.60**
+- Best estimate of the actual trough: **~-$3,029.43 around 13:53 CT**
+- Final realized result: **-$2,507.60**
 
-| | Current (bug-inflated, n=27) | Correct trades only (n=10) |
-|---|---|---|
-| Trough | -$3,590.00 | **-$1,605.00** |
-| Trough time | 10:24 CT | 10:24:06 CT (same market moment) |
-| Crossed WARN (-$2,000) | YES @ 10:12 | no |
-| Crossed STOP (-$3,000) | YES @ 10:24 | no |
-
-**Same marks-pipeline gap as the rest of this incident applies here too:**
-`options_mark.py` died ~11:35 CT, so this trough is only provable through
-11:48:49 CT — a floor, not a full-session guarantee.
+Current bug-inflated log (`shadow_stop_log.csv`, n=27, for comparison only —
+not apples-to-apples since it has the same marks-gap blind spot plus the
+duplicate rows): `2026-10-30,27,-3590,10:24,True,10:12,-2015,True,10:24,-3590,-3010,HURT,...`
 
 **Which 10 trades are "correct"** — the gameplan's 10 setups, each
 `time_at not_before 08:30`, taken once: 9 of 10 filled clean and on-time
 (`entry_note='ok'`, 08:31–08:39 CT). **`gx_bcs` did not** — its only fill
 anywhere in the log is tagged `late fill +29min`. The bug didn't just create
 duplicates; it also meant gx_bcs never got a clean on-time fill at all. Its
-degraded fill is included in the -$2,507.60 baseline P&L below because there is
-no clean alternative to substitute — flagged, not silently treated as normal.
+degraded fill is included in the -$2,507.60 result because there is no clean
+alternative to substitute — flagged, not silently treated as normal.
 
-Final P&L, correct trades only: **-$2,507.60** (unchanged from the earlier
-pass — same 10 rows, this was never in question, only the intraday-DD figure
-was wrong before).
+**General lesson, not just for this day:** `shadow_stop_log.csv`'s "trough"
+column is unreliable on ANY day where `options_mark.py` dies before the close —
+this is a pre-existing blind spot in `shadow_stop_monitor.py`, not something
+introduced by the duplicate-fire fix. Worth checking history for other days
+with early marks death before trusting that column elsewhere (not done yet).
 
 ## Fix implemented (2026-10-31, same session as the reconstruction)
 
