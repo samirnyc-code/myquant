@@ -1387,6 +1387,45 @@ def results_html():
     return note + f"<table><tr>{head}</tr>{rows}</table>"
 
 
+def skew_shadow_html():
+    """Skew-matched condor shadow (candidate idea, 2026-11-01) -- strikes the
+    call to the SAME delta as the put instead of the same point-distance.
+    Pure observation (scripts/skew_condor_shadow.py never places an order);
+    reads its own isolated files, never trades.parquet/marks.csv. NOT part of
+    any total/tile on this dashboard."""
+    import glob
+    files = sorted(glob.glob(str(SIM / "skew_condor_shadow" / "shadow_*.json")), reverse=True)
+    banner = ("<p class='muted'><b>SHADOW ONLY</b> -- no real orders, not included in "
+              "any P&L/Analytics total on this dashboard. Tests whether matching the "
+              "call's delta to the put's delta (instead of matching points) fixes the "
+              "call side's chronic thin/zero credit (vol skew, see the 2026-11-01 "
+              "'wall already blown through' forensics).</p>")
+    if not files:
+        return banner + "<p class='muted'>No shadow data yet -- runs during market hours.</p>"
+    rows = []
+    for f in files:
+        try:
+            b = json.loads(Path(f).read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for anchor, r in b.get("pairs", {}).items():
+            if not r.get("entered"):
+                continue
+            pnl = r.get("pnl_shadow")
+            pnl_cell = f"<td class='{'pos' if (pnl or 0) >= 0 else 'neg'}'>{pnl}</td>" if pnl is not None else "<td class='muted'>open</td>"
+            rows.append(
+                f"<tr><td>{b['date']}</td><td>{anchor}</td>"
+                f"<td>{r.get('put_short')}P ({r.get('put_delta')})</td>"
+                f"<td>{r.get('real_call_short')}C / cr {r.get('real_call_credit')}</td>"
+                f"<td>{r.get('skew_call_short')}C ({r.get('skew_call_delta')}) / cr {r.get('skew_call_credit')}</td>"
+                f"{pnl_cell}</tr>")
+    if not rows:
+        return banner + "<p class='muted'>No completed pairs yet.</p>"
+    head = ("<tr><th>date</th><th>anchor</th><th>put (real)</th><th>call (real)</th>"
+            "<th>call (skew-matched, shadow)</th><th>shadow P&L</th></tr>")
+    return banner + f"<table>{head}{''.join(rows)}</table>"
+
+
 def levels_html():
     """MenthorQ levels DB removed — premium-selling only. GexLog levels live in the
     header strip + the gameplan board."""
@@ -2037,6 +2076,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
   <div class="tab" data-p="levels">Levels</div>
   <div class="tab" data-p="ibtd">IB vs TD</div>
   <div class="tab" data-p="spybounce">SPY Bounce</div>
+  <div class="tab" data-p="skewshadow">Skew Condor (shadow)</div>
 </div>
 
 <div class="page on" id="p-trades">{pnl_summary_html(gp_trades)}{card_body}</div>
@@ -2101,6 +2141,7 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 <div class="page prose" id="p-playbook">{playbook_html}</div>
 <div class="page" id="p-results">{results_html()}</div>
 <div class="page" id="p-levels">{levels_html()}</div>
+<div class="page" id="p-skewshadow">{skew_shadow_html()}</div>
 </div>
 <script>
 // ---- UI state: keep the active tab / scroll / open expanders across the
