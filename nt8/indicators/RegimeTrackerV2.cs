@@ -72,7 +72,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 		private int _sessionOnlyCutoffBar = -1;   // -1 = not yet computed
 
 		// ── rendering ─────────────────────────────────────────────────────────
-		private Brush _bullShade, _bearShade;
+		private Brush _bullShade, _bearShade, _transShade;
 		private Dictionary<int, bool>   _pivLow, _pivHigh;   // bar index -> isMajor (drawn in OnRender)
 		private Dictionary<int, double> _barTrend;           // bar index -> Regime value, painted as shading in OnRender
 
@@ -120,7 +120,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 				ContinueOnGap = false;
 
 				// regime tracker
-				Lag           = 1;   // canonical (2026-09-24): matches the live chart; Lag>=2 = finalised/non-repaint view
+				Lag           = 0;   // 2026-10-23 user explicit: default 0, not the prior Lag=1 canonical
 				ShadeOpacity  = 22;
 				ShowShading   = true;
 				ShowMajors    = true;
@@ -146,17 +146,20 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 				BosText         = "BOS";
 				ChoChText       = "ChoCh";
 				// style — shading
-				BullShadeBrush = Brushes.SeaGreen;
-				BearShadeBrush = Brushes.IndianRed;
+				BullShadeBrush       = Brushes.SeaGreen;
+				BearShadeBrush       = Brushes.IndianRed;
+				TransitionShadeBrush = Brushes.Gold;
+				ShowRangeShading     = true;    // 2026-10-23 user explicit: on by default
 
 				AddPlot(new Stroke(Brushes.Transparent), PlotStyle.Line, "RegimePlot"); // exposes a visible-less plot slot
 			}
 			else if (State == State.Configure)
 			{
-				_bullShade = MakeShade(BullShadeBrush, ShadeOpacity);
-				_bearShade = MakeShade(BearShadeBrush, ShadeOpacity);
+				_bullShade  = MakeShade(BullShadeBrush, ShadeOpacity);
+				_bearShade  = MakeShade(BearShadeBrush, ShadeOpacity);
+				_transShade = MakeShade(TransitionShadeBrush, ShadeOpacity);
 				FreezeIf(MinorDotBrush); FreezeIf(MajorLowBrush); FreezeIf(MajorHighBrush);
-				FreezeIf(BosBrush); FreezeIf(ChoChBrush);
+				FreezeIf(BosBrush); FreezeIf(ChoChBrush); FreezeIf(TransitionShadeBrush);
 			}
 			else if (State == State.DataLoaded)
 			{
@@ -243,7 +246,19 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			_lastIsVisible = IsVisible;
 			if (_eventObjs != null)
 				for (int k = 0; k < _eventObjs.Count; k++)
-					if (_eventObjs[k] != null) _eventObjs[k].IsVisible = IsVisible;
+				{
+					if (_eventObjs[k] == null) continue;
+					// 2026-11-04 FIX: this runs from BOTH VisTimer_Tick (UI/Dispatcher thread)
+					// and OnBarUpdate's redundant backup call (calculation thread) with no
+					// synchronization -- confirmed live cause of "Error on calling 'OnBarUpdate'
+					// ... different thread owns it" whenever OnBarUpdate's call loses the race
+					// for a DrawingTool the other thread currently owns. Catch per-object (not
+					// around the whole loop) so one losing object doesn't abort the rest of the
+					// list -- the winning thread's touch is what actually matters; a skipped
+					// object gets picked up on the next toggle/tick.
+					try { _eventObjs[k].IsVisible = IsVisible; }
+					catch (InvalidOperationException) { }
+				}
 			if (ChartControl != null) ChartControl.InvalidateVisual();
 		}
 
@@ -661,6 +676,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			var majHiDx  = MajorHighBrush.ToDxBrush(RenderTarget);
 			var bullDx   = _bullShade.ToDxBrush(RenderTarget);
 			var bearDx   = _bearShade.ToDxBrush(RenderTarget);
+			var transDx  = _transShade.ToDxBrush(RenderTarget);
 			try
 			{
 				int from = ChartBars.FromIndex, to = ChartBars.ToIndex;
@@ -674,13 +690,16 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 					if (ShowShading && _barTrend != null)
 					{
 						double trendVal;
-						if (_barTrend.TryGetValue(bi, out trendVal) && trendVal != 0)
+						// trendVal == 0 (Range) only paints when ShowRangeShading is on --
+						// default off so existing charts keep today's look (Range left
+						// unshaded) unless the user explicitly opts into the 3rd color.
+						if (_barTrend.TryGetValue(bi, out trendVal) && (trendVal != 0 || ShowRangeShading))
 						{
 							float xNext = bi < to ? chartControl.GetXByBarIndex(ChartBars, bi + 1)
 							                      : x + (bi > 0 ? x - chartControl.GetXByBarIndex(ChartBars, bi - 1) : 6f);
 							float w = Math.Max(1f, xNext - x);
-							RenderTarget.FillRectangle(new SharpDX.RectangleF(x - w / 2f, yTop, w, yBot - yTop),
-								trendVal > 0 ? bullDx : bearDx);
+							var brush = trendVal > 0 ? bullDx : trendVal < 0 ? bearDx : transDx;
+							RenderTarget.FillRectangle(new SharpDX.RectangleF(x - w / 2f, yTop, w, yBot - yTop), brush);
 						}
 					}
 
@@ -704,7 +723,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 					}
 				}
 			}
-			finally { minorDx.Dispose(); majLowDx.Dispose(); majHiDx.Dispose(); bullDx.Dispose(); bearDx.Dispose(); }
+			finally { minorDx.Dispose(); majLowDx.Dispose(); majHiDx.Dispose(); bullDx.Dispose(); bearDx.Dispose(); transDx.Dispose(); }
 		}
 
 		private void WriteCsv()
@@ -794,6 +813,14 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 		[XmlIgnore] [Display(Name = "Bear shade color", GroupName = "Style — shading", Order = 1)]
 		public Brush BearShadeBrush { get; set; }
 		[Browsable(false)] public string BearShadeBrushSerialize { get { return Serialize.BrushToString(BearShadeBrush); } set { BearShadeBrush = Serialize.StringToBrush(value); } }
+
+		[NinjaScriptProperty]
+		[Display(Name = "Show Range (transition) shading too", GroupName = "Style — shading", Order = 2)]
+		public bool ShowRangeShading { get; set; }
+
+		[XmlIgnore] [Display(Name = "Range (transition) shade color", GroupName = "Style — shading", Order = 3)]
+		public Brush TransitionShadeBrush { get; set; }
+		[Browsable(false)] public string TransitionShadeBrushSerialize { get { return Serialize.BrushToString(TransitionShadeBrush); } set { TransitionShadeBrush = Serialize.StringToBrush(value); } }
 
 		[Browsable(false)] [XmlIgnore] public Series<double> RegimePlot { get { return Values[0]; } }
 		#endregion

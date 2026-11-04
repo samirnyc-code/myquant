@@ -144,7 +144,17 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             _lastIsVisible = IsVisible;
             if (_drawObjs != null)
                 for (int k = 0; k < _drawObjs.Count; k++)
-                    if (_drawObjs[k] != null) _drawObjs[k].IsVisible = IsVisible;
+                {
+                    if (_drawObjs[k] == null) continue;
+                    // 2026-11-04 FIX: same pattern/bug found live in DtDbScannerV3.cs/
+                    // RegimeTrackerV2.cs -- this runs from BOTH VisTimer_Tick (UI/Dispatcher
+                    // thread) and OnBarUpdate's redundant backup call (calculation thread),
+                    // unsynchronized. Fixed proactively here (not yet observed throwing on V2
+                    // specifically) since it's the identical shape. Catch per-object so one
+                    // loser doesn't abort the rest of the list.
+                    try { _drawObjs[k].IsVisible = IsVisible; }
+                    catch (InvalidOperationException) { }
+                }
             if (ChartControl != null) ChartControl.InvalidateVisual();
         }
 

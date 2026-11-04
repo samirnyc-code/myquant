@@ -287,7 +287,17 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             _lastIsVisible = IsVisible;
             if (_drawObjs != null)
                 for (int k = 0; k < _drawObjs.Count; k++)
-                    if (_drawObjs[k] != null) _drawObjs[k].IsVisible = IsVisible;
+                {
+                    if (_drawObjs[k] == null) continue;
+                    // 2026-11-04 FIX: same pattern/bug as RegimeTrackerV2.cs's SyncEventVisibility
+                    // -- this runs from BOTH VisTimer_Tick (UI/Dispatcher thread) and OnBarUpdate's
+                    // redundant backup call (calculation thread), unsynchronized. Confirmed live
+                    // cause of "Error on calling 'OnBarUpdate' ... different thread owns it" when
+                    // OnBarUpdate's call loses the race for a DrawingTool the other thread owns.
+                    // Catch per-object so one loser doesn't abort the rest of the list.
+                    try { _drawObjs[k].IsVisible = IsVisible; }
+                    catch (InvalidOperationException) { }
+                }
             if (ChartControl != null) ChartControl.InvalidateVisual();
         }
 
