@@ -1,5 +1,26 @@
 # Handoff — Current State
 **Status:** Living — update every session  
+
+**Last Updated:** 2026-11-04 — **Cross-thread `DrawingTool.IsVisible` race fixed in 4 NT8
+indicator files — THOMAS NEEDS TO PULL + REDEPLOY.** `RegimeTrackerV2.cs`,
+`DtDbScannerV2.cs`, `DtDbScannerV3.cs`, `DtDbScannerV4.cs` all shared one unsafe pattern:
+`SyncVisibility()`/`SyncEventVisibility()` called from both a 250ms `DispatcherTimer` (UI
+thread) and `OnBarUpdate`'s own "redundant backup" call (calculation thread), unsynchronized
+— confirmed live cause of "Error on calling 'OnBarUpdate' ... different thread owns it" on
+`RegimeTrackerV2` and `DtDbScannerV3` (bar 3923 and bar 0, same session, 2026-11-03). Fixed
+by wrapping each object's `.IsVisible` touch in a per-object `try/catch
+(InvalidOperationException)`. Checked every other `nt8/` file for the same shape —
+`RegimeTrackerBox.cs`/`RegimeTrackerPanel.cs`/`ClaudeTrackerWatchdog.cs` use timers for
+unrelated purposes, not affected. NOT a shared-registry problem — `DtDbCvdPivotRegistry`
+and `ClaudeTrackerChartRegistry` were both checked and are properly `lock`-protected.
+Committed `d1235c7e`. **Thomas (tdeutschmann-byte, 2nd PC) runs these same indicators —
+once pushed, he needs `git pull` + redeploy the 4 files to his own
+`Custom\Indicators\My\` folder + F5.** `DtDbScannerV2.cs`/`RegimeTrackerV2.cs` were
+redeployed to this machine's Custom folder already; `DtDbScannerV4.cs` isn't currently
+deployed on this machine either, lower urgency.
+
+---
+
 **Last Updated:** 2026-10-31 (session, options desk deep-dive) — **End-of-session
 synthesis: what actually got fixed vs. what was only learned today.** Full
 trail in `docs/living/duplicate_fire_incident_20261030.md`,
