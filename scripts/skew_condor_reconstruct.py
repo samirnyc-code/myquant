@@ -85,9 +85,14 @@ def ct_to_et(date_str, hhmmss):
 
 def load_chain(date_compact):
     f = TAPE / f"chain_{date_compact}.parquet"
-    if not f.exists():
-        raise FileNotFoundError(f"no archived chain for {date_compact}: {f}")
-    df = pd.read_parquet(f)
+    if f.exists():
+        df = pd.read_parquet(f)
+    else:
+        f_csv = SIM / f"chain_{date_compact}.csv"
+        if not f_csv.exists():
+            raise FileNotFoundError(
+                f"no archived chain for {date_compact}: {f} or {f_csv}")
+        df = pd.read_csv(f_csv)  # current recorder writes here, options_tape/ is stale
     df["ts_et"] = pd.to_datetime(df["ts_et"]).dt.tz_localize(ET)
     return df
 
