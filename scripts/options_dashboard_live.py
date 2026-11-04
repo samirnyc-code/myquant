@@ -72,7 +72,8 @@ def _watch_files():
     return WATCH + [SIM / f"gameplan_{date}.json", SIM / f"postmortem_{date}.json",
                     SIM / f"eod_status_{date}.json",  # Desk Report grows through the day → soft-reload
                     SIM / "shadow_td" / f"shadow_book_{ct}.json",
-                    SIM / "shadow_td" / f"reprice_{ct}.json"]  # IB-vs-TD tab live-refresh
+                    SIM / "shadow_td" / f"reprice_{ct}.json",  # IB-vs-TD tab live-refresh
+                    SIM / "skew_condor_shadow" / f"shadow_{ct}.json"]  # Skew Condor tab live-refresh
 
 _lock = threading.Lock()
 _last_gen = [None]
@@ -174,14 +175,6 @@ class Handler(BaseHTTPRequestHandler):
             self._send(json.dumps(state()), "application/json", set_cookie)
         elif u.path == "/live.json":
             self._send(json.dumps(live_json()), "application/json", set_cookie)
-        elif u.path == "/spybounce":            # SPY Bounce tab iframe (static tracker HTML)
-            f = ROOT / "data" / "spy_bounce" / "tracker_dashboard.html"
-            if f.exists():
-                self._send(f.read_bytes(), "text/html; charset=utf-8", set_cookie)
-            else:
-                self._send(b"<body style='font:14px system-ui;background:#0b0d12;color:#e8ebf0;"
-                           b"padding:24px'><p>SPY bounce tracker dashboard not generated yet.</p></body>",
-                           "text/html; charset=utf-8", set_cookie)
         else:
             self.send_error(404)
 

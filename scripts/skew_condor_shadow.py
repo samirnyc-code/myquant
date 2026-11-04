@@ -1,4 +1,4 @@
-"""Skew-matched condor — OBSERVATIONAL SHADOW, no orders, ever.
+"""Skew-matched condor.
 
 Candidate idea from the 2026-11-01 "wall already blown through" forensics:
 `eodic_c`/`openic_c` strike the call the same POINT-distance from center as the
@@ -15,10 +15,21 @@ strike both sides to equal probability, not equal points. Per user decision
 (2026-11-01): delta via IB's own option-computation tick (genericTickList
 "106", modelGreeks.delta), NOT ThetaData (retired, not in use).
 
-Zero interaction with the real book: never calls placeOrder, never writes to
-trades.parquet/marks.csv/any gameplan file. Reads today's gameplan (to know
-when eodic_p/openic_p actually fire and at what strike) and IB market data
-only. Writes its own file: data/options_sim/skew_condor_shadow/shadow_<date>.json.
+Two modes:
+  default (no --live)   OBSERVATIONAL SHADOW. Never calls placeOrder, never
+                         writes to any trade log. Reads today's gameplan +
+                         IB market data only. Writes
+                         data/options_sim/skew_condor_shadow/shadow_<date>.json.
+  --live (2026-11-03, explicit user decision)   Places REAL atomic combo
+                         orders via options_trigger_daemon's place_combo/
+                         close_combo (same vetted BAG-order path the real
+                         desk uses). Logged to its OWN separate book --
+                         data/options_log/trades_skew_condor.parquet (via
+                         options_trade_log.set_book("skew_condor")) -- so its
+                         P&L never mixes into the main desk total. Still
+                         reads qty from the real call trigger's own filled
+                         qty (today: 1) -- same contract size convention as
+                         the rest of the desk, not a separate sizing decision.
 
 Simplification (v1, flagged not hidden): holds to a fixed 14:45 CT time-stop
 (matching the real desk's own time-stop convention) rather than mirroring the
@@ -27,6 +38,7 @@ apples-to-apples comparison would mirror that too -- not done yet.
 
 Usage:
   .venv/Scripts/python.exe scripts/skew_condor_shadow.py [--until 14:45]
+  .venv/Scripts/python.exe scripts/skew_condor_shadow.py --live [--until 14:45]
   .venv/Scripts/python.exe scripts/skew_condor_shadow.py --dry 2026-10-30   # parse-only, no IB
 """
 from __future__ import annotations
@@ -172,9 +184,10 @@ def _quote_vertical(ib, qualify_fn, exp, short_k, long_k, right, short_side, lon
 # ---------- main loop ----------
 
 PAIRS = {"eod": ("eodic_p", "eodic_c"), "open": ("openic_p", "openic_c")}
+FEE = 1.30   # same flat per-leg fallback the real daemon uses (options_trigger_daemon.FEE)
 
 
-def process(ib, qualify_fn, date, plan, book):
+def process(ib, qualify_fn, date, plan, book, live=False):
     exp = plan["date"]
     for anchor, (put_setup, call_setup) in PAIRS.items():
         if anchor in book["pairs"] and book["pairs"][anchor].get("entered"):
@@ -192,18 +205,48 @@ def process(ib, qualify_fn, date, plan, book):
 
         put_delta = get_delta(ib, qualify_fn, exp, put_short, "P")
         if put_delta is None:
-            print(f"  [skew-shadow] {anchor}: no put delta yet for {put_short}P, retry next poll")
+            print(f"  [skew-condor] {anchor}: no put delta yet for {put_short}P, retry next poll")
             continue
         target = abs(put_delta)
         matched_k, matched_delta = find_skew_matched_strike(
             ib, qualify_fn, exp, "C", target, real_call_short)
         if matched_k is None:
-            print(f"  [skew-shadow] {anchor}: no call delta match found, retry next poll")
+            print(f"  [skew-condor] {anchor}: no call delta match found, retry next poll")
             continue
-        net = quote_vertical_open(ib, qualify_fn, exp, matched_k, matched_k + WING, "C")
+
+        qty = next((l.get("qty", 1) for l in (call_trig or {}).get("filled_legs", [])), 1)
+        legs = [("C", matched_k + WING, "BUY"), ("C", matched_k, "SELL")]
+
+        if live:
+            from options_trigger_daemon import place_combo
+            try:
+                net, _bag = place_combo(ib, exp, legs, qty)
+            except Exception as e:
+                print(f"  [skew-condor] {anchor}: LIVE combo did not fill ({e}), retry next poll")
+                continue
+            tid = f"skew_{anchor}_{now_ct():%Y%m%d_%H%M%S}"
+            width = WING
+            coll = (width - net) * 100 if net > 0 else abs(net) * 100
+            import options_trade_log as tlog
+            tlog.append_entry({
+                "trade_id": tid, "strategy_id": f"{call_setup}_skew", "source": "skew_condor_live",
+                "symbol": "SPXW", "entry_dt": now_ct().strftime("%Y-%m-%d %H:%M"),
+                "dte": 0, "structure": f"vertical {width}pt", "fill_model": "paper_fill",
+                "legs": [{"side": "sell" if a == "SELL" else "buy", "right": r,
+                          "strike": float(k), "expiry": exp, "qty": qty} for r, k, a in legs],
+                "credit": net, "collateral": coll, "dow": now_ct().strftime("%a"),
+                "commentary": f"SKEW-MATCHED CONDOR [{anchor}]: put {put_short}P delta "
+                              f"{put_delta:.3f} -> call {matched_k}C delta {matched_delta:.3f} "
+                              f"(real {call_setup} struck {real_call_short}C). Separate book, "
+                              f"own P&L, per 2026-11-03 user decision.",
+            })
+        else:
+            net = quote_vertical_open(ib, qualify_fn, exp, matched_k, matched_k + WING, "C")
+            tid = None
 
         book["pairs"][anchor] = {
-            "entered": True, "entered_at": now_ct().strftime("%H:%M:%S"),
+            "entered": True, "entered_at": now_ct().strftime("%H:%M:%S"), "live": live,
+            "trade_id": tid, "qty": qty, "legs": legs,
             "put_short": put_short, "put_delta": round(put_delta, 4),
             "real_call_short": real_call_short,
             "real_call_credit": (call_trig or {}).get("fill", {}).get("net"),
@@ -211,9 +254,10 @@ def process(ib, qualify_fn, date, plan, book):
             "skew_call_long": matched_k + WING, "skew_call_credit": net,
             "exited": False,
         }
-        print(f"  [skew-shadow] {anchor}: put {put_short}P delta {put_delta:.3f} -> "
+        tag = "LIVE" if live else "shadow"
+        print(f"  [skew-condor:{tag}] {anchor}: put {put_short}P delta {put_delta:.3f} -> "
               f"matched call {matched_k}C delta {matched_delta:.3f} (real call was "
-              f"{real_call_short}C) | skew credit {net} vs real credit "
+              f"{real_call_short}C) | credit {net} vs real credit "
               f"{book['pairs'][anchor]['real_call_credit']}")
 
     save_book(date, book)
@@ -223,19 +267,35 @@ def close_open(ib, qualify_fn, exp, book):
     for anchor, rec in book["pairs"].items():
         if not rec.get("entered") or rec.get("exited"):
             continue
-        debit = quote_vertical_close(ib, qualify_fn, exp, rec["skew_call_short"], rec["skew_call_long"], "C")
+        if rec.get("live"):
+            from options_trigger_daemon import combo_contract, close_combo
+            import options_trade_log as tlog
+            legs = [tuple(leg) for leg in rec["legs"]]
+            try:
+                bag = combo_contract(ib, exp, legs)
+                debit = close_combo(ib, bag, rec["qty"])
+            except Exception as e:
+                print(f"  [skew-condor:LIVE] {anchor}: close FAILED ({e}) -- position may still be OPEN, check IB")
+                continue
+            if rec.get("trade_id"):
+                tlog.update_exit(rec["trade_id"], now_ct().strftime("%Y-%m-%d %H:%M"), debit, 4 * FEE)
+        else:
+            debit = quote_vertical_close(ib, qualify_fn, exp, rec["skew_call_short"], rec["skew_call_long"], "C")
         rec["exited"] = True
         rec["exit_debit_est"] = debit
         if rec.get("skew_call_credit") is not None and debit is not None:
             rec["pnl_shadow"] = round((rec["skew_call_credit"] - debit) * 100, 2)
-        print(f"  [skew-shadow] {anchor}: closed, est debit {debit}, "
-              f"shadow P&L {rec.get('pnl_shadow')}")
+        tag = "LIVE" if rec.get("live") else "shadow"
+        print(f"  [skew-condor:{tag}] {anchor}: closed, debit {debit}, "
+              f"P&L {rec.get('pnl_shadow')}")
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry", help="parse-only on a past date (no IB connection)")
     ap.add_argument("--until", default=TIME_STOP, help="time-stop, CT HH:MM")
+    ap.add_argument("--live", action="store_true",
+                     help="place REAL combo orders, logged to its own book (trades_skew_condor.parquet)")
     a = ap.parse_args()
     date = a.dry or now_ct().strftime("%Y-%m-%d")
 
@@ -251,6 +311,11 @@ def main():
               f"of 2 put anchors fired. (No IB connection in --dry mode -- parse-only.)")
         return
 
+    if a.live:
+        import options_trade_log as tlog
+        tlog.set_book("skew_condor")
+        print("  [skew-condor] LIVE mode -- real orders, logged to data/options_log/trades_skew_condor.parquet")
+
     import ib_conn
     from options_trigger_daemon import qualify
     ib = ib_conn.connect()
@@ -258,9 +323,9 @@ def main():
     try:
         while now_ct() < end:
             try:
-                process(ib, qualify, date, plan, book)
+                process(ib, qualify, date, plan, book, live=a.live)
             except Exception as e:
-                print(f"  [skew-shadow] poll error: {type(e).__name__}: {e}")
+                print(f"  [skew-condor] poll error: {type(e).__name__}: {e}")
             time.sleep(30)
         close_open(ib, qualify, plan["date"], book)
         save_book(date, book)

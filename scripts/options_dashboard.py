@@ -1388,20 +1388,28 @@ def results_html():
 
 
 def skew_shadow_html():
-    """Skew-matched condor shadow (candidate idea, 2026-11-01) -- strikes the
-    call to the SAME delta as the put instead of the same point-distance.
-    Pure observation (scripts/skew_condor_shadow.py never places an order);
-    reads its own isolated files, never trades.parquet/marks.csv. NOT part of
-    any total/tile on this dashboard."""
+    """Skew-matched condor (candidate idea, 2026-11-01) -- strikes the call to
+    the SAME delta as the put instead of the same point-distance. Reads its
+    own isolated files (data/options_sim/skew_condor_shadow/shadow_*.json),
+    never trades.parquet/marks.csv -- NOT part of any total/tile on this
+    dashboard. Three row modes, tagged per pair:
+      LIVE          real IB order via skew_condor_shadow.py --live (2026-11-03
+                    decision) -- own separate book, trades_skew_condor.parquet.
+      shadow        same script, no --live -- quote-only, no order ever.
+      reconstructed no live run that day -- skew_condor_reconstruct.py backfills
+                    the match offline from the archived chain tape using a
+                    Black-Scholes delta (IB's own tick was never recorded for
+                    that day) -- an estimate, not an IB-quoted delta."""
     import glob
     files = sorted(glob.glob(str(SIM / "skew_condor_shadow" / "shadow_*.json")), reverse=True)
-    banner = ("<p class='muted'><b>SHADOW ONLY</b> -- no real orders, not included in "
-              "any P&L/Analytics total on this dashboard. Tests whether matching the "
-              "call's delta to the put's delta (instead of matching points) fixes the "
-              "call side's chronic thin/zero credit (vol skew, see the 2026-11-01 "
-              "'wall already blown through' forensics).</p>")
+    banner = ("<p class='muted'><b>SEPARATE BOOK</b> -- never included in any P&L/Analytics "
+              "total on this dashboard. Tests whether matching the call's delta to the put's "
+              "delta (instead of matching points) fixes the call side's chronic thin/zero "
+              "credit (vol skew, see the 2026-11-01 'wall already blown through' forensics). "
+              "LIVE rows are real orders (own book); reconstructed rows are an offline "
+              "Black-Scholes estimate for days before --live existed.</p>")
     if not files:
-        return banner + "<p class='muted'>No shadow data yet -- runs during market hours.</p>"
+        return banner + "<p class='muted'>No data yet -- runs during market hours.</p>"
     rows = []
     for f in files:
         try:
@@ -1411,18 +1419,24 @@ def skew_shadow_html():
         for anchor, r in b.get("pairs", {}).items():
             if not r.get("entered"):
                 continue
+            mode = "LIVE" if r.get("live") else ("reconstructed" if r.get("reconstructed") else "shadow")
+            mode_cls = "muted"
+            status_cell = ("<td class='muted'>closed</td>" if r.get("exited")
+                           else "<td class='neg'><b>open</b></td>")
             pnl = r.get("pnl_shadow")
-            pnl_cell = f"<td class='{'pos' if (pnl or 0) >= 0 else 'neg'}'>{pnl}</td>" if pnl is not None else "<td class='muted'>open</td>"
+            pnl_cell = (f"<td class='{'pos' if (pnl or 0) >= 0 else 'neg'}'>{pnl}</td>"
+                        if pnl is not None else "<td class='muted'>&mdash;</td>")
             rows.append(
-                f"<tr><td>{b['date']}</td><td>{anchor}</td>"
+                f"<tr><td>{b['date']}</td><td>{anchor}</td><td class='{mode_cls}'><b>{mode}</b></td>"
+                f"{status_cell}"
                 f"<td>{r.get('put_short')}P ({r.get('put_delta')})</td>"
                 f"<td>{r.get('real_call_short')}C / cr {r.get('real_call_credit')}</td>"
                 f"<td>{r.get('skew_call_short')}C ({r.get('skew_call_delta')}) / cr {r.get('skew_call_credit')}</td>"
                 f"{pnl_cell}</tr>")
     if not rows:
         return banner + "<p class='muted'>No completed pairs yet.</p>"
-    head = ("<tr><th>date</th><th>anchor</th><th>put (real)</th><th>call (real)</th>"
-            "<th>call (skew-matched, shadow)</th><th>shadow P&L</th></tr>")
+    head = ("<tr><th>date</th><th>anchor</th><th>mode</th><th>status</th><th>put (real)</th><th>call (real)</th>"
+            "<th>call (skew-matched)</th><th>P&amp;L</th></tr>")
     return banner + f"<table>{head}{''.join(rows)}</table>"
 
 
@@ -2075,7 +2089,6 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
   <div class="tab" data-p="results">Sim Results</div>
   <div class="tab" data-p="levels">Levels</div>
   <div class="tab" data-p="ibtd">IB vs TD</div>
-  <div class="tab" data-p="spybounce">SPY Bounce</div>
   <div class="tab" data-p="skewshadow">Skew Condor (shadow)</div>
 </div>
 
@@ -2097,10 +2110,6 @@ h2{{font-size:15px;color:var(--acc);margin:24px 0 8px}}
 <div class="kpis" style="margin:6px 0 14px">{stat_tiles(s, only=("running", "close_now", "exp_close_now", "mpz", "mpz_pin"))}</div>
 {zone_bar_html(s)}
 {ibtd_html}
-</div>
-<div class="page" id="p-spybounce">
-<div class="muted" style="font-size:12px;margin:4px 0 8px">SPY 0DTE-bounce paper-tracker (S119) — 4 structures marked live off OPRA, gated to the options session (09:30–16:15 ET). Written by scripts/spy_bounce_tracker.py; entry locked in state.</div>
-<iframe src="/spybounce" title="SPY Bounce Tracker" style="width:100%;height:1400px;border:1px solid var(--line,#30363d);border-radius:11px;background:#0e0e12"></iframe>
 </div>
 <div class="page" id="p-analytics">
   <div class="kpis" id="an-tiles"></div>
