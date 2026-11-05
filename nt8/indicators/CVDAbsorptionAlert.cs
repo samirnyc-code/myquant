@@ -120,6 +120,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 PerBarLookback = 50;
                 PerBarThresholdMultiplier = 1.5;
                 PerBarCloseThreshold = 0.5;
+                RequirePerBarTrendFilter = false;
 
                 ShowMarkers = true;
                 PlaySound = true;
@@ -335,8 +336,17 @@ namespace NinjaTrader.NinjaScript.Indicators
                     if (range > 0)
                     {
                         double closePos = (Close[1] - Low[1]) / range;   // 0 = closed at low, 1 = closed at high
-                        bool pbBullish = thisDelta <= -threshold && closePos >= PerBarCloseThreshold;
-                        bool pbBearish = thisDelta >= threshold && closePos <= (1.0 - PerBarCloseThreshold);
+
+                        // 2026-11-05: additive opt-in trend filter for THIS mode -- reuses emaNow
+                        // (already computed above for the pivot logic, no duplicate EMA calc), same
+                        // directional convention as Require Trend Filter: bullish only above the
+                        // EMA, bearish only below it. Off by default -- without it, an FP- can print
+                        // anywhere (above or below the EMA) since this mode otherwise has zero trend
+                        // context by design.
+                        bool pbTrendOkBull = !RequirePerBarTrendFilter || Close[1] > emaNow;
+                        bool pbTrendOkBear = !RequirePerBarTrendFilter || Close[1] < emaNow;
+                        bool pbBullish = thisDelta <= -threshold && closePos >= PerBarCloseThreshold && pbTrendOkBull;
+                        bool pbBearish = thisDelta >= threshold && closePos <= (1.0 - PerBarCloseThreshold) && pbTrendOkBear;
 
                         if (DebugPrint)
                             Print(string.Format("{0} PERBAR bar={1} delta={2:F0} baseline={3:F0} thr={4:F0} closePos={5:F2} bull={6} bear={7}",
@@ -493,6 +503,11 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Display(Name = "Per-Bar Close Threshold", Description = "How far into the bar's own range the close must sit to count as \"didn't follow through\" -- 0.5 = at least the midpoint, 1.0 = at the extreme",
                  GroupName = "3. Per-Bar-Close Setting", Order = 3)]
         public double PerBarCloseThreshold { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Require Trend Filter (Per-Bar)", Description = "When ON, only flags a per-bar bullish hit above the trend EMA / bearish hit below it -- same EMA as the pivot mode's Trend EMA Period. Off by default: without it, an FP- can print above the EMA (and FP+ below it)",
+                 GroupName = "3. Per-Bar-Close Setting", Order = 4)]
+        public bool RequirePerBarTrendFilter { get; set; }
 
         [NinjaScriptProperty]
         [Display(Name = "Show Markers", Description = "Draw the stacked A/B/S +/- text on the price panel",
