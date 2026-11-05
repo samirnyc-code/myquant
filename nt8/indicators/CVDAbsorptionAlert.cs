@@ -60,11 +60,6 @@ using NinjaTrader.NinjaScript.DrawingTools;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-    // 2026-11-05: which marker type(s) to draw on the chart -- added on request, display-only,
-    // does not affect Debug Print / Play Sound Alert / the persisted marker log (those still
-    // happen for both modes regardless of this setting).
-    public enum CvdAbsorptionMarkerDisplay { Both, AbsOnly, FpOnly }
-
     public class CVDAbsorptionAlert : Indicator
     {
         private Series<double> deltaSeries;
@@ -144,7 +139,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 RequirePerBarTrendFilter = false;
 
                 ShowMarkers = true;
-                MarkerDisplay = CvdAbsorptionMarkerDisplay.Both;
+                ShowAbsMarkers = true;
+                ShowFpMarkers = true;
                 PlaySound = true;
                 MarkerFontSize = 10;
                 MarkerOffsetTicks = 6;
@@ -500,8 +496,8 @@ namespace NinjaTrader.NinjaScript.Indicators
         private void DrawMarkerAt(int barsAgo, bool bullish, string mode)
         {
             if (!ShowMarkers) return;
-            if (MarkerDisplay == CvdAbsorptionMarkerDisplay.AbsOnly && mode != "pivot") return;
-            if (MarkerDisplay == CvdAbsorptionMarkerDisplay.FpOnly && mode != "perbar") return;
+            if (mode == "pivot" && !ShowAbsMarkers) return;
+            if (mode == "perbar" && !ShowFpMarkers) return;
             System.Windows.Media.Brush color = bullish ? BullColor : BearColor;
             string tag = "cvd_" + mode + "_" + (bullish ? "Bull" : "Bear") + "_" + Time[barsAgo].Ticks;
             double off = MarkerOffsetTicks * (TickSize > 0 ? TickSize : 0.25);
@@ -641,9 +637,14 @@ namespace NinjaTrader.NinjaScript.Indicators
         public string BearColorSerialize { get { return Serialize.BrushToString(BearColor); } set { BearColor = Serialize.StringToBrush(value); } }
 
         [NinjaScriptProperty]
-        [Display(Name = "Marker Display", Description = "Which markers to show on the chart: Both, ABS (pivot mode) only, or FP (per-bar mode) only. Does not affect Debug Print, Play Sound Alert, or the persisted marker log -- those still happen for both modes regardless",
+        [Display(Name = "Show ABS Markers (pivot mode)", Description = "Draw pivot-mode (hidden divergence) markers on the chart. Does not affect Debug Print, Play Sound Alert, or the persisted marker log",
                  GroupName = "2. Display Setting", Order = 7)]
-        public CvdAbsorptionMarkerDisplay MarkerDisplay { get; set; }
+        public bool ShowAbsMarkers { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Show FP Markers (per-bar mode)", Description = "Draw per-bar-close (footprint) markers on the chart. Does not affect Debug Print, Play Sound Alert, or the persisted marker log",
+                 GroupName = "2. Display Setting", Order = 8)]
+        public bool ShowFpMarkers { get; set; }
         #endregion
     }
 }
