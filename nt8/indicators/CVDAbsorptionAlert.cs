@@ -328,19 +328,31 @@ namespace NinjaTrader.NinjaScript.Indicators
             deltaSeries[0] = delta;
 
             int n = FractalPeriods;
-            if (CurrentBar < 2 * n + 1) return;
+
+            // 2026-11-05: user caught this live -- a marker appeared to confirm right as a bar
+            // closed, not after FractalPeriods bars as claimed. Real cause: IsPivotLow/IsPivotHigh's
+            // "more recent side" check reads down to index 0 -- the bar CURRENTLY being processed,
+            // live/still-forming included (Calculate.OnEachTick runs this every tick). So a peak at
+            // bar P could "confirm" the instant bar P+2 started (bar P+1 closed, P+2 only needed to
+            // exist with a so-far-lower high) -- one closed bar plus an instant, not n closed bars.
+            // Fix: gate to run exactly ONCE per bar (IsFirstTickOfBar) and shift every index by +1,
+            // so index 0 (the brand-new, just-started bar) is never read -- only bars 1..2n+1, all
+            // of which are guaranteed fully closed at the moment this now evaluates.
+            int r = n + 1;
+            if (CurrentBar < 2 * r + 1) return;
+            if (!IsFirstTickOfBar) return;
 
             double emaNow = EMA(Close, TrendEmaPeriod)[0];
 
             // ---- pivot LOW confirmed n bars ago -> hidden BULLISH check ----
-            if (IsPivotLow(n))
+            if (IsPivotLow(r))
             {
-                int pivotBar = CurrentBar - n;
-                double price = Low[n];
+                int pivotBar = CurrentBar - r;
+                double price = Low[r];
 
                 // trend filter INVERTED vs regular divergence: hidden bullish is a pullback
                 // INSIDE an uptrend, so price should be ABOVE the trend EMA, not below it.
-                bool trendOk = !RequireTrendFilter || Close[n] > emaNow;
+                bool trendOk = !RequireTrendFilter || Close[r] > emaNow;
 
                 double leg = lLastBar >= 0 ? SumDeltaBetween(lLastBar, pivotBar) : double.NaN;
 
@@ -351,7 +363,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                     if (DebugPrint)
                         Print(string.Format("{0} LOW pivot bar={1} price={2} leg={3:F0} | prev bar={4} price={5} leg={6:F0}",
-                                             Time[n], lLastBar, lLastPrice, lLastLeg, lPrevBar, lPrevPrice, lPrevLeg));
+                                             Time[r], lLastBar, lLastPrice, lLastLeg, lPrevBar, lPrevPrice, lPrevLeg));
 
                     // hidden bullish: price HOLDS/HIGHER low, but real selling into it was AS
                     // HEAVY OR HEAVIER than the leg into the prior low -- effort without result.
@@ -364,11 +376,11 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
 
             // ---- pivot HIGH confirmed n bars ago -> hidden BEARISH check (mirror) ----
-            if (IsPivotHigh(n))
+            if (IsPivotHigh(r))
             {
-                int pivotBar = CurrentBar - n;
-                double price = High[n];
-                bool trendOk = !RequireTrendFilter || Close[n] < emaNow;
+                int pivotBar = CurrentBar - r;
+                double price = High[r];
+                bool trendOk = !RequireTrendFilter || Close[r] < emaNow;
 
                 double leg = hLastBar >= 0 ? SumDeltaBetween(hLastBar, pivotBar) : double.NaN;
 
@@ -379,7 +391,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                     if (DebugPrint)
                         Print(string.Format("{0} HIGH pivot bar={1} price={2} leg={3:F0} | prev bar={4} price={5} leg={6:F0}",
-                                             Time[n], hLastBar, hLastPrice, hLastLeg, hPrevBar, hPrevPrice, hPrevLeg));
+                                             Time[r], hLastBar, hLastPrice, hLastLeg, hPrevBar, hPrevPrice, hPrevLeg));
 
                     // hidden bearish: price HOLDS/LOWER high, but real buying into it was AS
                     // HEAVY OR HEAVIER than the leg into the prior high.
