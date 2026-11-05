@@ -37,6 +37,7 @@ Only ADDS days missing from the log; never overwrites a day already written, unl
 from __future__ import annotations
 
 import argparse
+import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -152,7 +153,16 @@ def main() -> int:
         new_df = pd.DataFrame(rows_new, columns=["date", "timestamp", "ask_vol", "bid_vol"])
         out = pd.concat([existing, new_df], ignore_index=True).sort_values(["date", "timestamp"])
         OUT_LOG.parent.mkdir(parents=True, exist_ok=True)
-        out.to_csv(OUT_LOG, index=False)
+        # 2026-10-20: write to a temp file then atomically replace -- this script now runs on a
+        # 30-min watchdog timer from BOTH the daemon (10s loop) and the one-shot (5-min) task,
+        # and `to_csv` writing the target path directly is not atomic: two invocations landing
+        # close together raced and corrupted the file (a literal truncated row, "48,,,", found
+        # mid-session). os.replace() is atomic on the same filesystem -- no reader (this script's
+        # own `pd.read_csv` above, or NT8's indicator) can ever observe a half-written file, and
+        # if two writers still race, the later rename just cleanly wins instead of interleaving.
+        tmp_path = OUT_LOG.with_suffix(OUT_LOG.suffix + f".tmp{os.getpid()}")
+        out.to_csv(tmp_path, index=False)
+        os.replace(tmp_path, OUT_LOG)
         days_covered = out["date"].nunique()
         print(f"\nwrote {len(rows_new):,} new bucket row(s) to {OUT_LOG} (log now covers {days_covered} day(s), {len(out):,} rows total)")
     else:

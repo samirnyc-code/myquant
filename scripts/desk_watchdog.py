@@ -31,6 +31,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -252,12 +253,32 @@ COMPONENTS = [
 ]
 
 
+def current_l1_day():
+    """Day-key of whichever L1 tape file was written to most recently -- the one
+    actually receiving live ticks right now. 2026-11-05 (S146-recurring, root cause):
+    passing a CT-clock "today" to backfill_bid_ask_log.py's --day is WRONG, because
+    the L1 recorder names files by its own rollover (flips at the ~16:00 CT ES
+    maintenance break), not CT midnight. For the ~7-8h between that break and CT
+    midnight, CT-today and the active file's filename-date disagree, so the forced
+    refresh kept re-processing the already-closed previous file while the file with
+    tonight's actual ticks was never touched -- the multi-hour post-16:00-CT flatline
+    reported repeatedly. Using the newest-mtime file's own filename date sidesteps the
+    whole labeling mismatch instead of trying to reconcile the two conventions."""
+    l1_dir = ROOT / "data" / "l1_tape"
+    files = sorted(l1_dir.glob("ES_*_l1_*.*"), key=lambda p: p.stat().st_mtime)
+    if not files:
+        return None
+    m = re.search(r"_l1_(\d{4}-\d{2}-\d{2})\.(parquet|csv)$", files[-1].name)
+    return m.group(1) if m else None
+
+
 def refresh_bid_ask_backfill(state, today, dry_run=False):
     """Periodic timer action, not a check-then-restart component: re-runs
-    backfill_bid_ask_log.py --day <today> --force on a fixed interval so the NT8
-    bid/ask bucket log never falls more than ~BID_ASK_BACKFILL_INTERVAL_S behind
-    live. Returns a problem string on failure, else None (success is silent/logged,
-    not notified -- this is routine, not an outage)."""
+    backfill_bid_ask_log.py --day <day of the actively-growing L1 file> --force on a
+    fixed interval so the NT8 bid/ask bucket log never falls more than
+    ~BID_ASK_BACKFILL_INTERVAL_S behind live. Returns a problem string on failure,
+    else None (success is silent/logged, not notified -- this is routine, not an
+    outage)."""
     st = state.get("bid_ask_backfill", {})
     since_last = ((dt.datetime.now() - dt.datetime.fromisoformat(st["last"])).total_seconds()
                   if st.get("last") else 1e9)
@@ -266,9 +287,10 @@ def refresh_bid_ask_backfill(state, today, dry_run=False):
     if dry_run:
         log(f"bid_ask_backfill: due for refresh (dry-run, not executing) — {since_last:.0f}s since last")
         return None
+    day = current_l1_day() or today
     script = ROOT / "scripts" / "backfill_bid_ask_log.py"
     try:
-        r = subprocess.run([sys.executable, str(script), "--day", today, "--force"],
+        r = subprocess.run([sys.executable, str(script), "--day", day, "--force"],
                            capture_output=True, text=True, timeout=180,
                            creationflags=0x08000000, cwd=str(ROOT))
         ok = r.returncode == 0
