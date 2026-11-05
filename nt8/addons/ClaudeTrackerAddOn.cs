@@ -86,10 +86,24 @@ namespace NinjaTrader.NinjaScript.AddOns
 {
     public class ClaudeTrackerAddOn : AddOnBase
     {
-        // -------- config (edit per machine — see header) --------
+        // ==================== PER-MACHINE CONFIG — EDIT THESE 4 LINES ====================
+        // Every value below is specific to the machine this is deployed on. Thomas: these
+        // are the only 4 lines you need to change after pulling this file — leave everything
+        // else in the file untouched.
         private const string AccountName = "Sim101";
         private const string SymbolName  = "ES 12-26";
         private const string TraderTag   = "Samir"; // just for the health file / log lines
+        // Deliberately a DIFFERENT folder than ClaudeTrackerV2.cs's ExportRootFolder (same
+        // base, "_AddOnTest" suffix on Samir's machine) — running both at once (as directed,
+        // for a side-by-side comparison) against the SAME folder would have them overwrite
+        // each other's CSVs. WriteEntryStudyMerged in particular reads the whole file, filters,
+        // and rewrites it — two processes doing that concurrently on the same file is a real
+        // corruption risk, not just a theoretical one. Do NOT point journal_uploader.py at this
+        // folder while the Strategy is also running against its own — that would upload the
+        // same real trades twice into the live Journal. Thomas: pick your own folder here, not
+        // Samir's — see docs/living/thomas_fixes_20261105.md for what this must NOT collide with.
+        private const string ExportRootFolder = @"G:\My Drive\!NT Tracker Export_AddOnTest";
+        // ===================================================================================
 
         private Instrument instrument;
         private Account account;
@@ -358,15 +372,8 @@ namespace NinjaTrader.NinjaScript.AddOns
         // edit per machine if a value needs to differ).
         private const int InitialStopLockSeconds = 5;
         private const bool DebugMode = true;
-        // Deliberately a DIFFERENT folder than ClaudeTrackerV2.cs's ExportRootFolder (same
-        // base, "_AddOnTest" suffix) — running both at once (as directed, for a side-by-side
-        // comparison) against the SAME folder would have them overwrite each other's CSVs.
-        // WriteEntryStudyMerged in particular reads the whole file, filters, and rewrites it —
-        // two processes doing that concurrently on the same file is a real corruption risk,
-        // not just a theoretical one. Compare the two trees once the test session is over;
-        // do NOT point journal_uploader.py at this folder while the Strategy is also running
-        // against its own — that would upload the same real trades twice into the live Journal.
-        private const string ExportRootFolder = @"G:\My Drive\!NT Tracker Export_AddOnTest";
+        // ExportRootFolder moved to the per-machine config block at the top of the file
+        // (2026-11-05) — it was buried down here, easy to miss on a redeploy.
         // A same-order or same-tiny-window fill is still the SAME entry, not a deliberate
         // add — see MergeIntoEntry(). Ported from the entry-merge-window fix that was
         // reverted out of the Strategy version on 2026-10-22 (not because it was implicated

@@ -61,6 +61,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
     public class CVDRealDivergence : Indicator
     {
+        // ==================== PER-MACHINE CONFIG — EDIT THIS 1 LINE ====================
+        // Only needed for HISTORICAL backfill (past bars' real delta, reconstructed from the
+        // L1 tape) — produced by scripts/backfill_bid_ask_log.py in the myquant repo, which
+        // is a Python pipeline Thomas would need running on his own machine to get this file
+        // at all. If Thomas doesn't have that pipeline set up, leave this pointed at a path
+        // that simply doesn't exist (ReadBucketFile() below no-ops cleanly via File.Exists) —
+        // the indicator still works LIVE (OnMarketData tick classification, today forward),
+        // it just won't backfill divergences on past days without this file. Not required to
+        // deploy the indicator, only to get historical pivots.
+        private const string BucketLogPath = @"C:\Users\Admin\myquant\data\bid_ask\bid_ask_vol_buckets.csv";
+        // ================================================================================
+
         private Series<double> deltaSeries;
         private Series<double> histSeries;
 
@@ -73,7 +85,6 @@ namespace NinjaTrader.NinjaScript.Indicators
         // instead of a persistent running cumulative (this indicator wants "how much
         // real delta happened in this bar," not "cumulative since session start").
         private struct BidAskBucket { public DateTime ts; public double askVol, bidVol; }
-        private const string BucketLogPath = @"C:\Users\Admin\myquant\data\bid_ask\bid_ask_vol_buckets.csv";
         private List<BidAskBucket> _buckets = new List<BidAskBucket>();
         private int _bucketCursor;
         private static List<BidAskBucket> _bucketsCache;

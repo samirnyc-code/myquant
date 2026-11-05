@@ -2,8 +2,13 @@
 **Status:** Living — update every session  
 
 **Last Updated:** 2026-11-05 — **Trade journal was silently not recording (6-day gap) +
-ClaudeTrackerAddOn screenshot reliability fix (TWO bugs, not one) — THOMAS NEEDS ALL OF IT,
-full instructions in `docs/living/thomas_fixes_20261105.md`.** User reported "the trade journal is not recording
+ClaudeTrackerAddOn screenshot reliability fix (TWO bugs, not one) + the CVD/DT-DB
+indicator family finally packaged for shipping — THOMAS NEEDS ALL OF IT, ONE consolidated
+doc now at `docs/living/thomas_fixes_20261105.md` (rewritten to cover both issues; file
+paths in `ClaudeTrackerAddOn.cs` and `CVDRealDivergence.cs` were also moved from scattered
+mid-file consts into one per-machine config block at the top of each file, per explicit
+user request — "anytime the code contains a file path to our computers I want that in the
+beginning of the code so Thomas can easily find it and change it.").** User reported "the trade journal is not recording
 my trade" with a live position open. Root cause, two bugs stacked: (1) `trade-playbook`
 repo's `journal_uploader.py` scheduled task (`TradePlaybookUploader`) only triggers at
 Windows logon, 5 retries 2min apart, then gives up — got killed 2026-10-30 01:49 AM (exit
