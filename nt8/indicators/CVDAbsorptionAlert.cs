@@ -359,7 +359,14 @@ namespace NinjaTrader.NinjaScript.Indicators
             {
                 int ago = CurrentBar - b;
                 if (ago < 0 || ago >= deltaSeries.Count) continue;
-                s += deltaSeries[ago];
+                // 2026-11-05: deltaSeries.Count is NOT the same boundary NT8 enforces on the
+                // indexer (MaximumBarsLookBack, e.g. 256) -- a restrictive trend filter (e.g. a
+                // tight TrendEmaPeriod) can leave lLastBar/hLastBar stale for a long stretch,
+                // and the eventual SumDeltaBetween call spans past that real cap even though
+                // this Count check passes. Guard the indexer itself instead of trying to
+                // predict NT8's exact cap.
+                try { s += deltaSeries[ago]; }
+                catch (IndexOutOfRangeException) { continue; }
             }
             return s;
         }
