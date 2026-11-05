@@ -113,6 +113,14 @@ namespace NinjaTrader.NinjaScript.Indicators
                 TrendEmaPeriod = 50;
                 RequireTrendFilter = true;
 
+                // 2026-11-05: additive second mode, OFF by default -- per-bar footprint-style
+                // absorption, independent of the pivot logic above (untouched). See
+                // EnablePerBarClose's own Display Description and the OnBarUpdate block below.
+                EnablePerBarClose = false;
+                PerBarLookback = 50;
+                PerBarThresholdMultiplier = 1.5;
+                PerBarCloseThreshold = 0.5;
+
                 ShowMarkers = true;
                 PlaySound = true;
                 MarkerFontSize = 10;
@@ -309,6 +317,36 @@ namespace NinjaTrader.NinjaScript.Indicators
                     }
                 }
             }
+
+            // ---- additive second mode (2026-11-05), independent of everything above ----
+            // Footprint-style single-bar absorption: no pivot/swing required, evaluated once
+            // per bar on IsFirstTickOfBar, reading only bar "1" (the one that just closed) --
+            // never bar "0" (still forming), so this has none of the mid-bar tick-staleness
+            // risk the pivot logic above has. Off by default (EnablePerBarClose); does not
+            // alter any state the pivot logic above reads or writes.
+            if (EnablePerBarClose && IsFirstTickOfBar && CurrentBar >= PerBarLookback + 1)
+            {
+                double thisDelta = deltaSeries[1];
+                double baseline = StdDev(deltaSeries, PerBarLookback)[1];
+                if (baseline > 0)
+                {
+                    double threshold = baseline * PerBarThresholdMultiplier;
+                    double range = High[1] - Low[1];
+                    if (range > 0)
+                    {
+                        double closePos = (Close[1] - Low[1]) / range;   // 0 = closed at low, 1 = closed at high
+                        bool pbBullish = thisDelta <= -threshold && closePos >= PerBarCloseThreshold;
+                        bool pbBearish = thisDelta >= threshold && closePos <= (1.0 - PerBarCloseThreshold);
+
+                        if (DebugPrint)
+                            Print(string.Format("{0} PERBAR bar={1} delta={2:F0} baseline={3:F0} thr={4:F0} closePos={5:F2} bull={6} bear={7}",
+                                                 Time[1], CurrentBar - 1, thisDelta, baseline, threshold, closePos, pbBullish, pbBearish));
+
+                        if (pbBullish) MarkPerBar(true, thisDelta, closePos);
+                        else if (pbBearish) MarkPerBar(false, thisDelta, closePos);
+                    }
+                }
+            }
         }
 
         // sums deltaSeries over every bar from fromBar to toBar inclusive (absolute bar
@@ -371,6 +409,34 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
         }
 
+        // separate from Mark() on purpose -- different tag prefix, different label text
+        // ("F/P" stacked instead of "A/B/S") so a per-bar-close hit is visually and
+        // programmatically distinguishable from a pivot-based hidden-divergence hit, even
+        // when both are enabled and firing on the same chart.
+        private void MarkPerBar(bool bullish, double deltaVal, double closePos)
+        {
+            System.Windows.Media.Brush color = bullish ? BullColor : BearColor;
+            string tag = (bullish ? "cvdFootprintBull_" : "cvdFootprintBear_") + (CurrentBar - 1);
+
+            if (ShowMarkers)
+            {
+                double off = MarkerOffsetTicks * (TickSize > 0 ? TickSize : 0.25);
+                double y = bullish ? Low[1] - off : High[1] + off;
+                string label = "F\nP" + (bullish ? "\n+" : "\n-");
+                Draw.Text(this, tag + "_txt", false, label, 1, y, 0, color,
+                          new SimpleFont("Arial", MarkerFontSize), System.Windows.TextAlignment.Center,
+                          Brushes.Transparent, Brushes.Transparent, 0);
+            }
+
+            if (PlaySound)
+            {
+                string msg = (bullish ? "Bullish" : "Bearish") + " per-bar CVD absorption: delta "
+                             + deltaVal.ToString("F0") + ", close position " + closePos.ToString("F2");
+                Alert(tag, Priority.High, msg, @"Alert1.wav", 10, Brushes.Black,
+                      bullish ? Brushes.LightGreen : Brushes.LightSalmon);
+            }
+        }
+
         #region Properties
         [NinjaScriptProperty]
         [Range(1, 50)]
@@ -394,6 +460,29 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Display(Name = "Require Trend Filter", Description = "When ON, only flags a hidden-bullish pivot above the trend EMA / hidden-bearish pivot below it -- turn off to see every leg-vs-leg match regardless of trend",
                  GroupName = "1. Logic Setting", Order = 3)]
         public bool RequireTrendFilter { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Enable Per-Bar-Close Mode", Description = "Additive second detection mode: footprint-style single-bar absorption, no swing/pivot required -- independent of the pivot logic above, off by default",
+                 GroupName = "3. Per-Bar-Close Setting", Order = 0)]
+        public bool EnablePerBarClose { get; set; }
+
+        [NinjaScriptProperty]
+        [Range(10, 500)]
+        [Display(Name = "Per-Bar Lookback (bars)", Description = "Window used to judge what counts as an unusually large single-bar real-delta magnitude",
+                 GroupName = "3. Per-Bar-Close Setting", Order = 1)]
+        public int PerBarLookback { get; set; }
+
+        [NinjaScriptProperty]
+        [Range(0.1, 10.0)]
+        [Display(Name = "Per-Bar Threshold Multiplier", Description = "This bar's |real delta| must exceed this many StdDevs of recent per-bar delta to count as heavy",
+                 GroupName = "3. Per-Bar-Close Setting", Order = 2)]
+        public double PerBarThresholdMultiplier { get; set; }
+
+        [NinjaScriptProperty]
+        [Range(0.5, 1.0)]
+        [Display(Name = "Per-Bar Close Threshold", Description = "How far into the bar's own range the close must sit to count as \"didn't follow through\" -- 0.5 = at least the midpoint, 1.0 = at the extreme",
+                 GroupName = "3. Per-Bar-Close Setting", Order = 3)]
+        public double PerBarCloseThreshold { get; set; }
 
         [NinjaScriptProperty]
         [Display(Name = "Show Markers", Description = "Draw the stacked A/B/S +/- text on the price panel",
