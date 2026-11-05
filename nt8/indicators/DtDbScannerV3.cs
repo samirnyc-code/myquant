@@ -206,7 +206,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 DtDotBrush        = Brushes.Transparent;  // DT neckline-break dot (user turned off live)
                 DbDotBrush        = Brushes.Transparent;  // DB neckline-break dot (user turned off live)
                 ShowLastN         = 0;                    // 0 = show all; N = keep only the newest N DT/DB on the chart
-                ShowDebugPrints   = true;  // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
+                ShowDebugPrints   = false; // Output-tab diagnostics: pivot confirms + DT/DB gate pass/fail
+                                           // 2026-11-05: was true -- flooded the (global, shared across every
+                                           // chart/instance) Output window by default; V4 already defaults false
 
                 ShowCvdDivergence = false;
                 CvdPeriod         = 21;
