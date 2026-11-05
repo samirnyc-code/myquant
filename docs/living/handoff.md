@@ -1,6 +1,41 @@
 # Handoff — Current State
 **Status:** Living — update every session  
 
+**Last Updated:** 2026-11-05 — **Trade journal was silently not recording (6-day gap) +
+ClaudeTrackerAddOn screenshot reliability fix — THOMAS NEEDS BOTH, full instructions in
+`docs/living/thomas_fixes_20261105.md`.** User reported "the trade journal is not recording
+my trade" with a live position open. Root cause, two bugs stacked: (1) `trade-playbook`
+repo's `journal_uploader.py` scheduled task (`TradePlaybookUploader`) only triggers at
+Windows logon, 5 retries 2min apart, then gives up — got killed 2026-10-30 01:49 AM (exit
+`0x40010004`, same DBG_TERMINATE_PROCESS signature that hit Chain Recorder/Spot Feed that
+same week, root cause of the kills themselves still open) and sat dead 6 days, nothing
+noticed. (2) Separately, `uploader_config.json`'s `"root"` had pointed at the OLD/retired
+`ClaudeTrackerV2` Strategy export folder since Oct 1, not the AddOn's actual
+`..._AddOnTest` folder — even a running uploader would have found nothing new; every AddOn
+trade that ever reached the journal before today came from manual `--root`-override runs,
+never the scheduled task itself. **Fixed:** config root corrected, task restarted (confirmed
+backfilled today's live trade + verified 10/31, 11/3, 11/4 genuinely had no trades to miss),
+and a new `scripts/uploader_watchdog.py` (trade-playbook commit `304ab73`) checks every 5 min
+and relaunches the uploader if its process dies — **its own recurring Scheduled Task
+registration was blocked by the auto-mode classifier, user needs to run the PowerShell
+`Register-ScheduledTask` command directly** (given in this session, not yet re-pasted here —
+check uploader_watchdog.py's own module docstring / this session's transcript).
+
+Same session, user also flagged Thomas's ClaudeTrackerAddOn screenshots only land ~50% of
+the time. Code-verified root cause (not guessed): `CaptureFromChartControl()`'s
+`targetChart.GetScreenshot(...)` captures whatever TAB is active in the chart window, not
+the specifically tagged/matched `ChartControl` — being tagged only proves the right
+ChartControl exists in that window, not that its tab is the one visible when a trade event
+fires. Fixed in `nt8/addons/ClaudeTrackerAddOn.cs`: new `FindTabItemForChartControl()` +
+force-select the tagged tab before capture, restore the previous tab after. Deployed to
+Samir's own Custom folder, byte-verified. **Compile check could not run — NT8 was live with
+an open position holding `NinjaTrader.Custom.dll` locked; F5 deliberately NOT requested
+while a position was open (hard rule). Needs F5 next time flat**, on both Samir's and
+Thomas's machines. Full Thomas instructions (both fixes, exact steps, what NOT to
+blind-overwrite given his per-machine consts) in `docs/living/thomas_fixes_20261105.md`.
+
+---
+
 **Last Updated:** 2026-11-04 — **Cross-thread `DrawingTool.IsVisible` race fixed in 4 NT8
 indicator files — THOMAS NEEDS TO PULL + REDEPLOY.** `RegimeTrackerV2.cs`,
 `DtDbScannerV2.cs`, `DtDbScannerV3.cs`, `DtDbScannerV4.cs` all shared one unsafe pattern:

@@ -1684,6 +1684,27 @@ if (name.StartsWith("TARGET"))
         // window's own thread) — that hop is unavoidable and unchanged.
         // Shared by both the registry-cache hit and the live-scan hit below — identical
         // capture logic, just reached via two different ways of finding the ChartControl.
+        // Walks a Chart window's own tab collection to find the Items-collection entry (ChartTab
+        // or the TabItem wrapping it) backing a given ChartControl -- needed because SelectedItem
+        // must be set to that exact container, not to the ChartControl itself. Same Items-walk
+        // FindTaggedChartControlLive already does to go the other direction (control -> none);
+        // this one returns the container instead of matching by instrument name.
+        private static object FindTabItemForChartControl(Chart chart, NinjaTrader.Gui.Chart.ChartControl wantCC)
+        {
+            if (chart == null || chart.MainTabControl == null || wantCC == null) return null;
+            foreach (object item in chart.MainTabControl.Items)
+            {
+                NinjaTrader.Gui.Chart.ChartTab tab = item as NinjaTrader.Gui.Chart.ChartTab;
+                if (tab == null)
+                {
+                    System.Windows.Controls.TabItem ti = item as System.Windows.Controls.TabItem;
+                    if (ti != null) tab = ti.Content as NinjaTrader.Gui.Chart.ChartTab;
+                }
+                if (tab != null && ReferenceEquals(tab.ChartControl, wantCC)) return item;
+            }
+            return null;
+        }
+
         private void CaptureFromChartControl(NinjaTrader.Gui.Chart.ChartControl cc, string fileName,
             string tradePath, string masterPath, string sourceTag)
         {
@@ -1699,9 +1720,43 @@ if (name.StartsWith("TARGET"))
                         return;
                     }
 
+                    // targetChart.GetScreenshot() below captures whatever TAB is currently
+                    // selected/visible in this Chart WINDOW -- it has no idea which ChartControl
+                    // we actually matched (tagged or live-scanned). Being registered/tagged only
+                    // proves the right ChartControl exists somewhere in this window, not that its
+                    // tab is the one on screen right now. If the user is looking at a different
+                    // tab when a trade event fires, this previously captured the wrong instrument/
+                    // timeframe (or a blank render) instead of failing loudly -- exactly the kind
+                    // of intermittent miss that's invisible until someone checks the actual image.
+                    // Force the right tab selected for the capture, then restore whatever was
+                    // showing before so this doesn't yank the screen away mid-session.
+                    object targetItem = FindTabItemForChartControl(targetChart, cc);
+                    object previousSelection = null;
+                    bool switched = false;
+                    if (targetItem != null && targetChart.MainTabControl != null)
+                    {
+                        previousSelection = targetChart.MainTabControl.SelectedItem;
+                        if (!ReferenceEquals(previousSelection, targetItem))
+                        {
+                            targetChart.MainTabControl.SelectedItem = targetItem;
+                            switched = true;
+                            DebugPrint("Screenshot (" + sourceTag + "): switched to tagged chart's own tab for capture");
+                        }
+                    }
+                    else if (targetItem == null)
+                    {
+                        Log("[ClaudeTrackerAddOn] Screenshot: " + sourceTag + " could not find this chart's own tab in its"
+                            + " window's tab collection -- capturing whatever tab is currently active instead (may be wrong)",
+                            LogLevel.Warning);
+                    }
+
                     await System.Threading.Tasks.Task.Delay(ScreenshotDelayMs);
 
                     RenderTargetBitmap sc = targetChart.GetScreenshot(ShareScreenshotType.Chart);
+
+                    if (switched)
+                        targetChart.MainTabControl.SelectedItem = previousSelection;
+
                     if (sc == null) { Log("[ClaudeTrackerAddOn] Screenshot: null capture (" + sourceTag + ")", LogLevel.Warning); return; }
 
                     PngBitmapEncoder e1 = new PngBitmapEncoder();
