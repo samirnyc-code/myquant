@@ -31,9 +31,9 @@ it can't find the tab at all (previously silent).
 
 ### Steps
 
-1. `git pull` in Thomas's `myquant` clone — confirm you land on commit
-   `<FILL IN AFTER PUSH>` or later (commit message: "ClaudeTrackerAddOn: force-select the
-   tagged chart's own tab before screenshot capture").
+1. `git pull` in Thomas's `myquant` clone — confirm you land on commit `5bed8f0a` or later
+   ("nt8: ClaudeTrackerAddOn screenshot — force-select the tagged chart's own tab before
+   capture").
 2. **Before copying, diff the new repo file against what's currently deployed** at
    `<Documents>\NinjaTrader 8\bin\Custom\AddOns\ClaudeTrackerAddOn.cs` — Thomas's deployed
    copy has HIS OWN per-machine consts near the top (`AccountName`, `SymbolName`,
@@ -103,6 +103,7 @@ so even a perfectly running uploader would have found nothing new.
    $principal = New-ScheduledTaskPrincipal -UserId "<his Windows user>" -LogonType Interactive -RunLevel Limited
    Register-ScheduledTask -TaskName "MyQuant Trade Journal Uploader Watchdog" -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "Every 5 min: restarts journal_uploader.py if its process has died." -Force
    ```
+
 5. Verify: `Get-ScheduledTask -TaskName "MyQuant Trade Journal Uploader Watchdog"` shows
    `Ready`/running, and `scripts/uploader_watchdog.log` (next to his `uploader_state.json`,
    under `%LOCALAPPDATA%\TradePlaybookJournal\`) shows `ok -- uploader alive` entries every
