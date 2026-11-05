@@ -60,6 +60,11 @@ using NinjaTrader.NinjaScript.DrawingTools;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
+    // 2026-11-05: which marker type(s) to draw on the chart -- added on request, display-only,
+    // does not affect Debug Print / Play Sound Alert / the persisted marker log (those still
+    // happen for both modes regardless of this setting).
+    public enum CvdAbsorptionMarkerDisplay { Both, AbsOnly, FpOnly }
+
     public class CVDAbsorptionAlert : Indicator
     {
         private Series<double> deltaSeries;
@@ -139,6 +144,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 RequirePerBarTrendFilter = false;
 
                 ShowMarkers = true;
+                MarkerDisplay = CvdAbsorptionMarkerDisplay.Both;
                 PlaySound = true;
                 MarkerFontSize = 10;
                 MarkerOffsetTicks = 6;
@@ -494,6 +500,8 @@ namespace NinjaTrader.NinjaScript.Indicators
         private void DrawMarkerAt(int barsAgo, bool bullish, string mode)
         {
             if (!ShowMarkers) return;
+            if (MarkerDisplay == CvdAbsorptionMarkerDisplay.AbsOnly && mode != "pivot") return;
+            if (MarkerDisplay == CvdAbsorptionMarkerDisplay.FpOnly && mode != "perbar") return;
             System.Windows.Media.Brush color = bullish ? BullColor : BearColor;
             string tag = "cvd_" + mode + "_" + (bullish ? "Bull" : "Bear") + "_" + Time[barsAgo].Ticks;
             double off = MarkerOffsetTicks * (TickSize > 0 ? TickSize : 0.25);
@@ -631,6 +639,11 @@ namespace NinjaTrader.NinjaScript.Indicators
         public System.Windows.Media.Brush BearColor { get; set; }
         [Browsable(false)]
         public string BearColorSerialize { get { return Serialize.BrushToString(BearColor); } set { BearColor = Serialize.StringToBrush(value); } }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Marker Display", Description = "Which markers to show on the chart: Both, ABS (pivot mode) only, or FP (per-bar mode) only. Does not affect Debug Print, Play Sound Alert, or the persisted marker log -- those still happen for both modes regardless",
+                 GroupName = "2. Display Setting", Order = 7)]
+        public CvdAbsorptionMarkerDisplay MarkerDisplay { get; set; }
         #endregion
     }
 }
