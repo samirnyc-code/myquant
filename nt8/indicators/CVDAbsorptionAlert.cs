@@ -101,7 +101,12 @@ namespace NinjaTrader.NinjaScript.Indicators
                 DrawOnPricePanel = true;
                 DisplayInDataBox = false;
                 PaintPriceMarkers = true;
-                IsSuspendedWhileInactive = true;
+                // 2026-11-05: was true, copied unexamined from CVDRealDivergence.cs. NT8 suspends
+                // OnBarUpdate (and everything inside it, incl. every Print) on this setting whenever
+                // the chart isn't the focused/active tab -- plausible real cause of a persistent
+                // ZERO debug-line report (not wrong pivots, no pivots detected AT ALL) while looking
+                // at the Output window instead of this exact chart tab.
+                IsSuspendedWhileInactive = false;
 
                 FractalPeriods = 2;
                 MaxPivotGapBars = 30;
