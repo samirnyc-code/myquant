@@ -91,10 +91,14 @@ namespace NinjaTrader.NinjaScript.Indicators
                 StdDevLookback = 100;
                 ThresholdMultiplier = 1.5;
                 FlatPriceMoveTicks = 4;
+                RequireRetest = true;
+                PriorSwingLookback = 20;
 
                 ShowMarkers = true;
                 PlaySound = true;
                 MarkerFontSize = 10;
+                MarkerOffsetTicks = 6;
+                DebugPrint = false;
                 BullColor = Brushes.LimeGreen;
                 BearColor = Brushes.Firebrick;
             }
@@ -224,7 +228,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             deltaSeries[0] = delta;
 
-            int minBarsNeeded = Math.Max(AbsorptionLookback, StdDevLookback) + 1;
+            int minBarsNeeded = Math.Max(AbsorptionLookback, StdDevLookback) + PriorSwingLookback + 1;
             if (CurrentBar < minBarsNeeded)
             {
                 rollingSum[0] = 0;
@@ -240,8 +244,28 @@ namespace NinjaTrader.NinjaScript.Indicators
             double priceMove = Close[0] - Close[backBar];
             double flat = FlatPriceMoveTicks * (TickSize > 0 ? TickSize : 0.25);
 
-            bool bullCondition = rollingSum[0] <= -threshold && priceMove >= -flat;
-            bool bearCondition = rollingSum[0] >= threshold && priceMove <= flat;
+            // 2026-11-05: without this, the detector fires on the FIRST bounce off any low --
+            // the rolling sum is still deeply negative right as price has its first small tick
+            // up, which happens at nearly every swing low and isn't the pattern the user wants
+            // (confirmed live: it marked the 2:59 PM initial low, not the 3:08 PM retest that
+            // actually held against renewed heavy selling). This requires the CURRENT window's
+            // extreme to NOT undercut a deeper extreme found earlier -- i.e. an actual higher
+            // low / lower high, not just "not falling right now."
+            double recentLow = MIN(Low, AbsorptionLookback)[0];
+            double priorLow = MIN(Low, PriorSwingLookback)[AbsorptionLookback];
+            double recentHigh = MAX(High, AbsorptionLookback)[0];
+            double priorHigh = MAX(High, PriorSwingLookback)[AbsorptionLookback];
+            bool higherLowOk = !RequireRetest || recentLow >= priorLow;
+            bool lowerHighOk = !RequireRetest || recentHigh <= priorHigh;
+
+            bool bullCondition = rollingSum[0] <= -threshold && priceMove >= -flat && higherLowOk;
+            bool bearCondition = rollingSum[0] >= threshold && priceMove <= flat && lowerHighOk;
+
+            if (DebugPrint)
+                Print(string.Format("{0} bar={1} sum={2:F0} thr={3:F0} baseline={4:F0} priceMove={5:F2} " +
+                                     "recentLow={6} priorLow={7} higherLowOk={8} recentHigh={9} priorHigh={10} lowerHighOk={11}",
+                                     Time[0], CurrentBar, rollingSum[0], threshold, baseline, priceMove,
+                                     recentLow, priorLow, higherLowOk, recentHigh, priorHigh, lowerHighOk));
 
             if (bullCondition && !bullActive)
             {
@@ -265,12 +289,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             if (ShowMarkers)
             {
-                double off = 6 * (TickSize > 0 ? TickSize : 0.25);
+                double off = MarkerOffsetTicks * (TickSize > 0 ? TickSize : 0.25);
                 double y = bullish ? Low[0] - off : High[0] + off;
-                if (bullish) Draw.ArrowUp(this, tag, false, 0, y, color);
-                else Draw.ArrowDown(this, tag, false, 0, y, color);
-                Draw.Text(this, tag + "_txt", false, bullish ? "ABS+" : "ABS-", 0,
-                          bullish ? y - off : y + off, 0, color,
+                // one letter per line -- small, stacked, instead of a big arrow glyph
+                string label = "A\nB\nS" + (bullish ? "\n+" : "\n-");
+                Draw.Text(this, tag + "_txt", false, label, 0, y, 0, color,
                           new SimpleFont("Arial", MarkerFontSize), System.Windows.TextAlignment.Center,
                           Brushes.Transparent, Brushes.Transparent, 0);
             }
@@ -310,7 +333,18 @@ namespace NinjaTrader.NinjaScript.Indicators
         public double FlatPriceMoveTicks { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Show Markers", Description = "Draw ABS+/ABS- triangles on the price panel",
+        [Display(Name = "Require Retest (higher low / lower high)", Description = "When ON, the current window's extreme must hold above/below a deeper extreme found in Prior Swing Lookback -- filters out firing on the first bounce off any low",
+                 GroupName = "1. Logic Setting", Order = 4)]
+        public bool RequireRetest { get; set; }
+
+        [NinjaScriptProperty]
+        [Range(2, 500)]
+        [Display(Name = "Prior Swing Lookback (bars)", Description = "Bars searched BEFORE the absorption window for a deeper prior low/high to retest against",
+                 GroupName = "1. Logic Setting", Order = 5)]
+        public int PriorSwingLookback { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Show Markers", Description = "Draw the stacked A/B/S +/- text on the price panel",
                  GroupName = "2. Display Setting", Order = 0)]
         public bool ShowMarkers { get; set; }
 
@@ -324,14 +358,25 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Display(Name = "Marker font size", GroupName = "2. Display Setting", Order = 2)]
         public int MarkerFontSize { get; set; }
 
+        [NinjaScriptProperty]
+        [Range(0, 100)]
+        [Display(Name = "Marker offset (ticks)", Description = "Vertical distance from the bar's high/low to the marker text, in ticks",
+                 GroupName = "2. Display Setting", Order = 3)]
+        public double MarkerOffsetTicks { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Debug print to Output window", Description = "Print every bar's rolling sum / threshold / retest check to NT8's Output window -- use this to see exactly which gate blocked a fire you expected",
+                 GroupName = "2. Display Setting", Order = 4)]
+        public bool DebugPrint { get; set; }
+
         [XmlIgnore]
-        [Display(Name = "Bullish color", GroupName = "2. Display Setting", Order = 3)]
+        [Display(Name = "Bullish color", GroupName = "2. Display Setting", Order = 5)]
         public System.Windows.Media.Brush BullColor { get; set; }
         [Browsable(false)]
         public string BullColorSerialize { get { return Serialize.BrushToString(BullColor); } set { BullColor = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
-        [Display(Name = "Bearish color", GroupName = "2. Display Setting", Order = 4)]
+        [Display(Name = "Bearish color", GroupName = "2. Display Setting", Order = 6)]
         public System.Windows.Media.Brush BearColor { get; set; }
         [Browsable(false)]
         public string BearColorSerialize { get { return Serialize.BrushToString(BearColor); } set { BearColor = Serialize.StringToBrush(value); } }
