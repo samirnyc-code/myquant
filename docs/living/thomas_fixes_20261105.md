@@ -2,14 +2,14 @@
 
 **Written:** 2026-11-05 (Samir's machine)
 **For:** whichever Claude Code session Thomas opens on his own machine to apply this.
-**Two independent fixes below.** Part 1 is in the `myquant` repo (Thomas has git access,
-`tdeutschmann-byte`). Part 2 is in the `trade-playbook` repo, which **Thomas is NOT a git
-collaborator on** — give him the file content directly (paste it in, or send the file),
+**Three independent fixes below.** Parts 1 and 1b are in the `myquant` repo (Thomas has git
+access, `tdeutschmann-byte`). Part 2 is in the `trade-playbook` repo, which **Thomas is NOT a
+git collaborator on** — give him the file content directly (paste it in, or send the file),
 don't tell him to `git pull` that repo.
 
 ---
 
-## Part 1: Screenshot reliability fix (`myquant`, `ClaudeTrackerAddOn.cs`)
+## Part 1: Screenshot reliability fix #1 (`myquant`, `ClaudeTrackerAddOn.cs`)
 
 **Symptom on Thomas's machine:** screenshots only land roughly half the time.
 
@@ -29,11 +29,40 @@ collection, force-selects it, captures, then restores whatever tab was previousl
 so Thomas's screen isn't left on a different tab than he had open. Also logs a new warning if
 it can't find the tab at all (previously silent).
 
-### Steps
+## Part 1b: Screenshot reliability fix #2 — the bigger one (`myquant`, same file)
 
-1. `git pull` in Thomas's `myquant` clone — confirm you land on commit `5bed8f0a` or later
-   ("nt8: ClaudeTrackerAddOn screenshot — force-select the tagged chart's own tab before
-   capture").
+**Symptom Thomas reported directly:** screenshots recorded correctly even when the
+"ClaudeTracker Chart Tag" indicator wasn't running at all. That shouldn't be possible if the
+tag is what's supposed to make targeting unambiguous — it means the mechanism meant to fix
+screenshot targeting wasn't actually the thing doing the work.
+
+**Root cause (verified by reading the code — this is the real smoking gun):**
+`ClaudeTrackerChartRegistry.Get()` is a **pure write-back cache with zero expiry and zero
+freshness check** — once a `ChartControl` is registered for an instrument, every future
+`RequestScreenshot()` call trusts that cached reference forever, with no re-verification that
+the tag indicator is still there or that the chart window still exists. The only way an entry
+is ever removed is `Unregister()`, called from the tag indicator's own `State.Terminated` —
+and the file's own 2026-10-28 comment already documents this as unreliable: an NT8-wide
+reload or a closed chart window doesn't always tear the indicator down cleanly. Net effect:
+if Thomas ever had the tag on a chart that later got closed (or the indicator removed)
+without a clean `State.Terminated`, the registry kept pointing at that stale/dead chart
+forever — explaining screenshots "working" with no tag currently running: the AddOn was
+quietly capturing from an old leftover chart nobody was looking at anymore, not from
+anything live.
+
+**Fix:** `CaptureFromChartControl()` now re-checks, on the matched chart's own UI thread, that
+`ClaudeTracker Chart Tag` is genuinely still present on its indicator list right now. If not,
+it unregisters the stale cache entry and re-triggers a fresh live-scan instead of silently
+capturing from the wrong/dead chart. New log line to watch for: `"... was STALE -- ...
+clearing the cached entry and re-scanning from scratch"` — if Thomas's log ever shows this,
+it's direct confirmation this exact bug just fired and self-healed.
+
+### Steps (covers both Part 1 and Part 1b — same file, same deploy)
+
+1. `git pull` in Thomas's `myquant` clone — confirm you land on commit `d1e97c6d` or later
+   ("nt8: ClaudeTrackerAddOn screenshot — detect and self-heal a stale chart-tag registry
+   entry"), which includes both this and the tab-selection fix from commit `5bed8f0a` just
+   before it.
 2. **Before copying, diff the new repo file against what's currently deployed** at
    `<Documents>\NinjaTrader 8\bin\Custom\AddOns\ClaudeTrackerAddOn.cs` — Thomas's deployed
    copy has HIS OWN per-machine consts near the top (`AccountName`, `SymbolName`,

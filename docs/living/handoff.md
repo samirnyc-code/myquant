@@ -2,8 +2,8 @@
 **Status:** Living — update every session  
 
 **Last Updated:** 2026-11-05 — **Trade journal was silently not recording (6-day gap) +
-ClaudeTrackerAddOn screenshot reliability fix — THOMAS NEEDS BOTH, full instructions in
-`docs/living/thomas_fixes_20261105.md`.** User reported "the trade journal is not recording
+ClaudeTrackerAddOn screenshot reliability fix (TWO bugs, not one) — THOMAS NEEDS ALL OF IT,
+full instructions in `docs/living/thomas_fixes_20261105.md`.** User reported "the trade journal is not recording
 my trade" with a live position open. Root cause, two bugs stacked: (1) `trade-playbook`
 repo's `journal_uploader.py` scheduled task (`TradePlaybookUploader`) only triggers at
 Windows logon, 5 retries 2min apart, then gives up — got killed 2026-10-30 01:49 AM (exit
