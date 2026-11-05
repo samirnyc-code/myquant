@@ -90,6 +90,22 @@ namespace NinjaTrader.NinjaScript.Indicators
         private DateTime _lastConsumedTs = DateTime.MinValue;
         private DateTime _lastBucketFileCheckUtc = DateTime.MinValue;
 
+        // ---- persisted marker log (2026-11-05) ----
+        // User-reported bug: reloading the chart made previously-confirmed markers vanish.
+        // Root cause: Mark()/MarkPerBar() only ever draw from a LIVE recompute of the pivot/
+        // per-bar logic above, and that recompute's INPUT (the L1 bucket backfill file) keeps
+        // growing/correcting itself over time -- replaying the exact same detection logic
+        // against DIFFERENT input than what was there when a marker first fired can legitimately
+        // produce a different confirmed/rejected outcome. A marker that fired once is not
+        // guaranteed to re-fire on a later replay. Fix: log every confirmed fire to disk the
+        // instant it happens, and redraw from that log on every load regardless of what the
+        // live recompute does this time -- once logged, a marker can never disappear again.
+        private const string MarkerLogPath = @"C:\Users\Admin\myquant\data\bid_ask\cvd_absorption_markers.csv";
+        private struct LoggedMarker { public DateTime ts; public string mode; public bool bullish; public double v1, v2; }
+        private List<LoggedMarker> _loggedMarkers = new List<LoggedMarker>();
+        private HashSet<string> _loggedKeys = new HashSet<string>();
+        private int _loggedCursor;
+
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
@@ -137,6 +153,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             else if (State == State.DataLoaded)
             {
                 LoadBuckets();
+                LoadMarkerLog();
             }
         }
 
@@ -146,6 +163,61 @@ namespace NinjaTrader.NinjaScript.Indicators
             try { _ctTz = TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time"); }
             catch { _ctTz = null; }
             ReadBucketFile();
+        }
+
+        private string MarkerKey(DateTime ts, string mode, bool bullish)
+        {
+            return ts.Ticks + "_" + mode + "_" + bullish;
+        }
+
+        private void LoadMarkerLog()
+        {
+            _loggedMarkers = new List<LoggedMarker>();
+            _loggedKeys = new HashSet<string>();
+            _loggedCursor = 0;
+            if (!File.Exists(MarkerLogPath)) return;
+            try
+            {
+                foreach (string line in File.ReadAllLines(MarkerLogPath))
+                {
+                    if (line.Length == 0 || line[0] == 't') continue;   // header: "timestamp,..."
+                    string[] p = line.Split(',');
+                    if (p.Length < 5) continue;
+                    DateTime ts; bool bullish; double v1, v2;
+                    if (DateTime.TryParse(p[0], CultureInfo.InvariantCulture, DateTimeStyles.None, out ts)
+                        && bool.TryParse(p[2], out bullish)
+                        && double.TryParse(p[3], NumberStyles.Any, CultureInfo.InvariantCulture, out v1)
+                        && double.TryParse(p[4], NumberStyles.Any, CultureInfo.InvariantCulture, out v2))
+                    {
+                        _loggedMarkers.Add(new LoggedMarker { ts = ts, mode = p[1], bullish = bullish, v1 = v1, v2 = v2 });
+                        _loggedKeys.Add(MarkerKey(ts, p[1], bullish));
+                    }
+                }
+                _loggedMarkers.Sort((x, y) => x.ts.CompareTo(y.ts));
+            }
+            catch (Exception ex) { Print(Name + ": could not read marker log: " + ex.Message); }
+        }
+
+        // Appends exactly once per (timestamp, mode, direction) -- a reload that re-fires the
+        // SAME confirmed event live is a no-op here (already in _loggedKeys), not a duplicate row.
+        private void AppendMarkerLog(DateTime ts, string mode, bool bullish, double v1, double v2)
+        {
+            string key = MarkerKey(ts, mode, bullish);
+            if (_loggedKeys.Contains(key)) return;
+            _loggedKeys.Add(key);
+            _loggedMarkers.Add(new LoggedMarker { ts = ts, mode = mode, bullish = bullish, v1 = v1, v2 = v2 });
+            try
+            {
+                bool isNew = !File.Exists(MarkerLogPath);
+                Directory.CreateDirectory(Path.GetDirectoryName(MarkerLogPath));
+                using (var fh = new StreamWriter(MarkerLogPath, true))
+                {
+                    if (isNew) fh.WriteLine("timestamp,mode,bullish,v1,v2");
+                    fh.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0:yyyy-MM-dd HH:mm:ss.fff},{1},{2},{3},{4}",
+                                                ts, mode, bullish, v1, v2));
+                }
+            }
+            catch (Exception ex) { Print(Name + ": could not write marker log: " + ex.Message); }
         }
 
         private void ReadBucketFile()
@@ -357,6 +429,20 @@ namespace NinjaTrader.NinjaScript.Indicators
                     }
                 }
             }
+
+            // ---- replay redraw from the persisted marker log (2026-11-05) ----
+            // Independent of every detection path above: walks the on-disk log in timestamp
+            // order and redraws anything whose bar we've now reached in THIS replay, regardless
+            // of whether the live recompute above also independently reconfirms it this time.
+            // Same tag format as DrawMarkerAt (mode+direction+TIMESTAMP, not bar index), so if
+            // the live path above ALSO fires for this exact bar, NT8's own tag-based dedup means
+            // this never double-draws -- it only guarantees the marker reappears when the live
+            // path does NOT refire, which is the whole point.
+            while (_loggedCursor < _loggedMarkers.Count && _loggedMarkers[_loggedCursor].ts <= Time[0])
+            {
+                DrawMarkerAt(0, _loggedMarkers[_loggedCursor].bullish, _loggedMarkers[_loggedCursor].mode);
+                _loggedCursor++;
+            }
         }
 
         // sums deltaSeries over every bar from fromBar to toBar inclusive (absolute bar
@@ -400,28 +486,36 @@ namespace NinjaTrader.NinjaScript.Indicators
             return true;
         }
 
+        // Shared by the live Mark()/MarkPerBar() paths AND the persisted-log redraw path in
+        // OnBarUpdate -- tag is a function of (mode, direction, bar TIMESTAMP), never bar INDEX
+        // (indices shift across reloads if the chart loads a different amount of history;
+        // timestamps don't), so whichever path draws first "wins" and the other is a harmless
+        // no-op redraw under NT8's own tag-based dedup, not a duplicate.
+        private void DrawMarkerAt(int barsAgo, bool bullish, string mode)
+        {
+            if (!ShowMarkers) return;
+            System.Windows.Media.Brush color = bullish ? BullColor : BearColor;
+            string tag = "cvd_" + mode + "_" + (bullish ? "Bull" : "Bear") + "_" + Time[barsAgo].Ticks;
+            double off = MarkerOffsetTicks * (TickSize > 0 ? TickSize : 0.25);
+            double y = bullish ? Low[barsAgo] - off : High[barsAgo] + off;
+            string label = mode == "pivot" ? ("A\nB\nS" + (bullish ? "\n+" : "\n-")) : ("F\nP" + (bullish ? "\n+" : "\n-"));
+            Draw.Text(this, tag, false, label, barsAgo, y, 0, color,
+                      new SimpleFont("Arial", MarkerFontSize), System.Windows.TextAlignment.Center,
+                      Brushes.Transparent, Brushes.Transparent, 0);
+        }
+
         // marks at pivotBar (the confirmed, newer/second pivot -- the actual retest), not
         // always the current bar: pivotBar confirms n bars AFTER it forms, so by the time
         // Mark() runs, "0" would point at the wrong (current, later) bar.
         private void Mark(bool bullish, double legVal, double priceDelta, int prevPivotBar, int pivotBar)
         {
-            System.Windows.Media.Brush color = bullish ? BullColor : BearColor;
-            string tag = (bullish ? "cvdHiddenBull_" : "cvdHiddenBear_") + prevPivotBar + "_" + pivotBar;
             int barsAgo = CurrentBar - pivotBar;
-
-            if (ShowMarkers)
-            {
-                double off = MarkerOffsetTicks * (TickSize > 0 ? TickSize : 0.25);
-                double y = bullish ? Low[barsAgo] - off : High[barsAgo] + off;
-                // one letter per line -- small, stacked, instead of a big arrow glyph
-                string label = "A\nB\nS" + (bullish ? "\n+" : "\n-");
-                Draw.Text(this, tag + "_txt", false, label, barsAgo, y, 0, color,
-                          new SimpleFont("Arial", MarkerFontSize), System.Windows.TextAlignment.Center,
-                          Brushes.Transparent, Brushes.Transparent, 0);
-            }
+            DrawMarkerAt(barsAgo, bullish, "pivot");
+            AppendMarkerLog(Time[barsAgo], "pivot", bullish, legVal, priceDelta);
 
             if (PlaySound)
             {
+                string tag = "cvd_pivot_" + (bullish ? "Bull" : "Bear") + "_" + Time[barsAgo].Ticks;
                 string msg = (bullish ? "Bullish" : "Bearish") + " hidden CVD divergence: leg delta "
                              + legVal.ToString("F0") + ", price delta " + priceDelta.ToString("F2");
                 Alert(tag, Priority.High, msg, @"Alert1.wav", 10, Brushes.Black,
@@ -429,27 +523,18 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
         }
 
-        // separate from Mark() on purpose -- different tag prefix, different label text
+        // separate from Mark() on purpose -- different mode string, different label text
         // ("F/P" stacked instead of "A/B/S") so a per-bar-close hit is visually and
         // programmatically distinguishable from a pivot-based hidden-divergence hit, even
         // when both are enabled and firing on the same chart.
         private void MarkPerBar(bool bullish, double deltaVal, double closePos)
         {
-            System.Windows.Media.Brush color = bullish ? BullColor : BearColor;
-            string tag = (bullish ? "cvdFootprintBull_" : "cvdFootprintBear_") + (CurrentBar - 1);
-
-            if (ShowMarkers)
-            {
-                double off = MarkerOffsetTicks * (TickSize > 0 ? TickSize : 0.25);
-                double y = bullish ? Low[1] - off : High[1] + off;
-                string label = "F\nP" + (bullish ? "\n+" : "\n-");
-                Draw.Text(this, tag + "_txt", false, label, 1, y, 0, color,
-                          new SimpleFont("Arial", MarkerFontSize), System.Windows.TextAlignment.Center,
-                          Brushes.Transparent, Brushes.Transparent, 0);
-            }
+            DrawMarkerAt(1, bullish, "perbar");
+            AppendMarkerLog(Time[1], "perbar", bullish, deltaVal, closePos);
 
             if (PlaySound)
             {
+                string tag = "cvd_perbar_" + (bullish ? "Bull" : "Bear") + "_" + Time[1].Ticks;
                 string msg = (bullish ? "Bullish" : "Bearish") + " per-bar CVD absorption: delta "
                              + deltaVal.ToString("F0") + ", close position " + closePos.ToString("F2");
                 Alert(tag, Priority.High, msg, @"Alert1.wav", 10, Brushes.Black,
