@@ -227,7 +227,17 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (e.MarketDataType != MarketDataType.Last || CurrentBar < 0) return;
 
-            if (accumBar != CurrentBar) { accumBar = CurrentBar; barDelta = 0; }
+            if (accumBar != CurrentBar)
+            {
+                accumBar = CurrentBar;
+                // seed from the bucket log instead of 0 -- on reload, the first live tick of
+                // a bar used to wipe out the backfill-reconstructed delta for the part of this
+                // bar that already happened before the reload. ts-cutoff = this tick's own
+                // time, so only buckets strictly before it are consumed (no double count).
+                double seed; bool any;
+                AdvanceDeltaBuckets(e.Time, out seed, out any);
+                barDelta = any ? seed : 0;
+            }
 
             long v = (long)e.Volume;
             if (v <= 0) return;
