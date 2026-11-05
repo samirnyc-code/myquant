@@ -364,9 +364,12 @@ namespace NinjaTrader.NinjaScript.Indicators
                 // tight TrendEmaPeriod) can leave lLastBar/hLastBar stale for a long stretch,
                 // and the eventual SumDeltaBetween call spans past that real cap even though
                 // this Count check passes. Guard the indexer itself instead of trying to
-                // predict NT8's exact cap.
+                // predict NT8's exact cap. Catching Exception (not just IndexOutOfRangeException)
+                // because the first attempt at this fix used the narrower type and the crash
+                // persisted after a confirmed recompile -- NT8's own out-of-range exception for
+                // a Series indexer isn't guaranteed to be the plain CLR type.
                 try { s += deltaSeries[ago]; }
-                catch (IndexOutOfRangeException) { continue; }
+                catch (Exception) { continue; }
             }
             return s;
         }
