@@ -59,6 +59,13 @@ HEARTBEAT = ROOT / "data" / "_catalog" / "watchdog_heartbeat.txt"
 # one session before this was wired in. 30 min caps the worst-case gap.
 BID_ASK_BACKFILL_INTERVAL_S = 1800
 
+# 2026-11-05: fast companion to the sweep above. backfill_bid_ask_log.py --incremental
+# only appends new trades since its own cursor (see that script's module docstring for
+# why the --force sweep above can't just be run this often: it rewrites the entire
+# 800k+ row output log every call, ~190s by end of day). Safe at a 60s cadence because
+# cost scales with new trades, not total history.
+BID_ASK_INCREMENTAL_INTERVAL_S = 60
+
 # staleness thresholds (seconds): slow = 5-min one-shot mode, fast = 10s daemon
 THRESH = {
     "feed":  {"slow": 180, "fast": 45},    # live.json writes every ~5s
@@ -303,6 +310,35 @@ def refresh_bid_ask_backfill(state, today, dry_run=False):
     return None if ok else f"bid_ask_backfill: refresh failed — {detail}"
 
 
+def refresh_bid_ask_incremental(state, dry_run=False):
+    """Fast companion to refresh_bid_ask_backfill() above -- runs backfill_bid_ask_log.py
+    --incremental on a short interval. That script's --force sweep stays on its own slow
+    30-min cadence as a self-healing safety net (stub-file days, anything missed) and
+    resyncs the incremental cursor itself whenever it rebuilds the same live day, so the
+    two never double-count."""
+    st = state.get("bid_ask_incremental", {})
+    since_last = ((dt.datetime.now() - dt.datetime.fromisoformat(st["last"])).total_seconds()
+                  if st.get("last") else 1e9)
+    if since_last < BID_ASK_INCREMENTAL_INTERVAL_S:
+        return None
+    if dry_run:
+        log(f"bid_ask_incremental: due for refresh (dry-run, not executing) — {since_last:.0f}s since last")
+        return None
+    script = ROOT / "scripts" / "backfill_bid_ask_log.py"
+    try:
+        r = subprocess.run([sys.executable, str(script), "--incremental"],
+                           capture_output=True, text=True, timeout=60,
+                           creationflags=0x08000000, cwd=str(ROOT))
+        ok = r.returncode == 0
+        tail = (r.stdout.strip().splitlines() or [""])[-1]
+        detail = tail[:200] if ok else (r.stderr.strip().splitlines() or [""])[-1][:200]
+    except Exception as e:
+        ok, detail = False, str(e)[:200]
+    state["bid_ask_incremental"] = {"last": dt.datetime.now().isoformat(timespec="seconds"), "ok": ok}
+    log(f"bid_ask_incremental: {'ok' if ok else 'FAILED'} — {detail}")
+    return None if ok else f"bid_ask_incremental: refresh failed — {detail}"
+
+
 def load_state():
     try:
         return json.loads(STATE.read_text())
@@ -394,6 +430,13 @@ def cycle(dry_run):
             problems.append(prob)
     except Exception as e:
         log(f"bid_ask_backfill refresh failed: {e}")
+
+    try:
+        prob = refresh_bid_ask_incremental(state, dry_run)
+        if prob:
+            problems.append(prob)
+    except Exception as e:
+        log(f"bid_ask_incremental refresh failed: {e}")
 
     # Always persist state, not just on problems: refresh_bid_ask_backfill updates
     # state[...]["last"] on a SUCCESSFUL run (no problem appended) -- if save only

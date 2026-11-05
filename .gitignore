@@ -27,6 +27,7 @@ data/_catalog/
 data/options_log/
 data/options_sim/
 data/gexlog/
+data/bid_ask/_backfill_cursor.json
 data/vix_daily.csv
 saved_signals/
 scripts/_commit_msg.txt
