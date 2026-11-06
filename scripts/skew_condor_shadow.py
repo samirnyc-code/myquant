@@ -323,6 +323,16 @@ def main():
     try:
         while now_ct() < end:
             try:
+                # 2026-11-05 FIX: re-read the gameplan every poll instead of the stale
+                # snapshot loaded once at startup. Scheduled launch is 08:30 CT, but the
+                # real eodic_p/openic_p triggers typically fire ~08:31-08:36 -- a single
+                # load-at-startup froze "not fired yet" for the whole session, so the
+                # put-fired gate below never passed even after the real trigger fired
+                # (confirmed live: 2026-11-05, eodic_p fired 08:35:55, zero pairs entered
+                # all day). The real trigger daemon rewrites this file on every fire.
+                fresh = load_plan(date)
+                if fresh:
+                    plan = fresh
                 process(ib, qualify, date, plan, book, live=a.live)
             except Exception as e:
                 print(f"  [skew-condor] poll error: {type(e).__name__}: {e}")
