@@ -104,6 +104,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
         private SwingDir dir = SwingDir.Up;
         private int legExtBar = -1; private double legExtPrice = double.NaN;
         private int sessionStartBar = -1;
+        private Data.SessionIterator _sessionIt;   // 2026-11-06: live-path reset uses this, not Bars.IsFirstBarOfSession
         private int lastHighBar = -1; private double lastHighPrice = double.NaN, lastHighCvd = double.NaN;
         private int lastLowBar = -1;  private double lastLowPrice = double.NaN, lastLowCvd = double.NaN;
         private string bearTag, bullTag;   // non-null while a live episode is actively being drawn
@@ -255,6 +256,14 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             else if (State == State.DataLoaded)
             {
                 LoadBidAskBuckets();
+                // 2026-11-06 FIX: Bars.IsFirstBarOfSession was confirmed misfiring mid-session
+                // (runCum reset to 0 at ~09:04 and ~11:01 CT on 2026-11-05 with a correct
+                // session template and no actual session boundary there -- replay of the raw
+                // tape showed the true running total was +9,787 and +35,553 at those exact
+                // moments). SessionIterator is the proven-reliable alternative already used
+                // for this exact purpose in RegimeTrackerV2.cs -- using it here instead of
+                // trusting the Bars flag for the LIVE reset path.
+                _sessionIt = new Data.SessionIterator(Bars);
             }
             else if (State == State.Terminated)
             {
@@ -270,22 +279,22 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
             if (accumBar != CurrentBar)                 // bar rolled
             {
-                if (ResetMode == CvdResetMode.Session && Bars.IsFirstBarOfSession)
+                if (ResetMode == CvdResetMode.Session && _sessionIt != null && _sessionIt.IsNewSession(Time[0], true))
                 {
-                    // 2026-11-06 DIAGNOSTIC: user confirmed a correct session template, yet
-                    // runCum was observed dropping to ~0 multiple times within one trading
-                    // day (2026-11-05, ~09:04 and ~11:01 CT) with no basis in the raw tape
-                    // (replay of bid_ask_vol_buckets.csv with zero resets showed +9,787 and
-                    // +35,553 at those exact moments). Since this is the ONLY line in the
-                    // file that zeroes runCum, the next occurrence needs to be caught here,
-                    // not reconstructed after the fact -- logs CurrentBar/session begin/
-                    // connection status so the actual trigger (reconnect vs something else)
-                    // is visible in the NT8 Log the moment it happens.
+                    // 2026-11-06 FIX + DIAGNOSTIC: Bars.IsFirstBarOfSession confirmed misfiring --
+                    // user confirmed a correct session template, yet runCum was observed dropping
+                    // to ~0 multiple times within one trading day (2026-11-05, ~09:04 and ~11:01 CT)
+                    // with no basis in the raw tape (replay of bid_ask_vol_buckets.csv with zero
+                    // resets showed +9,787 and +35,553 at those exact moments). Swapped to
+                    // SessionIterator (the proven-reliable alternative already used for this exact
+                    // purpose in RegimeTrackerV2.cs). Print kept so if it STILL misfires, the next
+                    // occurrence is self-explaining instead of needing another forensic replay.
                     Print(string.Format("{0}: LIVE SESSION RESET at {1} -- CurrentBar={2} "
                         + "BarTime={3} runCum was {4} -> 0. State={5}",
                         Name, Core.Globals.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"), CurrentBar,
                         Time[0].ToString("yyyy-MM-dd HH:mm:ss"), runCum, State));
                     runCum = 0;
+                    _sessionIt.GetNextSession(Time[0], true);
                 }
                 accumBar = CurrentBar;
                 barOpen = barHi = barLo = barClose = runCum;
@@ -325,7 +334,15 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             cvLiveFlag[0] = liveThisBar ? 1.0 : 0.0;
             if (!liveThisBar)
             {
-                if (ResetMode == CvdResetMode.Session && Bars.IsFirstBarOfSession) runCum = 0;
+                // 2026-11-06 FIX: same swap as the live path (OnMarketData) -- Bars.IsFirstBarOfSession
+                // confirmed misfiring, SessionIterator is the reliable replacement. This is the path
+                // that actually rebuilds a past day's curve on a fresh chart load, so this is the one
+                // that needs to be right for the historical display to change, not just going forward.
+                if (ResetMode == CvdResetMode.Session && _sessionIt != null && _sessionIt.IsNewSession(Time[0], true))
+                {
+                    runCum = 0;
+                    _sessionIt.GetNextSession(Time[0], true);
+                }
                 double bo, bh, bl, bc; bool any;
                 AdvanceCvdBuckets(Time[0], out bo, out bh, out bl, out bc, out any);
                 if (any)
