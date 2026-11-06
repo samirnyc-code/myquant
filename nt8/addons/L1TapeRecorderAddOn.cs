@@ -52,11 +52,18 @@ namespace NinjaTrader.NinjaScript.AddOns
 {
     public class L1TapeRecorderAddOn : AddOnBase
     {
-        // -------- config (front-month; update on the quarterly roll — see header) --------
-        // Rolled 09-26 -> 12-26 on 2026-09-15 (the desk rolls on VOLUME; 09-26 expires Fri
-        // 2026-09-18). Next roll: whenever the desk moves to "ES 03-27" (~mid-Dec 2026).
+        // -------- config: EDIT THESE FOR YOUR OWN PC --------
+        // Both paths below point at THIS machine's repo checkout. On a different PC (e.g. a
+        // 2nd trading machine), change them to that machine's own `myquant` repo path before
+        // F5 -- otherwise this AddOn will try to write into a path that doesn't exist there
+        // and silently fail with zero log output (same class of symptom as a total compile
+        // failure elsewhere in Custom\ -- see nt8/README.md).
+        private const string ExportDir   = @"C:\Users\Admin\myquant\data\l1_tape";
+        private const string ReleaseFile = @"C:\Users\Admin\myquant\data\nt_ticks\_release_feed";
+        // Front-month; update on the quarterly roll (see header). Rolled 09-26 -> 12-26 on
+        // 2026-09-15 (the desk rolls on VOLUME; 09-26 expires Fri 2026-09-18). Next roll:
+        // whenever the desk moves to "ES 03-27" (~mid-Dec 2026).
         private const string SymbolName = "ES 12-26";
-        private const string ExportDir  = @"C:\Users\Admin\myquant\data\l1_tape";
 
         private Instrument instrument;
         private MarketData marketData;
@@ -91,11 +98,11 @@ namespace NinjaTrader.NinjaScript.AddOns
         private DateTime lastData = DateTime.MinValue;   // wall-time of the last data event (silent-stall detector)
         private const double StallResubSecs = 90;        // no data this long while open -> force a resubscribe
 
-        // RELEASE trigger: touch this file to make the data AddOns DROP the ES subscription so NT
-        // can delete/reload that instrument's live db without a sharing-violation crash during a
-        // "Reload All Historical Data". Delete the file to resubscribe. (scripts/release_nt_feed.py
-        // writes it, waits, and removes it around a reload.)
-        private static readonly string ReleaseFile = @"C:\Users\Admin\myquant\data\nt_ticks\_release_feed";
+        // RELEASE trigger: touch this file (path now in the config block at the top) to make
+        // the data AddOns DROP the ES subscription so NT can delete/reload that instrument's
+        // live db without a sharing-violation crash during a "Reload All Historical Data".
+        // Delete the file to resubscribe. (scripts/release_nt_feed.py writes it, waits, and
+        // removes it around a reload.)
         private System.Timers.Timer releaseTimer;
         private bool releaseHold;                         // true while a command-release is in effect
         private ConnectionStatus lastPriceStatus = ConnectionStatus.Disconnected;
