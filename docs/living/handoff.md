@@ -1,6 +1,21 @@
 # Handoff — Current State
 **Status:** Living — update every session  
 
+**Last Updated:** 2026-11-06 (same session, continued) — **2026-11-05's reload-fragmented
+trade (5 Journal cards for one real position) fixed and confirmed, separate repo
+`trade-playbook`.** `scripts/recover_20261105_reload_fragmented_trade.py`, built from the
+real `Events.csv`/`TradeSummary.csv` files (not NT8 Log screenshots): merged all 5
+fragments into the original entry TradeID. Real total was +$962.50 gross (04:43 scale-out
++$325.00 + 06:03 final exit +$637.50) — the lone "CLOSED" card had only shown $632.50,
+undercounting by the whole scale-out leg, which was sitting invisible inside an "OPEN"
+card with no P&L displayed. All 7 API calls (merge + 2 screenshots + 4 deletes) returned
+HTTP 200, committed+pushed to `trade-playbook` (`465edba`). Root cause (repeated AddOn-host
+crash-loop that morning, ~04:08-06:03 CT) still not identified — this fixed the resulting
+bad data, not the underlying restart trigger; same class of incident will recur if that's
+not found.
+
+---
+
 **Last Updated:** 2026-11-06 — **Session ended with `CumulativeDelta.cs` still broken,
 user-reported, unresolved.** Three fixes landed and were individually verified correct
 in isolation, but the chart still shows two conflicting lines (green/red candle render
