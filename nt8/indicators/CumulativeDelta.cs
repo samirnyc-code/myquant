@@ -271,7 +271,22 @@ namespace NinjaTrader.NinjaScript.Indicators.My
             if (accumBar != CurrentBar)                 // bar rolled
             {
                 if (ResetMode == CvdResetMode.Session && Bars.IsFirstBarOfSession)
+                {
+                    // 2026-11-06 DIAGNOSTIC: user confirmed a correct session template, yet
+                    // runCum was observed dropping to ~0 multiple times within one trading
+                    // day (2026-11-05, ~09:04 and ~11:01 CT) with no basis in the raw tape
+                    // (replay of bid_ask_vol_buckets.csv with zero resets showed +9,787 and
+                    // +35,553 at those exact moments). Since this is the ONLY line in the
+                    // file that zeroes runCum, the next occurrence needs to be caught here,
+                    // not reconstructed after the fact -- logs CurrentBar/session begin/
+                    // connection status so the actual trigger (reconnect vs something else)
+                    // is visible in the NT8 Log the moment it happens.
+                    Print(string.Format("{0}: LIVE SESSION RESET at {1} -- CurrentBar={2} "
+                        + "BarTime={3} runCum was {4} -> 0. State={5}",
+                        Name, Core.Globals.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"), CurrentBar,
+                        Time[0].ToString("yyyy-MM-dd HH:mm:ss"), runCum, State));
                     runCum = 0;
+                }
                 accumBar = CurrentBar;
                 barOpen = barHi = barLo = barClose = runCum;
             }
