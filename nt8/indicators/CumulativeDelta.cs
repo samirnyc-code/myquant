@@ -239,9 +239,17 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 HiddenBearColor = Brushes.DarkOrange;
                 HiddenBullColor = Brushes.Cyan;
 
-                // transparent plots drive the panel autoscale to include the CVD high/low;
-                // a faint Close line is a fallback in case custom rendering is unavailable
-                AddPlot(new Stroke(Brushes.DimGray, 1), PlotStyle.Line, "CVD");     // Values[0]=Close
+                // transparent plots drive the panel autoscale to include the CVD high/low.
+                // 2026-11-06: the "faint Close line as OnRender fallback" was never actually
+                // faint -- a full-opacity DimGray line drawn through NT8's native plot
+                // renderer, on top of (not behind) OnRender's own candles+backbone line for
+                // the SAME close values via a different rendering/scaling path -- two visibly
+                // different-looking lines for one number, confirmed live (one correct, one
+                // not). OnRender is confirmed working, so the fallback's job is done by the
+                // candles now; made transparent. Values[0] (the Plot itself) is UNCHANGED --
+                // still the data box reading and still chainable by other indicators. If
+                // OnRender ever breaks, restore visibility here first before debugging further.
+                AddPlot(Brushes.Transparent, "CVD");                                // Values[0]=Close
                 AddPlot(Brushes.Transparent, "CvdHigh");                            // Values[1]
                 AddPlot(Brushes.Transparent, "CvdLow");                            // Values[2]
             }
