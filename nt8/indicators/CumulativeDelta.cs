@@ -279,8 +279,13 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
             if (accumBar != CurrentBar)                 // bar rolled
             {
-                if (ResetMode == CvdResetMode.Session && _sessionIt != null && _sessionIt.IsNewSession(Time[0], true))
+                if (CurrentBar > 0 && ResetMode == CvdResetMode.Session && _sessionIt != null && _sessionIt.IsNewSession(Time[0], true))
                 {
+                    // 2026-11-06 FIX #2: missed RegimeTrackerV2.cs's own "bar 0 has nothing to
+                    // reset, SessionIterator only exercised from bar 1 on" guard on the first
+                    // pass -- without it, IsNewSession's first-ever call (bar 0, un-primed
+                    // iterator) can behave unpredictably and throw off the cursor for every bar
+                    // after it, which is consistent with "nothing changed" after the first fix.
                     // 2026-11-06 FIX + DIAGNOSTIC: Bars.IsFirstBarOfSession confirmed misfiring --
                     // user confirmed a correct session template, yet runCum was observed dropping
                     // to ~0 multiple times within one trading day (2026-11-05, ~09:04 and ~11:01 CT)
@@ -338,7 +343,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
                 // confirmed misfiring, SessionIterator is the reliable replacement. This is the path
                 // that actually rebuilds a past day's curve on a fresh chart load, so this is the one
                 // that needs to be right for the historical display to change, not just going forward.
-                if (ResetMode == CvdResetMode.Session && _sessionIt != null && _sessionIt.IsNewSession(Time[0], true))
+                if (CurrentBar > 0 && ResetMode == CvdResetMode.Session && _sessionIt != null && _sessionIt.IsNewSession(Time[0], true))
                 {
                     runCum = 0;
                     _sessionIt.GetNextSession(Time[0], true);
