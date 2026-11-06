@@ -1,6 +1,48 @@
 # Handoff — Current State
 **Status:** Living — update every session  
 
+**Last Updated:** 2026-11-06 — **Session ended with `CumulativeDelta.cs` still broken,
+user-reported, unresolved.** Three fixes landed and were individually verified correct
+in isolation, but the chart still shows two conflicting lines (green/red candle render
+vs a grey line resetting at different timestamps) after all three:
+
+1. `396084a2` — swapped `Bars.IsFirstBarOfSession` (confirmed misfiring mid-session via
+   a zero-reset replay of the raw bucket data showing the true runCum was +9,787/+35,553
+   at the exact moments the chart showed ~0) for `Data.SessionIterator`, the pattern
+   already proven in `RegimeTrackerV2.cs`.
+2. `e9bebec` — fix #1 missed that reference pattern's `CurrentBar > 0` guard before the
+   first `IsNewSession` call; added it.
+3. `4865763` — found a genuine second rendering path: `AddPlot`'s native "CVD" line
+   (full opacity, not actually faint despite its own comment) drawing on top of
+   `OnRender`'s separate hand-drawn SharpDX candle/backbone line for the same values.
+   Made the native plot transparent.
+
+User's last screenshot after all three still showed two lines with DIFFERENT reset
+timestamps from each other — which the same cvC series read twice in one OnRender call
+cannot produce, so my working theory (untested) was a stale/zombie compiled instance,
+same class of bug already confirmed and fixed once today in
+`L1TapeRecorderAddOn.cs` (static-ownership-token fix, `6a414b5c`, 10-30). Recommended a
+full NinjaTrader restart (not F5, not remove/readd) as the next diagnostic step —
+**not done/confirmed before the session ended.** User called this session's NT8 work
+incompetent and ended it. Next session: do NOT re-assert any of the three fixes above
+are "done" — they are code-verified, not user-verified. Start by asking whether a full
+restart was ever tried, and treat the grey-line mechanism as genuinely unexplained until
+proven otherwise.
+
+Also this session (separate topic, unrelated to the above): found and fixed a real
+cross-thread `DrawingTool.IsVisible` race affecting `RegimeTrackerV2.cs`/
+`DtDbScannerV2-4.cs` (`d1235c7e`, `2fc085cb`), confirmed live-cause via NT8 Log screenshots
+(bar 3923 + bar 0 "different thread owns it" errors), fixed and pushed — this one IS
+confirmed, not just theorized, though not separately re-verified by the user after deploy.
+`L1TapeRecorderAddOn.cs` per-machine paths consolidated to the top of the file for
+Thomas's 2nd-PC deploy (`dfee74aa`); its README retirement note was stale (file was
+re-enabled and actively maintained since 10-14, corrected). `skew_condor_shadow.py`
+went live (`--live` mode, separate book `trades_skew_condor.parquet`) — both 11/3 legs
+settled expired-worthless, finalized; 11/5 scheduled run never entered a position due to
+a stale-gameplan-load bug, fixed (`2fc085cb`) and regression-tested
+(`scripts/test_skew_condor_reload_fix.py`) but the fix's first live scheduled run was
+never confirmed by the user before this session ended either.
+
 **Last Updated:** 2026-11-05 — **Trade journal was silently not recording (6-day gap) +
 ClaudeTrackerAddOn screenshot reliability fix (TWO bugs, not one) + the CVD/DT-DB
 indicator family finally packaged for shipping — THOMAS NEEDS ALL OF IT, ONE consolidated
