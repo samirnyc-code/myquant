@@ -93,11 +93,21 @@ def main() -> None:
     if off != 7:
         print(f"{stamp} | NOTE: DST mismatch window active (offset {off:.0f}h, normally 7h)")
     print(f"{stamp} | RUN: {' '.join(rest)}")
-    # CREATE_NO_WINDOW: the wrapped child must NOT pop a console. Without this, every
-    # run_at_ct-wrapped scheduled task flashed a python.exe window when it launched its
-    # real command (2026-07-21 - user watching consoles strobe every few minutes).
+    # The wrapped child must NOT pop a console. Originally used creationflags=CREATE_NO_WINDOW
+    # (2026-07-21, stopped every run_at_ct-wrapped task flashing a python.exe window on launch)
+    # but that gives the child NO console at all (not hidden — none). When the child is a venv
+    # python.exe, it's itself a launcher that internally re-execs into a system-Python worker
+    # (memory daemon-is-a-process-pair); with nothing to inherit, THAT internal relaunch has to
+    # allocate a brand-new console, which Windows 11's default-terminal-app handoff shows as a
+    # visible window (2026-11-09 — Sim Daemon/Trigger Daemon caught live doing exactly this).
+    # STARTF_USESHOWWINDOW + SW_HIDE instead: the child gets a real console, just hidden, so its
+    # own internal self-relaunch inherits it instead of allocating fresh. Verified against the
+    # exact nested-relaunch shape in isolation before this change.
+    si = subprocess.STARTUPINFO()
+    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    si.wShowWindow = 0  # SW_HIDE
     t0 = dt.datetime.now()
-    code = subprocess.run(rest, creationflags=0x08000000).returncode
+    code = subprocess.run(rest, startupinfo=si).returncode
     # 2026-10-31: Chain Recorder/Spot Feed showed a forced-terminate Task Scheduler
     # result on a day their own payload logged a clean exit. This line pins down whether
     # THIS process (run_at_ct.py, i.e. everything up to and including the wrapped
