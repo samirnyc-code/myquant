@@ -41,7 +41,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
     public class HighVolumePivot : Indicator
     {
-        private const string Version = "v1.1";
+        private const string Version = "v1.5";
         private const int AtrPeriod = 500;
         private const int PercentileWindow = 1000;
         private const double PercentileRank = 95.0;
@@ -146,6 +146,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         protected override void OnBarUpdate()
         {
+            // Defensive guard: a data-feed/historical-server hiccup can leave these null
+            // mid-session (observed 2026-11-09 — a different, unrelated indicator died with
+            // the same NullReferenceException on the same bar right before a logged
+            // "Connection lost to the Historical Data Server" event). Skip the bar instead of
+            // throwing, so the indicator survives the hiccup instead of going blank.
+            if (atr500 == null || volSum == null || normVol == null
+                || volSumHistoryRth == null || volSumHistoryEth == null || levels == null
+                || sourceTz == null || targetTz == null)
+                return;
+
             // Trailing volume sum over the last 2*LeftBars bars ending at this bar, clamped
             // at the start of history (not tied to RightBars — that only governs confirmation
             // delay for the pivot check below).
@@ -157,10 +167,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             // RTH and ETH have structurally different volume regimes, so each gets its own
             // rolling percentile reference — otherwise whichever regime dominates the trailing
-            // window skews the threshold for the other.
+            // window skews the threshold for the other. This only applies to intraday bars: a
+            // Daily/Weekly/Monthly bar already spans both RTH and ETH combined, so classifying
+            // the WHOLE bar as one or the other by its single timestamp is meaningless and just
+            // fragments the history for no reason (observed 2026-11-09 — zero pivots on a Daily
+            // chart because of exactly this). Those bar types always use one combined history.
+            bool isIntraday = BarsPeriod.BarsPeriodType != BarsPeriodType.Day
+                && BarsPeriod.BarsPeriodType != BarsPeriodType.Week
+                && BarsPeriod.BarsPeriodType != BarsPeriodType.Month
+                && BarsPeriod.BarsPeriodType != BarsPeriodType.Year;
             DateTime t = convertTz ? TimeZoneInfo.ConvertTime(Time[0], sourceTz, targetTz) : Time[0];
             int todMin = (int)t.TimeOfDay.TotalMinutes;
-            bool isRth = todMin >= rthStartMin && todMin < rthEndMin;
+            bool isRth = !isIntraday || (todMin >= rthStartMin && todMin < rthEndMin);
 
             List<double> volSumHistory = isRth ? volSumHistoryRth : volSumHistoryEth;
             volSumHistory.Add(sum);
