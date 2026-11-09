@@ -1,6 +1,31 @@
 # Handoff — Current State
 **Status:** Living — update every session  
 
+**Last Updated:** 2026-11-09 (same session, continued) — **Scheduler popups, round 4: same
+bug, found OUTSIDE the Task Scheduler/run_at_ct.py chain entirely.** Round 3's fix landed, user
+reported another popup ~15 min later. This time live forensics caught the actual firing event:
+`options_trigger_daemon.py`'s `snapshot_chart()` — called on every trade open/close to render
+`trade_chart.py` — and the analogous relaunch in `alert_monitor.py`'s self-heal path both spawn
+venv's console `python.exe` directly via `subprocess.Popen(..., creationflags=0x08000008)`
+(`CREATE_NO_WINDOW|DETACHED_PROCESS`), completely bypassing `run_at_ct.py`, so round 3's fix
+never had a chance to apply here.
+
+**Audited every `creationflags` call site in `scripts/`** (repo-wide grep, ~50 hits) to find
+every other instance of this pattern rather than whack-a-mole one at a time. Only these two
+actually spawn venv's *console* `python.exe` with zero console — everything else already uses
+`pythonw.exe`, or (`options_sim_daemon.py`'s `gameplan_charts.py` relaunch, uses
+`sys.executable`) resolves to the system-Python worker by the time that code runs, not the venv
+stub, so it was never exposed to this. Fixed both with the same `STARTF_USESHOWWINDOW`+
+`SW_HIDE` pattern as round 3. Verified with a live test matching the exact call shape (pythonw
+caller → venv python.exe `Popen` with `SW_HIDE`): zero new windows. Committed+pushed `a2be6ddc`.
+
+**Caveat stated plainly:** `options_trigger_daemon.py` is a long-running process that was
+already live when this edit landed — the fix applies on its *next* restart (already-loaded
+bytecode unaffected), not to any trade closes for the rest of today's already-running instance.
+If a trade closes today before the daemon restarts, the old unfixed code path still runs.
+
+---
+
 **Last Updated:** 2026-11-09 — **Scheduler popups, round 3: a THIRD level of the same
 underlying issue, one layer deeper than round 2.** User reported popups continuing again
 (screenshot: a Windows Terminal tab titled `...\.venv\Scripts\python.exe`) after rounds 1
