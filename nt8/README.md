@@ -32,6 +32,13 @@ deliberately does NOT redeclare the shared `LevelLineStyle` enum and requires
 `SessionSRLevelsV9.cs` to stay present somewhere under `Custom\` (both now live together
 in this same subfolder, so that constraint still holds).
 
+**NT8-side grouping (2026-11-09):** indicators authored by Claude (not pre-existing/
+Samir-sourced) deploy into their own `Custom\Indicators\Claude Indis\` subfolder on the
+NT8 machine — parallel to `!Samir's Indis` above, kept separate so the two sets don't mix
+in the Indicators dialog. No `!` prefix, so it sorts normally (not forced to the top).
+Same caveat as above: this is NT8 UI organization only, doesn't affect compilation. First
+indicator in this folder: `HighVolumePivot.cs`.
+
 **⚠ `.My`-namespaced indicators auto-duplicate into `Custom\Indicators\My\` — deploy
 THERE, not the top-level folder (found 2026-10-28, cost a full F5 failure).** Any indicator
 declared as `namespace NinjaTrader.NinjaScript.Indicators.My` (most of this repo's
