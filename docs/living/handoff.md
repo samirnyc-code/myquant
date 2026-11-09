@@ -1,6 +1,40 @@
 # Handoff — Current State
 **Status:** Living — update every session  
 
+**Last Updated:** 2026-11-09 — **Scheduler popups, round 3: a THIRD level of the same
+underlying issue, one layer deeper than round 2.** User reported popups continuing again
+(screenshot: a Windows Terminal tab titled `...\.venv\Scripts\python.exe`) after rounds 1
+(2026-10-28, `a8fa5a91`) and 2 (2026-10-29, `a85727c6`) were both believed complete. Live
+forensics on today's actually-running Trigger Daemon (PID 6100→20900→22600→21544, the last
+hop getting its own fresh `conhost.exe` 24048) found: `scripts/run_at_ct.py`'s own
+`creationflags=CREATE_NO_WINDOW` on its payload-launching `subprocess.run` (added 2026-07-21,
+a prior fix for a different symptom — the payload's own top-level window) gives the payload
+**zero** console. When that payload is a venv `python.exe` (per `daemon-is-a-process-pair`,
+it always internally re-execs into a system-Python worker), the nested relaunch has nothing to
+inherit and must allocate a fresh one — visible, same Windows-11-default-terminal mechanism as
+round 2, just one level deeper (inside the payload, not at the outer task-launch layer rounds
+1/2 already fixed).
+
+**Fix:** `run_at_ct.py` line ~99 — replaced `creationflags=0x08000000` with
+`STARTUPINFO(dwFlags=STARTF_USESHOWWINDOW, wShowWindow=SW_HIDE)`. Same real-but-hidden-console
+principle as rounds 1/2 (proven incident-free there for 10+ days), now applied at the one
+shared chokepoint all 24 wrapped tasks' payloads pass through, instead of per-task wrapping.
+Can't just remove CREATE_NO_WINDOW outright — that reintroduces the original 2026-07-21 bug
+(payload's own window flashing on every launch).
+
+**Confidence note, stated plainly:** multiple isolated synthetic reproductions of the exact
+nested-relaunch-under-CREATE_NO_WINDOW shape did NOT reproduce a visible popup, both before and
+after the fix — the live evidence (the fresh conhost on the real Trigger Daemon run) is real,
+but the popup may be timing/load-sensitive (several tasks fire within the same few minutes at
+market events) rather than deterministic, so this fix is reasoned from the mechanism + a
+proven-safe pattern, not from a clean lab repro either way. Committed+pushed `81b8ddb2`. Editing
+`run_at_ct.py` did not affect the Trigger Daemon instance already running at edit time (loaded
+bytecode unaffected); only the next fresh invocation of this script picks it up. **If popups
+recur after this, the next step is to watch for them live during a real multi-task firing
+window (08:25-08:35 CT cluster) rather than trying to synthesize the race in isolation again.**
+
+---
+
 **Last Updated:** 2026-11-06 (same session, continued) — **2026-11-05's reload-fragmented
 trade (5 Journal cards for one real position) fixed and confirmed, separate repo
 `trade-playbook`.** `scripts/recover_20261105_reload_fragmented_trade.py`, built from the
