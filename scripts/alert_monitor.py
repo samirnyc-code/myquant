@@ -96,10 +96,17 @@ def _heal_options_sim(c, tg, verbose: bool) -> None:
                 level="info" if r.returncode == 0 else "alert")
         if r.returncode != 0:
             return                              # no point starting the daemon on no plan
-    # restart the daemon detached (DETACHED_PROCESS|CREATE_NO_WINDOW) - it exits by
-    # itself if another instance already holds the lock, so double-start is safe
+    # restart the daemon detached, console hidden (not CREATE_NO_WINDOW: py is venv's
+    # console python.exe, which internally re-execs into a system-Python worker --
+    # with NO console to inherit that relaunch allocates a visible one, 2026-11-09).
+    # STARTF_USESHOWWINDOW+SW_HIDE gives a real-but-hidden console instead, same fix as
+    # scripts/run_at_ct.py. It exits by itself if another instance already holds the
+    # lock, so double-start is safe.
+    si = subprocess.STARTUPINFO()
+    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    si.wShowWindow = 0  # SW_HIDE
     subprocess.Popen([py, str(ROOT / "scripts" / "options_sim_daemon.py")],
-                     cwd=str(ROOT), creationflags=0x08000008,
+                     cwd=str(ROOT), startupinfo=si,
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if verbose:
         print("self-heal: daemon relaunched")

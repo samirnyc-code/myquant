@@ -724,13 +724,23 @@ def manage_open(ib, plan, spot, dry):
 def snapshot_chart(tid, when):
     """Fire-and-forget trade-card render (trade_chart.py) at entry and exit — the
     daily visual record the user reviews. Detached so a slow matplotlib render can
-    never stall trigger evaluation; a chart is documentation, not execution."""
+    never stall trigger evaluation; a chart is documentation, not execution.
+
+    NOT creationflags=CREATE_NO_WINDOW: py is venv's console python.exe, which
+    internally re-execs into a system-Python worker (memory daemon-is-a-process-pair).
+    With zero console to inherit, that nested relaunch allocates a visible one --
+    caught live 2026-11-09 (this exact call, trade close snapshot). STARTF_USESHOWWINDOW
+    +SW_HIDE instead gives a real-but-hidden console for the relaunch to inherit, same
+    fix as scripts/run_at_ct.py."""
     import subprocess
     try:
         py = str(ROOT / ".venv" / "Scripts" / "python.exe")
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        si.wShowWindow = 0  # SW_HIDE
         subprocess.Popen([py, str(ROOT / "scripts" / "trade_chart.py"),
                           "--trade", tid, "--when", when],
-                         cwd=str(ROOT), creationflags=0x08000008,
+                         cwd=str(ROOT), startupinfo=si,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception as e:
         print(f"  ! snapshot {when} {tid}: {type(e).__name__}")
