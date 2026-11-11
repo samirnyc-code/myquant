@@ -752,16 +752,6 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 					_primaryMonthOpenBar   = CurrentBar;  // first bar of this chart's month
 				}
 
-				if (_rthOk)
-				{
-					DateTime tRth = ConvertToRthTz(barTime);
-					if (_rthIter.IsNewSession(tRth, true))
-						_rthIter.GetNextSession(tRth, true);
-					_rthSessBegin = _rthIter.ActualSessionBegin;
-					_rthSessEnd   = _rthIter.ActualSessionEnd;
-					LogDbg(string.Format("RthWindowResolved,{0:yyyy-MM-dd HH:mm:ss},barTime={1:yyyy-MM-dd HH:mm:ss},tRth={2:yyyy-MM-dd HH:mm:ss},sessBegin={3:yyyy-MM-dd HH:mm:ss},sessEnd={4:yyyy-MM-dd HH:mm:ss}",
-						DateTime.Now, barTime, tRth, _rthSessBegin, _rthSessEnd));
-				}
 			}
 
 			// Current-day H/L across every bar of the trading day (independent of RTH/ETH).
@@ -772,11 +762,25 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			// historical or live — a no-op for today, see MapHistDevTrailBar comment).
 			if (ShowDevPocVa) MapHistDevTrailBar(barTime);
 
+			// isRth: re-resolved EVERY bar via _rthMembershipIter (continuous, self-correcting)
+			// instead of caching _rthIter's Begin/End once at the day-roll bar and comparing
+			// against that stale snapshot for the rest of the day. The once-a-day version froze
+			// ETH H/L mid-session (user report 2026-11-11: H ETH stuck below printed highs,
+			// bars clearly closing above the drawn line) — a single bad/ambiguous resolution at
+			// the 17:00 day-roll instant (SessionIterator resolving IsNewSession/GetNextSession
+			// exactly AT a session boundary is a known ambiguity) poisoned the entire overnight
+			// session with no way to self-correct. _rthMembershipIter already existed for
+			// exactly this purpose (see its field comment) and was already proven correct in
+			// HandleEthSeries (the EthFromPrimary=false hidden-series path) — this reuses that
+			// same proven per-bar pattern for the EthFromPrimary=true (default) path instead of
+			// duplicating a second, fragile, once-daily mechanism.
 			bool isRth = false;
-			if (_rthOk && _rthSessBegin != Core.Globals.MinDate)
+			if (_rthOk && _rthMembershipIter != null)
 			{
 				DateTime tRth = ConvertToRthTz(barTime);
-				isRth = tRth >= _rthSessBegin && tRth <= _rthSessEnd;
+				if (_rthMembershipIter.IsNewSession(tRth, true))
+					_rthMembershipIter.GetNextSession(tRth, true);
+				isRth = tRth >= _rthMembershipIter.ActualSessionBegin && tRth <= _rthMembershipIter.ActualSessionEnd;
 			}
 
 			// ETH overnight H/L from THIS chart: accumulate from the ETH/Globex open until the
@@ -793,8 +797,8 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 					if (Low[0]  < _ethLow)  _ethLow  = Low[0];
 				}
 				if (DebugLog && (!wasLocked && _ethLocked))
-					LogDbg(string.Format("EthLockedNOW,{0:yyyy-MM-dd HH:mm:ss},barTime={1:yyyy-MM-dd HH:mm:ss},isRth={2},ethHigh={3},ethLow={4},rthSessBegin={5:yyyy-MM-dd HH:mm:ss},rthSessEnd={6:yyyy-MM-dd HH:mm:ss}",
-						DateTime.Now, barTime, isRth, _ethHigh, _ethLow, _rthSessBegin, _rthSessEnd));
+					LogDbg(string.Format("EthLockedNOW,{0:yyyy-MM-dd HH:mm:ss},barTime={1:yyyy-MM-dd HH:mm:ss},isRth={2},ethHigh={3},ethLow={4},rthMemberBegin={5:yyyy-MM-dd HH:mm:ss},rthMemberEnd={6:yyyy-MM-dd HH:mm:ss}",
+						DateTime.Now, barTime, isRth, _ethHigh, _ethLow, _rthMembershipIter.ActualSessionBegin, _rthMembershipIter.ActualSessionEnd));
 				if (DebugLog)
 					LogDbg(string.Format("EthBar,{0:yyyy-MM-dd HH:mm:ss},barTime={1:yyyy-MM-dd HH:mm:ss},bar={2},high={3},low={4},ethHigh={5},ethLow={6},isRth={7},ethLocked={8}",
 						DateTime.Now, barTime, CurrentBar, High[0], Low[0], _ethHigh, _ethLow, isRth, _ethLocked));
