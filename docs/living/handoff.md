@@ -1,6 +1,68 @@
 # Handoff — Current State
 **Status:** Living — update every session  
 
+**Last Updated:** 2026-11-11 — **NT8 ES 2000t ETH chart cursor-lag + PC fan/memory
+investigation — diagnosis only, no code changed this session.**
+
+Investigated the reported "cursor slow/jumpy on the ES 2000t ETH chart" from multiple
+angles, course-corrected once on a wrong lead:
+
+1. Initial hypothesis (static code read, no measurement): `MyDayOfWeek.cs`'s `OnRender`
+   leaks undisposed SharpDX/DirectWrite brush+`TextFormat` objects on every render pass
+   (fires on every mouse move). **Presented as "root cause" with more confidence than was
+   earned.** User pushed back with an actual NinjaScript Utilization Monitor screenshot:
+   MyDayOfWeek measured at only 123ms total time, far below a dozen other indicators. The
+   leak is real in the source but **not shown by measurement to matter** — do not re-assert
+   this as a confirmed fix without a fresh live measurement.
+2. Measured data instead flagged `MyDataBox` (2,569ms, #2 after candlestick rendering,
+   compiled-DLL only/no source available, `Calculate=OnPriceChange`) as the best-supported
+   indicator-level cost. Walked user through removing it from the chart (Indicators dialog).
+   **Not confirmed whether this was actually done.**
+3. A second Utilization Monitor capture showed a ChartObject **"Trend channel" at
+   100,933ms — by far the largest single item (~3x the next entry)**. Likely several
+   accumulated drawn Trend Channel objects and/or "Extend Line" infinite-recompute cost;
+   this is render/hit-test cost tied directly to mouse movement, which fits the original
+   symptom better than any indicator found so far. Gave user steps to bulk-delete via
+   chart right-click → "Remove Drawing Objects". **Not confirmed whether this was done or
+   whether it fixed the lag — strongest unconfirmed lead for next session.**
+4. `ClaudeTrackerAddOn.cs` (`CaptureFromChartControl`, ~line 1715): confirmed via code read
+   (not measured) that on every trade entry/exit/stop-move/target-move it captures a full
+   chart screenshot and **PNG-encodes it twice + writes two files, synchronously on the
+   chart window's UI thread** — plausible explanation for lag specifically tied to placing
+   orders. Not fixed this session (proposed fix: freeze the bitmap, move encode+write to a
+   background thread — user hasn't asked for this to be implemented).
+5. Separately investigated "fan running hard": no single runaway process. CPU
+   (i5-8400T, 6-thread/35W) measured at 100% of max frequency (sustained turbo boost) under
+   ~51-60% utilization from the combination of NinjaTrader + IB Gateway (java) + Defender +
+   OS compositor. Ruled out: GPU (1.4%), disk (3.6%), Defender actively scanning (last scan
+   was the previous day), thermal throttling (none — confirmed boosting, not throttled),
+   the ~20-process myquant python daemon fleet (confirmed via `ParentProcessId` as the
+   documented venv→system-python self-relaunch pairs per [[daemon-is-a-process-pair]],
+   combined live CPU 0.1% — not duplicates, not a bug).
+6. Memory: 76.2%→63.3% used freed by having the user save+close Chrome tab groups
+   (44→14 chrome processes, 35→7 renderer/tab processes, 5.7GB→1.5GB), confirmed via
+   before/after measurement. Trading infra (NinjaTrader+IB Gateway+python fleet) totals only
+   ~2GB, not the memory pressure source — Chrome (44 procs) + VSCode (21 procs) were ~8GB of
+   the ~12GB in use.
+
+**Open for next session:**
+
+- Confirm whether `MyDataBox` was actually removed from the ES 2000t chart.
+- Confirm whether the Trend Channel drawing objects were deleted and whether that reduced
+  perceived cursor lag — this is the strongest lead and is unconfirmed.
+- `MyDayOfWeek.cs`'s `OnRender` leak is real in source but not validated as impactful by
+  measurement — do not fix/redeploy based on this investigation alone.
+- `ClaudeTrackerAddOn.cs` screenshot pipeline (point 4 above) still runs synchronously on
+  the chart UI thread on every trade event — proposed fix not implemented, not requested yet.
+- None of the `My*` custom indicators actually running on this chart (`MyDayOfWeek.cs`,
+  `MyBarNumbers.cs`, `MyWedge.cs`, `MyTickCounter.cs`, `M5GlobexEMA20.cs`,
+  `M5RTHEMA20.cs`) exist in `nt8/indicators/` in this repo — only on the NT8 machine.
+  Violates the NT8-files-always-committed rule; not yet copied in.
+
+No repo files were modified this session other than this handoff entry.
+
+---
+
 **Last Updated:** 2026-11-09 (same session, continued) — **Scheduler popups, round 4: same
 bug, found OUTSIDE the Task Scheduler/run_at_ct.py chain entirely.** Round 3's fix landed, user
 reported another popup ~15 min later. This time live forensics caught the actual firing event:
