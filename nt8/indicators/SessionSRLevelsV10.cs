@@ -759,6 +759,8 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 						_rthIter.GetNextSession(tRth, true);
 					_rthSessBegin = _rthIter.ActualSessionBegin;
 					_rthSessEnd   = _rthIter.ActualSessionEnd;
+					LogDbg(string.Format("RthWindowResolved,{0:yyyy-MM-dd HH:mm:ss},barTime={1:yyyy-MM-dd HH:mm:ss},tRth={2:yyyy-MM-dd HH:mm:ss},sessBegin={3:yyyy-MM-dd HH:mm:ss},sessEnd={4:yyyy-MM-dd HH:mm:ss}",
+						DateTime.Now, barTime, tRth, _rthSessBegin, _rthSessEnd));
 				}
 			}
 
@@ -783,12 +785,19 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			if (EthFromPrimary && _haveEth)
 			{
 				_ethCloseLast = Close[0];
+				bool wasLocked = _ethLocked;
 				if (isRth) _ethLocked = true;
 				if (!_ethLocked)
 				{
 					if (High[0] > _ethHigh) _ethHigh = High[0];
 					if (Low[0]  < _ethLow)  _ethLow  = Low[0];
 				}
+				if (DebugLog && (!wasLocked && _ethLocked))
+					LogDbg(string.Format("EthLockedNOW,{0:yyyy-MM-dd HH:mm:ss},barTime={1:yyyy-MM-dd HH:mm:ss},isRth={2},ethHigh={3},ethLow={4},rthSessBegin={5:yyyy-MM-dd HH:mm:ss},rthSessEnd={6:yyyy-MM-dd HH:mm:ss}",
+						DateTime.Now, barTime, isRth, _ethHigh, _ethLow, _rthSessBegin, _rthSessEnd));
+				if (DebugLog)
+					LogDbg(string.Format("EthBar,{0:yyyy-MM-dd HH:mm:ss},barTime={1:yyyy-MM-dd HH:mm:ss},bar={2},high={3},low={4},ethHigh={5},ethLow={6},isRth={7},ethLocked={8}",
+						DateTime.Now, barTime, CurrentBar, High[0], Low[0], _ethHigh, _ethLow, isRth, _ethLocked));
 			}
 
 			if (isRth)
