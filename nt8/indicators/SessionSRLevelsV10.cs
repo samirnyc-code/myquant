@@ -354,6 +354,25 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			catch { }
 		}
 
+		// 2026-11-12: two OnRender-path call sites (RTH-open staleness warnings) were calling
+		// LogDbg unconditionally every render frame -- on a live ticking chart that's many
+		// File.AppendAllText (open+write+close) calls per SECOND, not per bar, growing an
+		// ever-larger file and burning the UI thread on synchronous disk I/O the whole time
+		// the underlying hidden series stays stale (which can be the entire rest of a
+		// session). That I/O storm is the real reason this indicator/chart looked stuck --
+		// confirmed by the debug file hitting 26MB+ from these two messages alone. Throttle
+		// any render-path LogDbg call to at most once per key per 30s instead.
+		private readonly Dictionary<string, DateTime> _lastThrottledLog = new Dictionary<string, DateTime>();
+		private void LogDbgThrottled(string key, string row, double minIntervalSeconds)
+		{
+			if (!DebugLog) return;
+			DateTime last;
+			DateTime now = DateTime.Now;
+			if (_lastThrottledLog.TryGetValue(key, out last) && (now - last).TotalSeconds < minIntervalSeconds) return;
+			_lastThrottledLog[key] = now;
+			LogDbg(row);
+		}
+
 		private struct LevelDef
 		{
 			public bool enabled; public string label; public double price;
@@ -1819,9 +1838,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 				// any approximation — no silent wrong number, and no guessed one either.
 				bool roodPreciseFresh = _rthOpenPreciseDay == Core.Globals.Now.Date;
 				Add(list, ROoD_Enabled && roodPreciseFresh, ROoD_Label, _rthOpenPrecise, ROoD_Color, ROoD_Opacity, ROoD_Style, ROoD_Thickness, 0, rthOpenStart, rthLastBarEff);
-				if (!roodPreciseFresh && DebugLog)
-					LogDbg(string.Format("RthOpenPreciseStale,{0:yyyy-MM-dd HH:mm:ss},lastConfirmedDay={1:yyyy-MM-dd},today={2:yyyy-MM-dd}",
-						Core.Globals.Now, _rthOpenPreciseDay, Core.Globals.Now.Date));
+				if (!roodPreciseFresh)
+					LogDbgThrottled("RthOpenPreciseStale", string.Format("RthOpenPreciseStale,{0:yyyy-MM-dd HH:mm:ss},lastConfirmedDay={1:yyyy-MM-dd},today={2:yyyy-MM-dd}",
+						Core.Globals.Now, _rthOpenPreciseDay, Core.Globals.Now.Date), 30);
 
 				Add(list, ROoW_Enabled && rthOpenFresh, ROoW_Label, _rthOpenThisWeek, ROoW_Color, ROoW_Opacity, ROoW_Style, ROoW_Thickness, 0, rthWeekStart);
 				// RTH OoM: manual override wins when a price is set and its month == the current month
@@ -1829,9 +1848,9 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 				if (ROoM_ManualPrice != 0 && MonthKeyOf(ROoM_ManualMonth) == _curMonthKey)
 				{ rOoM = ROoM_ManualPrice; rOoMBar = ChartBars.FromIndex; }
 				Add(list, ROoM_Enabled && (rthOpenFresh || ROoM_ManualPrice != 0), ROoM_Label, rOoM, ROoM_Color, ROoM_Opacity, ROoM_Style, ROoM_Thickness, 0, rOoMBar);
-				if (!rthOpenFresh && DebugLog)
-					LogDbg(string.Format("RthOpenStale,{0:yyyy-MM-dd HH:mm:ss},lastConfirmedDay={1:yyyy-MM-dd},today={2:yyyy-MM-dd}",
-						Core.Globals.Now, _rthSeriesLastDate, Core.Globals.Now.Date));
+				if (!rthOpenFresh)
+					LogDbgThrottled("RthOpenStale", string.Format("RthOpenStale,{0:yyyy-MM-dd HH:mm:ss},lastConfirmedDay={1:yyyy-MM-dd},today={2:yyyy-MM-dd}",
+						Core.Globals.Now, _rthSeriesLastDate, Core.Globals.Now.Date), 30);
 			}
 			if (_ethVisible)
 			{
