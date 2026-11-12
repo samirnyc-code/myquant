@@ -796,12 +796,15 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 					if (High[0] > _ethHigh) _ethHigh = High[0];
 					if (Low[0]  < _ethLow)  _ethLow  = Low[0];
 				}
-				if (DebugLog && (!wasLocked && _ethLocked))
+				// Only log the rare LOCK TRANSITION itself, not a row per bar — a per-bar
+				// LogDbg (File.AppendAllText opening/writing/closing the file every single
+				// bar) made historical replay after F5 dramatically slower, which on a chart
+				// with a deep history can itself look exactly like a "frozen" indicator simply
+				// because OnBarUpdate hadn't caught up to the present yet (2026-11-12: confirmed
+				// via this exact log -- last entry was bar 23121, hours behind live price).
+				if (DebugLog && !wasLocked && _ethLocked)
 					LogDbg(string.Format("EthLockedNOW,{0:yyyy-MM-dd HH:mm:ss},barTime={1:yyyy-MM-dd HH:mm:ss},isRth={2},ethHigh={3},ethLow={4},rthMemberBegin={5:yyyy-MM-dd HH:mm:ss},rthMemberEnd={6:yyyy-MM-dd HH:mm:ss}",
 						DateTime.Now, barTime, isRth, _ethHigh, _ethLow, _rthMembershipIter.ActualSessionBegin, _rthMembershipIter.ActualSessionEnd));
-				if (DebugLog)
-					LogDbg(string.Format("EthBar,{0:yyyy-MM-dd HH:mm:ss},barTime={1:yyyy-MM-dd HH:mm:ss},bar={2},high={3},low={4},ethHigh={5},ethLow={6},isRth={7},ethLocked={8}",
-						DateTime.Now, barTime, CurrentBar, High[0], Low[0], _ethHigh, _ethLow, isRth, _ethLocked));
 			}
 
 			if (isRth)
