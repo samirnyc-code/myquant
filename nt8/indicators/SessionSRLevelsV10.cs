@@ -98,6 +98,7 @@
 #region Using declarations
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -343,6 +344,17 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 		private System.Windows.Input.MouseEventHandler _ctEnter;
 		private static readonly WMColor CtOn  = WMColor.FromRgb(0, 140, 0);
 		private static readonly WMColor CtOff = WMColor.FromRgb(80, 80, 80);
+
+		// 2026-11-13: user reported 21 days of lookback on this chart taking hours to replay
+		// instead of the minutes that should be normal. Rather than guess at another cause,
+		// measure where the time actually goes -- wall-clock cumulative time spent in the
+		// per-bar RTH-membership check (_rthMembershipIter.IsNewSession/GetNextSession, added
+		// in the isRth fix) vs. the dev-trail bar mapping, vs. everything else in OnBarUpdate,
+		// logged as a running total every 2000 bars (DebugLog-gated, same as everything else).
+		private readonly Stopwatch _swTotalBar = new Stopwatch();
+		private readonly Stopwatch _swRthCheck = new Stopwatch();
+		private readonly Stopwatch _swDevTrail = new Stopwatch();
+		private long _barsTimedSinceLastLog;
 
 		// diagnostic-only: Daily-chart date/value trail for the HOY/LOY/COY-via-hidden-RTH-
 		// series path (S139). Low frequency (fires only on a session roll, not per tick) so a
@@ -673,6 +685,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			if (_rthMinBip >= 0 && BarsInProgress == _rthMinBip) { HandleRthOpenPrecise(); return; }
 			if (BarsInProgress != 0) return;
 			if (CurrentBar < 0) return;
+			if (DebugLog && Bars.BarsType.IsIntraday) _swTotalBar.Start();
 			if (ShowDevPocVa && Bars.BarsType.IsIntraday) RecomputeDevPocVa();   // once per primary bar close, not per tick
 			if (!Bars.BarsType.IsIntraday)
 			{
@@ -791,7 +804,12 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
 			// Map this bar onto the backfilled dev-trail for its trading day (every bar,
 			// historical or live — a no-op for today, see MapHistDevTrailBar comment).
-			if (ShowDevPocVa) MapHistDevTrailBar(barTime);
+			if (ShowDevPocVa)
+			{
+				if (DebugLog) _swDevTrail.Start();
+				MapHistDevTrailBar(barTime);
+				if (DebugLog) _swDevTrail.Stop();
+			}
 
 			// isRth: re-resolved EVERY bar via _rthMembershipIter (continuous, self-correcting)
 			// instead of caching _rthIter's Begin/End once at the day-roll bar and comparing
@@ -806,6 +824,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			// same proven per-bar pattern for the EthFromPrimary=true (default) path instead of
 			// duplicating a second, fragile, once-daily mechanism.
 			bool isRth = false;
+			if (DebugLog) _swRthCheck.Start();
 			if (_rthOk && _rthMembershipIter != null)
 			{
 				DateTime tRth = ConvertToRthTz(barTime);
@@ -813,6 +832,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 					_rthMembershipIter.GetNextSession(tRth, true);
 				isRth = tRth >= _rthMembershipIter.ActualSessionBegin && tRth <= _rthMembershipIter.ActualSessionEnd;
 			}
+			if (DebugLog) _swRthCheck.Stop();
 
 			// ETH overnight H/L from THIS chart: accumulate from the ETH/Globex open until the
 			// RTH open, then LOCK (the first RTH bar locks it and is excluded). _ethCloseLast
@@ -858,6 +878,20 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 					_rthOpenCapturedToday = true;
 					if (_weekAwaitingRthOpen)  { _rthWeekStartBar  = CurrentBar; _weekAwaitingRthOpen  = false; }
 					if (_monthAwaitingRthOpen) { _rthMonthStartBar = CurrentBar; _monthAwaitingRthOpen = false; }
+				}
+			}
+
+			if (DebugLog && Bars.BarsType.IsIntraday)
+			{
+				_swTotalBar.Stop();
+				_barsTimedSinceLastLog++;
+				if (_barsTimedSinceLastLog >= 2000)
+				{
+					LogDbg(string.Format("BarTiming,{0:yyyy-MM-dd HH:mm:ss},bars={1},totalMs={2},rthCheckMs={3},devTrailMs={4},avgUsPerBar={5:F1}",
+						DateTime.Now, _barsTimedSinceLastLog, _swTotalBar.ElapsedMilliseconds, _swRthCheck.ElapsedMilliseconds, _swDevTrail.ElapsedMilliseconds,
+						_swTotalBar.Elapsed.TotalMilliseconds * 1000.0 / _barsTimedSinceLastLog));
+					_swTotalBar.Reset(); _swRthCheck.Reset(); _swDevTrail.Reset();
+					_barsTimedSinceLastLog = 0;
 				}
 			}
 		}
