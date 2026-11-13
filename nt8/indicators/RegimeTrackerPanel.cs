@@ -119,7 +119,8 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 				WeeklyResetOnly    = false;
 				CurrentSessionOnly = true;    // default ON: skip historical calc (O(n^2) swing rescan over the full lookback) — the 37.6s Utilization cost.
 				IncludePriorSession = true;   // with CurrentSessionOnly: compute the last TWO sessions continuously (no reset between) so the current session inherits the prior session's ending regime (ETH 17:00 continues the 16:00 regime; RTH = continue from yesterday).
-				RequireCloseConfirm = false;  // default OFF: preserves existing intrabar-breach behavior unless explicitly opted in.
+				RequireCloseConfirm  = false;  // default OFF: preserves existing intrabar-breach behavior unless explicitly opted in.
+				RequireBreach2Pivots = false;  // default OFF: preserves existing single-pivot invalidation level unless explicitly opted in.
 
 				BullBrush       = Brushes.SeaGreen;
 				BearBrush       = Brushes.IndianRed;
@@ -216,7 +217,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
 				_engine = new RegimeEngine(wedge, Opens[_engineBip], Highs[_engineBip], Lows[_engineBip],
 					Closes[_engineBip], Times[_engineBip], BarsArray[_engineBip], Lag, ResetOnNewSession,
-					WeeklyResetOnly, CurrentSessionOnly, IncludePriorSession, RequireCloseConfirm);
+					WeeklyResetOnly, CurrentSessionOnly, IncludePriorSession, RequireCloseConfirm, RequireBreach2Pivots);
 			}
 			else if (State == State.Realtime)
 			{
@@ -451,7 +452,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			private readonly TimeSeries _time;
 			private readonly Bars _bars;
 			private readonly int _lag;
-			private readonly bool _resetOnSession, _weeklyResetOnly, _sessionSkip, _includePriorSession, _requireCloseConfirm;
+			private readonly bool _resetOnSession, _weeklyResetOnly, _sessionSkip, _includePriorSession, _requireCloseConfirm, _requireBreach2Pivots;
 
 			private string _trend = RANGE;
 			private List<int> _zzIdx, _seqIdx;  private List<char> _zzKind, _seqKind;  private List<double> _zzPrice, _seqPrice;
@@ -469,11 +470,12 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
 			public RegimeEngine(My.MyWedge wedge, ISeries<double> open, ISeries<double> high, ISeries<double> low,
 				ISeries<double> close, TimeSeries time, Bars bars, int lag, bool resetOnSession, bool weeklyResetOnly,
-				bool sessionSkip, bool includePriorSession, bool requireCloseConfirm)
+				bool sessionSkip, bool includePriorSession, bool requireCloseConfirm, bool requireBreach2Pivots)
 			{
 				_wedge = wedge; _open = open; _high = high; _low = low; _close = close; _time = time; _bars = bars;
 				_lag = lag; _resetOnSession = resetOnSession; _weeklyResetOnly = weeklyResetOnly;
 				_sessionSkip = sessionSkip; _includePriorSession = includePriorSession; _requireCloseConfirm = requireCloseConfirm;
+				_requireBreach2Pivots = requireBreach2Pivots;
 
 				_zzIdx  = new List<int>();  _zzKind  = new List<char>();  _zzPrice  = new List<double>();
 				_seqIdx = new List<int>();  _seqKind = new List<char>();  _seqPrice = new List<double>();
@@ -571,17 +573,28 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 					}
 					else if (_trend == BULL)
 					{
-						// RequireCloseConfirm: a bar whose LOW dips below the counter level but whose
+						// RequireCloseConfirm: a bar whose LOW dips below the breach level but whose
 						// CLOSE stays above it is an intrabar wick, not a structural break -- the
-						// trend survives. Only gates this flip-to-Range check, not BOS continuation
-						// or the initial Range->trend entry, per the user's explicit framing of the
-						// problem (dip-and-recover keeping an EXISTING trend alive).
-						if (side == 'L' && _cntSet && lp < _counter && (!_requireCloseConfirm || cp < _counter)) { _bosSet = false; SetTrend(RANGE); }
+						// trend survives. RequireBreach2Pivots: the level itself moves from the
+						// single most recent HL (BreachLevel falls back to _counter) to the OLDER of
+						// the last two confirmed HLs, so one failed higher-low no longer flips the
+						// trend -- it takes two in a row. Both gate only this flip-to-Range check,
+						// not BOS continuation or the initial Range->trend entry, per the user's
+						// explicit framing of the problem (an existing trend surviving a pullback).
+						if (side == 'L' && _cntSet)
+						{
+							double lvl = BreachLevel('L');
+							if (lp < lvl && (!_requireCloseConfirm || cp < lvl)) { _bosSet = false; SetTrend(RANGE); }
+						}
 						else if (side == 'H' && _bosSet && hp > _bosLevel) Bos(i, hp);
 					}
 					else // BEAR
 					{
-						if (side == 'H' && _cntSet && hp > _counter && (!_requireCloseConfirm || cp > _counter)) { _bosSet = false; SetTrend(RANGE); }
+						if (side == 'H' && _cntSet)
+						{
+							double lvl = BreachLevel('H');
+							if (hp > lvl && (!_requireCloseConfirm || cp > lvl)) { _bosSet = false; SetTrend(RANGE); }
+						}
 						else if (side == 'L' && _bosSet && lp < _bosLevel) Bos(i, lp);
 					}
 				}
@@ -667,6 +680,21 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 					}
 				}
 				return outp;
+			}
+
+			// The level price must breach to flip the current trend to Range. 'L' for BULL
+			// (checking against confirmed swing lows / HLs), 'H' for BEAR (swing highs / LHs).
+			// RequireBreach2Pivots off, or fewer than 2 same-kind pivots exist yet (trend just
+			// started): falls back to _counter, the existing single-pivot invalidation level.
+			// On: uses the OLDER of the last two confirmed same-kind pivots -- Min for lows,
+			// Max for highs, rather than assuming chronological order, so a non-monotonic pair
+			// (lag/session-boundary artifacts) still yields the stricter of the two levels.
+			private double BreachLevel(char kind)
+			{
+				if (!_requireBreach2Pivots) return _counter;
+				var tips = Tips(kind, 2);
+				if (tips.Count < 2) return _counter;
+				return kind == 'L' ? Math.Min(tips[0].Value, tips[1].Value) : Math.Max(tips[0].Value, tips[1].Value);
 			}
 
 			private static bool Extends(List<char> sKind, List<double> sPrice, char kind, double price)
@@ -777,6 +805,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 		[NinjaScriptProperty] [Display(Name = "Only calculate current session (skip history, cheaper on long charts)", GroupName = "Regime", Order = 3)] public bool CurrentSessionOnly { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Include prior session (current + last = 2 sessions, continuous across the roll)", GroupName = "Regime", Order = 4)] public bool IncludePriorSession { get; set; }
 		[NinjaScriptProperty] [Display(Name = "Require close beyond pivot to flip to Range (wick through without closing past it keeps trend intact)", GroupName = "Regime", Order = 5)] public bool RequireCloseConfirm { get; set; }
+		[NinjaScriptProperty] [Display(Name = "Require breach of last 2 pivots to flip to Range (one failed HL/LH alone won't flip it; stacks with the close-confirm option above)", GroupName = "Regime", Order = 6)] public bool RequireBreach2Pivots { get; set; }
 
 		[NinjaScriptProperty] [Range(0, 100)]
 		[Display(Name = "Band opacity %", GroupName = "Style", Order = -1)] public int ShadeOpacity { get; set; }
