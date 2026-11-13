@@ -279,6 +279,13 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 
 		// ── developing POC/Value-Area (S142+) ──────────────────────────────
 		private readonly Dictionary<double, double> _vapToday = new Dictionary<double, double>();
+		// Maintained incrementally in OnMarketData (one binary-search insert per NEW price
+		// level that prints) instead of rebuilt + full-sorted from _vapToday.Keys on every
+		// single RecomputeDevPocVa call (every bar close). On a live, actively-ticking tick
+		// chart that was a full O(n log n) re-sort of the whole day's price ladder on every
+		// bar, for no reason -- the set of traded prices only grows through the day, it never
+		// needs re-sorting from scratch.
+		private readonly List<double> _vapPricesSorted = new List<double>();
 		private double _devPoc = double.NaN, _devVah = double.NaN, _devVal = double.NaN;
 		// Bar-by-bar snapshot of today's developing POC/VAH/VAL (S145 revision) — one entry
 		// per RecomputeDevPocVa call (= once per bar close), so the chart can show the level
@@ -649,8 +656,13 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			double tick = TickSize > 0 ? TickSize : 0.25;
 			double px = Math.Round(e.Price / tick) * tick;
 			double v;
-			_vapToday.TryGetValue(px, out v);
+			bool isNewPrice = !_vapToday.TryGetValue(px, out v);
 			_vapToday[px] = v + e.Volume;
+			if (isNewPrice)
+			{
+				int idx = _vapPricesSorted.BinarySearch(px);
+				if (idx < 0) _vapPricesSorted.Insert(~idx, px);
+			}
 		}
 
 		protected override void OnBarUpdate()
@@ -1193,11 +1205,22 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 		}
 
 		// --- historical EM helpers: VIX close by date (whole CSV) + gexlog move per date ---
+		// 2026-11-13: called from DrawHistorical, which runs on every OnRender frame -- was
+		// doing File.Exists + File.GetLastWriteTimeUtc (two filesystem stat calls) EVERY
+		// frame forever, just to usually conclude "nothing changed, skip." Throttle the stat
+		// check itself to at most once every 3s (same idea as ReloadEm's existing 5s
+		// throttle) so a live, continuously-repainting chart isn't hitting the disk on every
+		// single frame for a file that changes once a day at most.
+		private DateTime _vixStatCheckedAt = DateTime.MinValue;
 		private void EnsureVixMap()
 		{
 			try
 			{
-				if (string.IsNullOrWhiteSpace(VixCsvPath) || !File.Exists(VixCsvPath)) return;
+				if (string.IsNullOrWhiteSpace(VixCsvPath)) return;
+				DateTime nowCheck = DateTime.Now;
+				if ((nowCheck - _vixStatCheckedAt).TotalSeconds < 3) return;
+				_vixStatCheckedAt = nowCheck;
+				if (!File.Exists(VixCsvPath)) return;
 				DateTime t = File.GetLastWriteTimeUtc(VixCsvPath);
 				if (t == _vixMapStamp && _vixByDate.Count > 0) return;
 				_vixMapStamp = t; _vixByDate.Clear();
@@ -1241,6 +1264,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			}
 			catch { }
 			_gexMoveByDate[date.Date] = v;
+			TrimOldestDate(_gexMoveByDate, 120);   // every other date-keyed cache in this file is bounded; this one wasn't
 			return v;
 		}
 
@@ -1278,9 +1302,11 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 			double pocPx = double.NaN, pocVol = -1, total = 0;
 			foreach (var kv in _vapToday) { total += kv.Value; if (kv.Value > pocVol) { pocVol = kv.Value; pocPx = kv.Key; } }
 
-			var prices = new List<double>(_vapToday.Keys);
-			prices.Sort();
-			int pocIdx = prices.IndexOf(pocPx);
+			// _vapPricesSorted is maintained incrementally by OnMarketData -- already sorted,
+			// no need to rebuild + re-sort the whole day's price ladder here on every bar.
+			List<double> prices = _vapPricesSorted;
+			int pocIdx = prices.BinarySearch(pocPx);
+			if (pocIdx < 0) pocIdx = Math.Max(0, ~pocIdx);   // exact match expected (pocPx is one of _vapToday's own keys); stay safe regardless
 			int lo = pocIdx, hi = pocIdx;
 			double acc = _vapToday[pocPx], target = VaPercent * total;
 			while (acc < target && (lo > 0 || hi < prices.Count - 1))
@@ -1323,6 +1349,7 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 				catch (Exception ex) { Print("SessionSRLevelsV10: could not write VP log: " + ex.Message); }
 			}
 			_vapToday.Clear();
+			_vapPricesSorted.Clear();
 			_devTrail.Clear();
 			_devPoc = _devVah = _devVal = double.NaN;
 		}
