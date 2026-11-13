@@ -2144,7 +2144,20 @@ namespace NinjaTrader.NinjaScript.Indicators.My
 				{
 					if (sh.active == this) sh.active = null;   // leave the buttons; another tab may still own them
 					sh.refs--;
-					if (sh.refs <= 0) ShowPanel(sh, false);    // last one gone -> hide the rows (no index surgery)
+					if (sh.refs <= 0)
+					{
+						ShowPanel(sh, false);    // hide the rows (no index surgery)
+						// 2026-11-13: _ctByGrid is STATIC -- this entry (the chart's Grid as key,
+						// plus the CtShared holding Button/RowDefinition refs) previously stayed in
+						// the dictionary FOREVER once created, for the life of the whole NT8
+						// process, even after every indicator instance on that chart was disposed
+						// (refs<=0, e.g. the chart window closed). A static dictionary that only
+						// grows is a real leak -- every chart this indicator was ever added to,
+						// across every F5 and every closed window, stayed rooted in memory. Remove
+						// the entry once nothing references it so the Grid/buttons/this chart's
+						// state can actually be garbage collected.
+						_ctByGrid.Remove(_ctGrid);
+					}
 				}
 				ctPanelActive = false;
 			}
